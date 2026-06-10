@@ -1,5 +1,6 @@
 ---
-disable-model-invocation: true
+name: resume
+description: Resume interrupted in-progress work from the checkpoint in .claude/memory/context.md. Use when a session starts with an AUTO-RESUME directive, or when the user asks to continue interrupted work.
 ---
 
 # Resume

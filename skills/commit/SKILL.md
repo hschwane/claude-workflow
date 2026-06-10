@@ -1,5 +1,7 @@
 ---
-disable-model-invocation: true
+name: commit
+description: Create a quality-gated conventional commit (format + lint + type-check before committing). Use whenever changes should be committed in a project using this workflow.
+argument-hint: "[optional commit message override]"
 ---
 
 # Commit
@@ -32,6 +34,8 @@ If nothing is staged: run `git add -A` after confirming with the user that they 
 - Python: `mypy {changed-files}`
 
 If any gate fails and auto-fix was not possible: report the errors and stop. Do NOT commit broken code.
+
+After auto-fixes (eslint --fix, prettier, ruff format, etc.): re-stage the modified files with `git add` so the fixes are included in the commit.
 
 ### 3. Generate Commit Message
 If no manual message was provided, analyze the staged diff and generate a conventional commit message:

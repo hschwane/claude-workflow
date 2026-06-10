@@ -1,4 +1,7 @@
 ---
+name: brainstorm
+description: Analyze the project state and generate backlog ideas in an interactive session — accepted ideas become drafts
+argument-hint: "[optional focus area]"
 disable-model-invocation: true
 ---
 
@@ -16,7 +19,7 @@ Analyzes the current project state and helps generate new backlog ideas through 
 ## Instructions
 
 ### 1. Spawn Analysis Agent
-Spawn a subagent (context:fork) with the following task:
+Invoke an analysis subagent (isolated context, e.g. the general-purpose agent) with the following task:
 
 > Read and summarize the project's current state. Input available:
 > - `docs/VISION.md` — product goals, target audience, non-goals

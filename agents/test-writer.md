@@ -1,7 +1,6 @@
 ---
 name: test-writer
-description: Writes failing tests based solely on acceptance criteria and interface definitions — never reads implementation code
-context: fork
+description: Writes failing tests based solely on acceptance criteria and interface definitions — never reads implementation code. Use during /implement Phase 1, before any implementation exists, to create the test suite that defines expected behavior.
 ---
 
 # Test Writer

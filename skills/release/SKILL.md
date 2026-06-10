@@ -1,4 +1,7 @@
 ---
+name: release
+description: Bump version (semver), update changelog, tag, push, and monitor the CI release pipeline
+argument-hint: "patch|minor|major"
 disable-model-invocation: true
 ---
 
@@ -19,7 +22,7 @@ Bumps the version, updates the changelog, creates a git tag, and pushes to trigg
 ### 1. Pre-flight Checks
 - Verify current branch is the release branch (usually `main` or `master`)
 - Run `git status` — working directory must be clean. If not: stop and report uncommitted changes.
-- Run all tests. Stop if any fail.
+- Run all tests and the linter. Stop if anything fails.
 - Read `docs/workflow/release.md` to understand the project's release configuration.
 
 ### 2. Determine Bump Type

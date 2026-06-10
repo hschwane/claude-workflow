@@ -1,4 +1,7 @@
 ---
+name: implement
+description: Implement a ready spec — tests first in an isolated subagent, then code per subtask with a commit after each
+argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
 disable-model-invocation: true
 ---
 
@@ -55,30 +58,23 @@ remaining_subtasks:
 saved_at: {timestamp}
 ```
 
-### 3. PHASE 1 — Test Writer (context:fork, isolated)
+### 3. PHASE 1 — Test Writer (isolated subagent)
 
-Spawn a subagent with the following context ONLY:
-- The spec section: Acceptance Criteria + Interface Definitions
-- Existing test files (for pattern/framework reference only — NOT for copying implementations)
-- The tech stack information from CLAUDE.md
-
-**Do NOT provide the subagent with:**
-- Any existing implementation code
-- The full codebase
-
-Invoke the `test-writer` agent (context:fork). Pass it ONLY:
+Invoke the `test-writer` subagent. Pass it ONLY:
 - The spec's **Acceptance Criteria** section
 - The spec's **Interface Definitions** section
-- 1-2 representative existing test files (for framework/style reference)
-- The project's test runner from CLAUDE.md
+- 1-2 representative existing test files (for framework/style reference only — NOT for copying implementations)
+- The project's test runner / tech stack from CLAUDE.md
 
-The agent's full instructions are in `.claude/agents/test-writer.md`. It will write a complete test suite covering every acceptance criterion, place tests in the correct location, and output the files.
+**Do NOT provide the subagent with any existing implementation code or the full codebase.** The isolation is the point: tests must encode the spec, not the implementation.
+
+The agent will write a complete test suite covering every acceptance criterion and place the tests in the correct location.
 
 After the subagent writes the tests:
 - Verify the test files are syntactically valid (run type-check if applicable)
 - Run the tests — they should FAIL (that's correct — there's no implementation yet)
   - If any tests PASS: warn the user that those might be testing existing code, not the new spec
-- Commit: `git add tests/ && git commit -m "test({scope}): add tests for {title}"`
+- Commit the new test files: `git add -A && git commit -m "test({scope}): add tests for {title}"`
 
 Update checkpoint: `last_completed: "Phase 1 complete — tests written and committed"`
 
@@ -140,7 +136,7 @@ If any tests fail: diagnose and fix before continuing.
 Fix any issues and commit: `git add -A && git commit -m "fix({scope}): address linter findings"`
 
 ### 6. Update Documentation
-Spawn `documentation-writer` agent (context:fork) with:
+Invoke the `documentation-writer` subagent with:
 - The spec (acceptance criteria + interface definitions)
 - The implemented interfaces (read the actual source files)
 - Current state of relevant docs (`docs/dev/architecture.md`, `docs/user/` if relevant)

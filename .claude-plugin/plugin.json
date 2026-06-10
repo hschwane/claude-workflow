@@ -1,29 +1,12 @@
 {
   "name": "claude-workflow",
-  "version": "1.0.0",
+  "displayName": "Claude Workflow",
+  "version": "1.1.0",
   "description": "Professional AI-assisted software development workflow: draft → refine → implement → PR → release",
-  "skills": [
-    { "name": "project-init",     "path": "skills/project-init/SKILL.md" },
-    { "name": "project-onboard",  "path": "skills/project-onboard/SKILL.md" },
-    { "name": "draft",            "path": "skills/draft/SKILL.md" },
-    { "name": "brainstorm",       "path": "skills/brainstorm/SKILL.md" },
-    { "name": "refine",           "path": "skills/refine/SKILL.md" },
-    { "name": "implement",        "path": "skills/implement/SKILL.md" },
-    { "name": "commit",           "path": "skills/commit/SKILL.md" },
-    { "name": "pr",               "path": "skills/pr/SKILL.md" },
-    { "name": "release",          "path": "skills/release/SKILL.md" },
-    { "name": "resume",           "path": "skills/resume/SKILL.md" },
-    { "name": "unsupervised",     "path": "skills/unsupervised/SKILL.md" },
-    { "name": "workflow-update",  "path": "skills/workflow-update/SKILL.md" }
-  ],
-  "agents": [
-    { "name": "requirements-engineer", "path": "agents/requirements-engineer.md" },
-    { "name": "tech-planner",          "path": "agents/tech-planner.md" },
-    { "name": "test-writer",           "path": "agents/test-writer.md" },
-    { "name": "code-reviewer",         "path": "agents/code-reviewer.md" },
-    { "name": "security-reviewer",     "path": "agents/security-reviewer.md" },
-    { "name": "architect-reviewer",    "path": "agents/architect-reviewer.md" },
-    { "name": "documentation-writer",  "path": "agents/documentation-writer.md" }
-  ],
-  "hooks": "hooks/hooks.json"
+  "author": {
+    "name": "Hendrik Schwanekamp",
+    "email": "hendrik.schwanekamp@gmx.net"
+  },
+  "license": "MIT",
+  "keywords": ["workflow", "tdd", "spec-driven", "ci", "code-review"]
 }

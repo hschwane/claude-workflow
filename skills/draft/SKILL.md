@@ -1,5 +1,7 @@
 ---
-disable-model-invocation: true
+name: draft
+description: Add a raw feature idea or bug report as a minimal backlog entry in docs/specs/backlog/. Use when the user wants to capture an idea or bug without planning it yet, or when /brainstorm accepts an idea.
+argument-hint: "feature|bug \"title\" [\"description\"]"
 ---
 
 # Draft
@@ -66,7 +68,7 @@ For bugs, replace User Story with:
 ### 4. GitHub Integration (if available)
 Check if GitHub remote exists: `git remote get-url origin`
 If it points to GitHub (contains `github.com`):
-- Create issue: `gh issue create --title "{title}" --label "feature,backlog" --body-file "{spec-file}"`
+- Create issue: `gh issue create --title "{title}" --label "{type},backlog" --body-file "{spec-file}"` (label `feature` or `bug` matching the type)
 - Note the returned issue number
 - Update spec frontmatter: `github_issue: {number}`
 

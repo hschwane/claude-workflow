@@ -1,7 +1,7 @@
 ---
 name: requirements-engineer
-description: Analyzes a raw feature/bug draft and produces structured requirements with user stories, acceptance criteria, and open questions
-context: fork
+description: Turns a raw feature/bug draft into structured requirements with user stories, acceptance criteria, and open questions. Use during /refine when a backlog draft needs requirements analysis. Read-only — outputs a requirements document, never edits files.
+disallowedTools: Write, Edit, NotebookEdit
 ---
 
 # Requirements Engineer

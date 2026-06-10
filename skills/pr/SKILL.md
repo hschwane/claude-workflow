@@ -1,4 +1,7 @@
 ---
+name: pr
+description: Create a pull request, wait for CI, run AI code/security/architecture reviews, fix findings, and auto-merge
+argument-hint: "[base-branch] [\"PR description\"]"
 disable-model-invocation: true
 ---
 
@@ -54,6 +57,8 @@ saved_at: {timestamp}
 ```
 
 ### 4. Wait for CI
+First check whether the repository has any checks configured for this PR (`gh pr checks {pr_url}`). If no checks exist (e.g., no CI workflow yet): note "No CI checks configured — skipping CI wait" and continue to step 5.
+
 ```
 gh pr checks {pr_url} --watch
 ```
@@ -70,7 +75,7 @@ Poll until all required checks finish. Print status as it updates.
 **If CI passes:** continue to step 5.
 
 ### 5. Code Review
-Spawn `code-reviewer` agent (context:fork) with:
+Invoke the `code-reviewer` subagent with:
 - Input: `git diff origin/{base}...HEAD` (full diff)
 - Input: root `CLAUDE.md` and `docs/dev/` style guides
 
@@ -81,7 +86,7 @@ Read the agent's report. For each `[MUST FIX]` finding:
 After all MUST FIX items are resolved, re-run CI if any code was changed (`gh pr checks --watch`).
 
 ### 6. Security Review
-Spawn `security-reviewer` agent (context:fork) with:
+Invoke the `security-reviewer` subagent with:
 - Input: `git diff origin/{base}...HEAD`
 
 For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
@@ -96,7 +101,7 @@ Only run if the diff includes:
 - Changes to module exports or public interfaces
 - Changes to `docs/dev/architecture.md` or ADRs
 
-Spawn `architect-reviewer` agent (context:fork) with:
+Invoke the `architect-reviewer` subagent with:
 - Input: `git diff origin/{base}...HEAD`
 - Input: `docs/dev/architecture.md`
 - Input: any ADRs in `docs/dev/adr/`
@@ -109,6 +114,7 @@ Update `.claude/memory/context.md` with current state after each review cycle.
 ### 9. Mark PR Ready + Merge
 - Convert draft PR to ready: `gh pr ready {pr_url}`
 - Auto-merge: `gh pr merge {pr_url} --squash --auto`
+  - If `--auto` fails because auto-merge is not enabled in the repo settings: merge directly with `gh pr merge {pr_url} --squash`
 
 **Instead, ask the user before merging if ANY of these apply:**
 - Merge conflicts exist

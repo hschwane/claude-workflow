@@ -1,4 +1,6 @@
 ---
+name: project-onboard
+description: Analyze an existing project and install the claude-workflow infrastructure without disrupting existing code
 disable-model-invocation: true
 ---
 
@@ -14,7 +16,7 @@ Analyzes an existing project and installs the claude-workflow infrastructure wit
 ## Instructions
 
 ### 1. Analyze Existing Project
-Spawn a subagent (context:fork) to explore the project:
+Invoke an exploration subagent (isolated context, e.g. the general-purpose agent) to explore the project:
 
 > Analyze this codebase and produce a concise report covering:
 > 1. Primary language(s) and tech stack
@@ -42,14 +44,14 @@ Ask (AskUserQuestion):
 Create `.claude/` directory with:
 ```
 .claude/
-├── settings.json          ← from hooks/hooks.json
+├── settings.json          ← from templates/hooks/hooks.json (merge `hooks` key if settings.json exists)
 ├── hooks/
 │   ├── auto-format.sh     ← parses stdin JSON, formats by language
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
 │   ├── completeness-check.sh
-│   └── session-start.sh   ← re-injects CLAUDE.md + shows in-progress work
+│   └── session-start.sh   ← shows in-progress work / auto-resume directive
 ├── agents/                ← copy all agent .md files
-├── skills/                ← copy all skill SKILL.md files
+├── skills/                ← copy all skill directories (each as {name}/SKILL.md)
 ├── workflow-source.json
 └── memory/
     ├── decisions.md
@@ -129,7 +131,7 @@ If CLAUDE.md already exists: offer to add the workflow commands table to it.
 
 ### 4. GitHub Setup (if applicable)
 If GitHub remote exists:
-- Create labels: `gh label create feature --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, small, medium, large)
+- Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, small, medium, large — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 
 ### 5. Commit

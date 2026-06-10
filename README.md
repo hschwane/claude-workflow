@@ -15,15 +15,17 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 | Refine | `/refine` | Requirements Engineer + Tech Planner iterate until spec is ready |
 | Implement | `/implement` | Tests written first (isolated context), then code per subtask |
 | PR | `/pr` | CI runs first, then AI reviews, then auto-merge |
+| Commit | `/commit` | Quality-gated conventional commit (format, lint, type-check) |
 | Release | `/release` | Semver bump, changelog, tag, CI publishes |
 | Recovery | `/resume` | Continue interrupted work from a saved checkpoint |
+| Autonomy | `/unsupervised on\|off` | No questions, autonomous defaults, loop-safe via `claude-loop.sh` |
 
 ## Key Design Principles
 
 - **Token-efficient**: Only load what's needed. Subdirectory CLAUDE.md files, on-demand agents, CI does the mechanical work.
 - **Self-contained after init**: Projects get copies of all workflow files. No permanent `--plugin-dir` needed.
 - **CI before AI**: GitHub Actions handles lint/typecheck/test/security. Claude only reviews after CI passes.
-- **Isolated agents**: Code review, security review, test writing — all run in `context:fork` for unbiased results.
+- **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are read-only (`disallowedTools: Write, Edit`).
 - **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits.
 - **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
 
@@ -74,10 +76,9 @@ Inside a project that uses this workflow:
 ## Repository Structure
 
 ```
-.claude-plugin/plugin.json    ← plugin manifest
-skills/                       ← 11 skills (SKILL.md per skill)
+.claude-plugin/plugin.json    ← plugin manifest (metadata only; components are auto-discovered)
+skills/                       ← 12 skills ({name}/SKILL.md per skill)
 agents/                       ← 7 agent definitions
-hooks/hooks.json              ← hook config template
 templates/
 ├── CLAUDE.md.template
 ├── CONTRIBUTING.md.template
@@ -86,7 +87,8 @@ templates/
 ├── workflow/                 ← workflow doc templates
 ├── configs/                  ← tsconfig.strict, eslint, pyproject, CMakeLists, etc.
 ├── github/                   ← CI/release/dependabot workflow templates
-└── hooks/                    ← auto-format, protect-files, completeness-check
+├── hooks/                    ← hooks.json (→ project .claude/settings.json) + hook scripts
+└── scripts/                  ← claude-loop.sh (unsupervised mode supervisor)
 ```
 
 ## Requirements

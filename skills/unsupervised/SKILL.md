@@ -1,4 +1,7 @@
 ---
+name: unsupervised
+description: Toggle unsupervised mode — no interactive questions, autonomous defaults, loop-safe blocker handling
+argument-hint: "on|off"
 disable-model-invocation: true
 ---
 
@@ -34,6 +37,7 @@ Claude will:
   ✓ Apply autonomous defaults (see below)
   ✓ Write "## Blocked" to context.md if human input is genuinely required
   ✓ Clear "## In Progress" when complete
+  ✓ Keep working: the Stop hook blocks premature stops while "## In Progress" exists
 
 Autonomous defaults:
   /refine       — fully-autonomous, auto-accept results
@@ -73,7 +77,7 @@ Read `.claude/memory/settings.md`. Print whether unsupervised mode is currently 
 
 ## Behavior When Unsupervised Mode is Active
 
-(This section is read by Claude at the start of each session, via CLAUDE.md → session-start hook.)
+(This behavior is anchored in the project CLAUDE.md "Session Behavior" section, which is always loaded; additionally the Stop hook blocks premature stops while unsupervised mode is on.)
 
 When `.claude/memory/settings.md` contains `unsupervised: true`:
 

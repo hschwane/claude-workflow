@@ -24,8 +24,9 @@
 
 Tech stack: {{TECH_STACK}}
 
-@docs/workflow/README.md
-@docs/dev/architecture.md
+Details (read on demand, not auto-loaded):
+- `docs/workflow/README.md` — workflow overview
+- `docs/dev/architecture.md` — architecture details
 
 ## Agents
 

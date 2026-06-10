@@ -1,7 +1,6 @@
 ---
 name: documentation-writer
-description: Updates project documentation after implementation — dev docs, user docs, and API references — based on the spec and implemented interfaces
-context: fork
+description: Updates project documentation after implementation — dev docs, user docs, and API references — based on the spec and implemented interfaces. Use at the end of /implement once all subtasks are done and tests pass.
 ---
 
 # Documentation Writer

@@ -1,4 +1,7 @@
 ---
+name: project-init
+description: Create a new project from scratch with full claude-workflow infrastructure — vision, architecture, configs, CI, hooks, and initial backlog
+argument-hint: "[project-name]"
 disable-model-invocation: true
 ---
 
@@ -190,18 +193,18 @@ Present them interactively (same pattern as `/brainstorm`). Accepted ideas → c
 gh repo create {project-name} --{public|private} --source=. --remote=origin
 ```
 
-Create GitHub labels:
+Create GitHub labels (`--force` updates labels that already exist, e.g. the default `bug` label):
 ```
-gh label create feature --color 0075ca --description "New feature"
-gh label create bug --color d73a4a --description "Bug report"
-gh label create backlog --color e4e669 --description "In backlog"
-gh label create refining --color 0075ca --description "Being refined"
-gh label create ready --color 0e8a16 --description "Ready to implement"
-gh label create "in-progress" --color fbca04 --description "Being implemented"
-gh label create done --color cfd3d7 --description "Implemented and merged"
-gh label create small --color bfd4f2 --description "Small effort"
-gh label create medium --color d4c5f9 --description "Medium effort"
-gh label create large --color e99695 --description "Large effort"
+gh label create feature --force --color 0075ca --description "New feature"
+gh label create bug --force --color d73a4a --description "Bug report"
+gh label create backlog --force --color e4e669 --description "In backlog"
+gh label create refining --force --color 0075ca --description "Being refined"
+gh label create ready --force --color 0e8a16 --description "Ready to implement"
+gh label create "in-progress" --force --color fbca04 --description "Being implemented"
+gh label create done --force --color cfd3d7 --description "Implemented and merged"
+gh label create small --force --color bfd4f2 --description "Small effort"
+gh label create medium --force --color d4c5f9 --description "Medium effort"
+gh label create large --force --color e99695 --description "Large effort"
 ```
 
 ### 11. Copy Docs Templates
@@ -224,9 +227,9 @@ From `templates/`:
 ### 12. Install Workflow Infrastructure
 Copy to `.claude/`:
 - All agent files from this plugin's `agents/`
-- All skill SKILL.md files from this plugin's `skills/`
+- All skill directories from this plugin's `skills/` (preserve the `{name}/SKILL.md` directory structure)
 - Hook scripts from this plugin's `templates/hooks/` (all 4: auto-format, protect-files, completeness-check, session-start)
-- `hooks/hooks.json` → `.claude/settings.json`
+- `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` key into it)
 
 Write `.claude/workflow-source.json`:
 ```json

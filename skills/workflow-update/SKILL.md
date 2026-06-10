@@ -1,4 +1,7 @@
 ---
+name: workflow-update
+description: Update the claude-workflow files in this project to a newer plugin version without touching project-specific files
+argument-hint: "[version tag, e.g. v1.3.0]"
 disable-model-invocation: true
 ---
 
@@ -55,11 +58,12 @@ If breaking changes exist, show them explicitly and ask separately: "This update
 Copy only the **system files** from the temp clone to this project's `.claude/`:
 ```
 # Overwrite (system files — always updated):
-.claude/agents/          ← copy all from temp clone
-.claude/skills/          ← copy all from temp clone
+.claude/agents/          ← copy all from temp clone (agents/)
+.claude/skills/          ← copy all from temp clone (skills/, preserving {name}/SKILL.md structure)
+.claude/hooks/*.sh       ← copy all from temp clone (templates/hooks/*.sh)
 
-# Smart merge (hooks — add new hooks, never remove existing ones):
-.claude/hooks/           ← merge, not overwrite
+# Smart merge (hook configuration — add new entries, never remove existing ones):
+.claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json
 ```
 
 **Never touch** (project-specific files):
@@ -68,9 +72,10 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 - `docs/`
 - `.claude/memory/`
 - `.claude/workflow-source.json` (updated separately in step 6)
+- Any other keys in `.claude/settings.json` (permissions, env, etc.)
 - Any project source files
 
-For the hooks merge: read current hooks.json, read new hooks.json, add any new hook entries that don't exist yet. Do not remove entries.
+For the hooks merge: read the `hooks` key of the current `.claude/settings.json`, read the new `templates/hooks/hooks.json`, add any new hook entries that don't exist yet. Do not remove entries the project added.
 
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
@@ -81,7 +86,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf "$TMPDIR"
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/workflow-source.json
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 
