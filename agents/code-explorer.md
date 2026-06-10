@@ -1,6 +1,6 @@
 ---
 name: code-explorer
-description: Explores the codebase to answer a specific question — finds relevant files, interfaces, patterns, and call sites, and returns a condensed briefing with file:line references. Use PROACTIVELY before implementing in unfamiliar code, for the codebase summary during /refine, during /project-onboard, and whenever answering a question would require reading more than 3-4 files. Read-only.
+description: Explores the codebase to answer a specific question — finds relevant files, interfaces, patterns, and call sites, and returns a condensed briefing with file:line references. Use PROACTIVELY before implementing in unfamiliar code, for the codebase summary during /refine, during /project-onboard, and whenever answering a question would require reading more than 3-4 files AND the answer needs judgment (patterns, pitfalls, interfaces). For pure file/symbol discovery with no judgment needed ("where is X defined?"), use the built-in Explore agent instead — it runs on Haiku and is cheaper. Read-only.
 disallowedTools: Write, Edit, NotebookEdit
 model: sonnet
 ---

@@ -65,6 +65,10 @@ Each agent pins the cheapest model that reliably does its job (`model` frontmatt
 | `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
 | `inherit` (your session model) | `requirements-engineer`, `tech-planner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` | Planning and reviews are where model quality pays off most. You control the tier with `/model` — run Opus for a tricky refinement, Sonnet for routine work |
 
+**Interactive tier choice**: `/refine` and `/pr` ask once per run (supervised mode only) which tier their `inherit`-agents should use — **session model** (recommended) / **better than Sonnet** (Opus, Fable, … lumped together; passed as `opus`) / **Sonnet** / **Haiku**. The answer is passed as the per-invocation `model` parameter (resolution order: `CLAUDE_CODE_SUBAGENT_MODEL` env var > per-invocation parameter > agent frontmatter > session model), so your session model itself never changes. Pinned agents (haiku/sonnet tiers above) are unaffected. In unsupervised mode the question is skipped and the session model applies.
+
+**Pure discovery vs. understanding**: for "where is X?" questions Claude Code's **built-in Explore agent** (Haiku, read-only) is the right tool — the plugin deliberately ships no duplicate. `code-explorer` (Sonnet) is for briefings that need judgment: patterns, pitfalls, interface summaries.
+
 Overrides, from broadest to narrowest:
 - `CLAUDE_CODE_SUBAGENT_MODEL` env var forces one model for **all** subagents (beats everything)
 - Edit the `model:` line in `.claude/agents/{name}.md` in your project (after init/onboard the files are local)

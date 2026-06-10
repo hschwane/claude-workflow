@@ -26,6 +26,13 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
   - otherwise: `main` / `master`
 - Push the feature branch if not already pushed: `git push -u origin {branch}` (pushing feature branches is always allowed — the quality gate applies to the merge, not the push)
 - Check that the branch has commits not on the base: `git log origin/{base}..HEAD --oneline`
+- **Model tier for the review agents** (ask now, before the CI wait, so the user can walk away). The three reviewers are `model: inherit` agents; pass the choice as the per-invocation `model` parameter. Ask (AskUserQuestion): "Which model quality for the code/security/architecture reviews?"
+  - `session-model` (recommended — name the current session model in the option label)
+  - `better-than-sonnet`: pass `opus` — for large or risky diffs when the session runs Sonnet
+  - `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the diff is routine
+  - `haiku`: pass `haiku` — not recommended; review depth (especially security) will suffer
+
+  In unsupervised mode: skip the question, use `session-model`.
 
 ### 2. Create Pull Request
 ```
@@ -79,7 +86,7 @@ Poll until all required checks finish. Print status as it updates.
 **If CI passes:** continue to step 5.
 
 ### 5. Code Review
-Invoke the `code-reviewer` subagent with:
+Invoke the `code-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD` (full diff)
 - Input: root `CLAUDE.md` and `docs/dev/` style guides
 
@@ -90,7 +97,7 @@ Read the agent's report. For each `[MUST FIX]` finding:
 After all MUST FIX items are resolved, re-run CI if any code was changed (`gh pr checks --watch`).
 
 ### 6. Security Review
-Invoke the `security-reviewer` subagent with:
+Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD`
 
 For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
@@ -105,7 +112,7 @@ Only run if the diff includes:
 - Changes to module exports or public interfaces
 - Changes to `docs/dev/architecture.md` or ADRs
 
-Invoke the `architect-reviewer` subagent with:
+Invoke the `architect-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD`
 - Input: `docs/dev/architecture.md`
 - Input: any ADRs in `docs/dev/adr/`

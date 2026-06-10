@@ -46,7 +46,9 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 
 Likewise, use the workflow skills (`/commit`, `/draft`, `/resume`) whenever they match the task instead of ad-hoc equivalents.
 
-Model routing: agents pin their own model (`haiku` for mechanical work, `sonnet` for execution); planning/review agents inherit the session model — switch with `/model` to control their quality/cost. Adjust per agent in `.claude/agents/{name}.md`.
+Model routing: agents pin their own model (`haiku` for mechanical work, `sonnet` for execution); planning/review agents inherit the session model. `/refine` and `/pr` ask once (supervised mode only) which tier their inherit-agents should use — session model / better-than-Sonnet (`opus`) / `sonnet` / `haiku` — and pass it as the per-invocation `model` parameter. Adjust defaults per agent in `.claude/agents/{name}.md`.
+
+For pure "where is X?" file/symbol discovery, use the **built-in Explore agent** (Haiku) — `code-explorer` is for briefings that need judgment (patterns, pitfalls, interfaces).
 
 ## Session Behavior
 
