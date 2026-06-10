@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, master, develop]
   push:
-    branches: [main, master]
+    branches: [main, master, develop]
 
 jobs:
   ci:
@@ -31,7 +31,8 @@ jobs:
         run: npm test -- --coverage
 
       - name: Security audit
-        run: npm audit --audit-level=moderate
+        # high+ blocks the build; moderate findings in transitive deps are often unfixable
+        run: npm audit --audit-level=high
 
       - name: Build
         run: npm run build

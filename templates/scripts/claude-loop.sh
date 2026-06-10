@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
-# Unsupervised mode supervisor.
-# Runs Claude in a loop, automatically resuming after rate limit resets.
-# Claude will not ask interactive questions; any genuine blocker is written
-# to .claude/memory/context.md as "## Blocked" and this script exits.
+# OPTIONAL headless fallback for unsupervised mode.
+#
+# The primary unsupervised design is in-session: the Stop hook keeps Claude
+# working and the usage guard pauses/resumes inside the open session (works in
+# the terminal AND the VS Code extension — just leave the session open).
+# Use this script only when no session can stay open (e.g. overnight on a
+# server, or to recover unattended after a crash / hard rate limit).
+#
+# Runs Claude headless in a loop, resuming from the checkpoint each time.
+# Respects the usage threshold from .claude/memory/settings.md (waits via
+# usage-guard.sh before each session). Any genuine blocker is written to
+# .claude/memory/context.md as "## Blocked" and this script exits.
 #
 # Usage:
-#   ./scripts/claude-loop.sh                  # default: 60min reset, 20 sessions max
+#   ./scripts/claude-loop.sh                  # default: 60min reset wait, 20 sessions max
 #   ./scripts/claude-loop.sh 60               # reset wait in minutes
 #   ./scripts/claude-loop.sh 60 20            # reset minutes + max session count
+#
+# Environment:
+#   CLAUDE_LOOP_PERMISSIONS  Extra permission flags passed to claude.
+#                            Default: "--dangerously-skip-permissions"
+#                            (required for unattended runs — tool calls would
+#                            otherwise hang on permission prompts. Only use in
+#                            a trusted repository, ideally in a container/VM.)
 #
 # Prerequisites:
 #   - In-progress work in .claude/memory/context.md (set up via /unsupervised on, then start task)
@@ -17,9 +32,11 @@ set -euo pipefail
 
 RESET_MINUTES=${1:-60}
 MAX_SESSIONS=${2:-20}
-SESSION_TIMEOUT="2h"   # kill a session that hangs waiting for input
+SESSION_TIMEOUT="2h"   # kill a session that hangs
 CONTEXT_FILE=".claude/memory/context.md"
 LOG_FILE=".claude/memory/unsupervised.log"
+PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
+RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in .claude/memory/context.md. Follow the /resume skill: read the checkpoint, verify the git state, and continue from next_step. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to .claude/memory/context.md and stop. When everything is complete, clear the '## In Progress' section."
 
 log() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -54,6 +71,7 @@ fi
 
 mkdir -p ".claude/memory"
 log "Unsupervised loop started. Reset: ${RESET_MINUTES}min, max sessions: ${MAX_SESSIONS}."
+log "Permissions: $PERMISSION_FLAGS"
 log "Log: $LOG_FILE"
 echo ""
 
@@ -62,12 +80,27 @@ echo ""
 SESSION=0
 while [ $SESSION -lt $MAX_SESSIONS ]; do
   SESSION=$((SESSION + 1))
+
+  # Respect the usage threshold before starting a session
+  if [ -x ".claude/hooks/usage-guard.sh" ] || [ -f ".claude/hooks/usage-guard.sh" ]; then
+    while true; do
+      GUARD_OUT=$(bash .claude/hooks/usage-guard.sh --wait 2>/dev/null || true)
+      echo "$GUARD_OUT" | grep -q "RESUME_OK" && break
+      log "Usage threshold active — waiting. ($GUARD_OUT)"
+      sleep 120
+    done
+  fi
+
   log "Session $SESSION / $MAX_SESSIONS starting..."
 
-  # Run Claude with a timeout so it can't hang forever waiting for user input.
-  # SessionStart hook fires → AUTO-RESUME REQUIRED → Claude continues the task.
+  # Headless run (-p): claude executes one autonomous session and exits.
+  # Each session starts FRESH on purpose — all needed state lives in the
+  # checkpoint (.claude/memory/context.md), which the SessionStart hook
+  # injects. Fresh sessions are deterministic, work on the first run, and
+  # don't re-load a huge prior conversation right after a rate limit.
   EXIT=0
-  timeout "$SESSION_TIMEOUT" claude --continue || EXIT=$?
+  timeout "$SESSION_TIMEOUT" claude -p "$RESUME_PROMPT" \
+    $PERMISSION_FLAGS 2>&1 | tee -a "$LOG_FILE" || EXIT=$?
 
   # ── Evaluate outcome ────────────────────────────────────────────────────────
 
@@ -90,17 +123,12 @@ while [ $SESSION -lt $MAX_SESSIONS ]; do
     exit 0
   fi
 
-  # Still in progress — session ended due to rate limit or timeout
+  # Still in progress — session ended due to rate limit, error, or timeout
   if [ $EXIT -eq 124 ]; then
     log "Session timed out (>${SESSION_TIMEOUT}). Restarting immediately."
   else
     log "Session ended (exit $EXIT). Waiting ${RESET_MINUTES}min for rate limit reset..."
-    SECS=$((RESET_MINUTES * 60))
-    while [ $SECS -gt 0 ]; do
-      sleep 60
-      SECS=$((SECS - 60))
-      [ $SECS -gt 0 ] && log "  ${SECS}s remaining..."
-    done
+    sleep $((RESET_MINUTES * 60))
     log "Reset wait complete."
   fi
 done

@@ -1,4 +1,7 @@
 ---
+name: refine
+description: Turn a raw backlog draft into a ready-to-implement spec via iterative Requirements Engineer + Tech Planner loop
+argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
 disable-model-invocation: true
 ---
 
@@ -52,7 +55,7 @@ saved_at: {timestamp}
 
 ### 2. Requirements Engineering Phase
 
-Spawn `requirements-engineer` agent (context:fork) with:
+Invoke the `requirements-engineer` subagent (runs in its own isolated context) with:
 ```
 DRAFT: {full spec file content}
 VISION: {docs/VISION.md content}
@@ -67,17 +70,19 @@ Update checkpoint.
 
 ### 3. Tech Planning Phase
 
-Spawn `tech-planner` agent (context:fork) with:
+Invoke the `tech-planner` subagent (isolated context) with:
 ```
 RE_OUTPUT: {requirements engineer's output}
 CODEBASE_SUMMARY: {result of reading: tree structure + key src/ files}
 ARCHITECTURE: {docs/dev/architecture.md content if exists}
 ```
 
-For the codebase summary, read:
-- Top-level directory structure
-- Any existing modules similar to what the spec requires
-- Existing interfaces/types relevant to the spec
+For the codebase summary, invoke the `code-explorer` subagent with:
+```
+QUESTION: Which existing modules, interfaces, and patterns are relevant to implementing this spec? {one-line spec summary}
+SCOPE: {affected areas if known}
+```
+Its briefing (relevant files, key interfaces, patterns, pitfalls) becomes `CODEBASE_SUMMARY`. This keeps the file reading out of both the main context and the tech-planner's context.
 
 Read the TP output. Check:
 - Does it have `[TECH]` open questions (for RE)?

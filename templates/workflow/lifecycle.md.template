@@ -33,11 +33,24 @@ Run with `/release patch|minor|major`.
 
 ## Branching
 
+This project uses: **{{BRANCHING_MODEL}}**
+
+### Common rules (both models)
 | Branch | Purpose |
 |--------|---------|
-| `main` | Always deployable. Direct pushes only for hotfixes. |
 | `feature/feat-001-title` | Feature branches — one per spec |
 | `fix/bug-042-title` | Bug fix branches |
 | `chore/description` | Maintenance work |
 
-Branches are created by `/implement` and deleted by `/pr` after merge.
+- **Pushing to feature branches is always allowed** — push after every commit (backup, visibility).
+- **The quality gate sits at the merge, not the push**: merging into the integration branch happens only via `/pr` (CI green + AI reviews passed).
+- Branches are created by `/implement` and deleted by `/pr` after merge.
+
+### main-only
+- Feature branches merge into `main` via `/pr`.
+- `/release` tags directly on `main`.
+
+### git flow
+- `develop` is the integration branch — all feature/fix branches merge into `develop` via `/pr`.
+- `master` contains **only released states**: `/release` tests `develop`, fixes remaining bugs, then merges `develop` → `master` and tags the merge commit. The tip of `master` always equals the latest release.
+- Nobody pushes directly to `develop` or `master` (exception: the release merge performed by `/release`).

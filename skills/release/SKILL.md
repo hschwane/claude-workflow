@@ -1,4 +1,7 @@
 ---
+name: release
+description: Bump version (semver), update changelog, tag, push, and monitor the CI release pipeline
+argument-hint: "patch|minor|major"
 disable-model-invocation: true
 ---
 
@@ -17,10 +20,16 @@ Bumps the version, updates the changelog, creates a git tag, and pushes to trigg
 ## Instructions
 
 ### 1. Pre-flight Checks
-- Verify current branch is the release branch (usually `main` or `master`)
+- Read `docs/workflow/release.md` to understand the project's release configuration, especially the **branching model**.
+- Determine the branching model:
+  - **git flow** if release.md says so, or if a `develop` branch exists
+  - **main-only** otherwise
+- Verify you are on the correct branch:
+  - main-only: the release branch (`main` / `master`)
+  - git flow: `develop` (the release is prepared on develop, then merged to `master`)
 - Run `git status` — working directory must be clean. If not: stop and report uncommitted changes.
-- Run all tests. Stop if any fail.
-- Read `docs/workflow/release.md` to understand the project's release configuration.
+- Pull latest (`git pull`) so the release includes everything merged so far.
+- Run all tests and the linter via the `test-runner` subagent (keeps the output out of the main context). Stop if anything fails — in git flow, fix bugs on develop (via the normal feature/fix workflow or direct commits for trivial fixes) before releasing.
 
 ### 2. Determine Bump Type
 If no bump type was provided as an argument, ask the user:
@@ -89,6 +98,8 @@ Group by conventional commit type:
 Insert this entry at the top of `CHANGELOG.md` (after the `# Changelog` header).
 
 ### 7. Commit, Tag, Push
+
+**Main-only model:**
 ```
 git add -A
 git commit -m "chore: release v{new_version}"
@@ -96,6 +107,27 @@ git tag v{new_version}
 git push
 git push --tags
 ```
+
+**Git flow model** (the tip of `master` must always equal the latest released state):
+```
+# 1. Release commit on develop
+git add -A
+git commit -m "chore: release v{new_version}"
+git push origin develop
+
+# 2. Merge develop into master and tag the merge commit
+git checkout master
+git pull origin master
+git merge --no-ff develop -m "chore: merge develop for release v{new_version}"
+git tag v{new_version}
+git push origin master --tags
+
+# 3. Sync the merge commit back into develop, return to develop
+git checkout develop
+git merge master
+git push origin develop
+```
+If the merge into `master` produces conflicts: stop and ask the user (in unsupervised mode: write `## Blocked`).
 
 ### 8. Wait for CI Release
 If GitHub remote exists: monitor CI pipeline:

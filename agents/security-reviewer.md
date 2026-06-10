@@ -1,7 +1,7 @@
 ---
 name: security-reviewer
-description: Reviews code changes for security vulnerabilities, insecure patterns, and OWASP Top 10 risks
-context: fork
+description: Reviews code changes for security vulnerabilities, insecure patterns, and OWASP Top 10 risks. Use during /pr and whenever changes touch authentication, user input handling, secrets, or external interfaces. Read-only — reports findings, never edits files.
+disallowedTools: Write, Edit, NotebookEdit
 ---
 
 # Security Reviewer
@@ -81,7 +81,5 @@ Suggestion: Remove token from log message or hash it: `log.info('Session created
 ## Severity Levels
 - `[CRITICAL]`: Exploitable vulnerability — immediate fix required, must not merge
 - `[HIGH]`: Serious risk, fix before merge
-- `[MODERATE]`: Should be fixed, acceptable to fix in follow-up ticket
+- `[MODERATE]`: Should be fixed before merge; may be deferred to a follow-up ticket only with an explicit note in the PR
 - `[INFO]`: Awareness item, no action required
-
-**All findings (CRITICAL, HIGH, MODERATE) must be addressed before merge.**

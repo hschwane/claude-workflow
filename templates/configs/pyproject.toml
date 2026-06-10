@@ -34,7 +34,6 @@ select = [
   "ANN",       # flake8-annotations (type hints)
   "RUF",       # ruff-specific
 ]
-ignore = ["ANN101", "ANN102"]
 
 [tool.mypy]
 python_version = "3.11"

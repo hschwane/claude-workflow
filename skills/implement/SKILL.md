@@ -1,4 +1,7 @@
 ---
+name: implement
+description: Implement a ready spec — tests first in an isolated subagent, then code per subtask with a commit after each
+argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
 disable-model-invocation: true
 ---
 
@@ -32,8 +35,10 @@ Read the spec file. Verify the Definition of Ready checklist:
 If DoR is not met: list what's missing and stop. Suggest `/refine {id}`.
 
 ### 1. Set Up Branch
-Check current branch. If not on a feature branch for this spec:
+Check current branch. If not on a feature branch for this spec, branch from the integration branch (`develop` if it exists — git flow; otherwise `main`/`master`):
 ```
+git checkout {develop|main}
+git pull
 git checkout -b feature/{lowercase-id}-{kebab-title}
 ```
 Example: `feature/feat-001-oauth-login`
@@ -41,7 +46,7 @@ Example: `feature/feat-001-oauth-login`
 Update spec frontmatter: `status: ready` → `status: in-progress`. File stays in `docs/specs/ready/`.
 
 ### 2. Save Initial Checkpoint
-Write to `.claude/memory/context.md`:
+Write to `.claude/memory/context.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
 ```markdown
 ## In Progress
 task: {SPEC_ID} - {title}
@@ -50,35 +55,26 @@ branch: {branch}
 spec_file: {spec_path}
 last_completed: "Started implementation"
 next_step: "Phase 1: Write failing tests"
-remaining_subtasks:
-{list all subtasks}
 saved_at: {timestamp}
 ```
 
-### 3. PHASE 1 — Test Writer (context:fork, isolated)
+### 3. PHASE 1 — Test Writer (isolated subagent)
 
-Spawn a subagent with the following context ONLY:
-- The spec section: Acceptance Criteria + Interface Definitions
-- Existing test files (for pattern/framework reference only — NOT for copying implementations)
-- The tech stack information from CLAUDE.md
-
-**Do NOT provide the subagent with:**
-- Any existing implementation code
-- The full codebase
-
-Invoke the `test-writer` agent (context:fork). Pass it ONLY:
+Invoke the `test-writer` subagent. Pass it ONLY:
 - The spec's **Acceptance Criteria** section
 - The spec's **Interface Definitions** section
-- 1-2 representative existing test files (for framework/style reference)
-- The project's test runner from CLAUDE.md
+- 1-2 representative existing test files (for framework/style reference only — NOT for copying implementations)
+- The project's test runner / tech stack from CLAUDE.md
 
-The agent's full instructions are in `.claude/agents/test-writer.md`. It will write a complete test suite covering every acceptance criterion, place tests in the correct location, and output the files.
+**Do NOT provide the subagent with any existing implementation code or the full codebase.** The isolation is the point: tests must encode the spec, not the implementation.
+
+The agent will write a complete test suite covering every acceptance criterion and place the tests in the correct location.
 
 After the subagent writes the tests:
 - Verify the test files are syntactically valid (run type-check if applicable)
 - Run the tests — they should FAIL (that's correct — there's no implementation yet)
   - If any tests PASS: warn the user that those might be testing existing code, not the new spec
-- Commit: `git add tests/ && git commit -m "test({scope}): add tests for {title}"`
+- Commit the new test files: `git add -A && git commit -m "test({scope}): add tests for {title}"`
 
 Update checkpoint: `last_completed: "Phase 1 complete — tests written and committed"`
 
@@ -99,37 +95,25 @@ Now implement each subtask in order. For each subtask:
 
 If tests fail: fix the implementation. Do not proceed to the next subtask until these tests pass.
 
-**d) Commit the subtask:**
+**d) Commit and push the subtask:**
 ```
 git add -A
 git commit -m "{type}({scope}): {subtask description}"
+git push -u origin {branch}
 ```
-Use `feat` for features, `fix` for bugs.
+Use `feat` for features, `fix` for bugs. Pushing the feature branch after every commit is fine and serves as a backup — the quality gate (CI + reviews) happens when merging via `/pr`, not on push.
 
-**e) Update checkpoint:**
-```markdown
-## In Progress
-task: {SPEC_ID} - {title}
-phase: implement
-branch: {branch}
-spec_file: {spec_path}
-last_completed: "Subtask #{N}: {description} — committed {hash}"
-next_step: "Subtask #{N+1}: {description}"
-remaining_subtasks:
-  - #{N+1}: ...
-saved_at: {timestamp}
-```
+**e) Update progress** (two small edits, ~50 tokens total):
+1. Tick the subtask's checkbox in the spec file (`- [ ] #N:` → `- [x] #N:`) — **the spec is the single source of truth for remaining work**
+2. Update only the changed lines in the checkpoint: `last_completed`, `next_step`, `saved_at`
 
-This ensures `/resume` can pick up from exactly the right subtask.
+This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
 
 ### 5. Final Verification
 After all subtasks are complete:
 
-**a) Run ALL tests** (not just the ones for this spec):
-```
-npm test     # or: pytest / cargo test / ctest
-```
-If any tests fail: diagnose and fix before continuing.
+**a) Run ALL tests** (not just the ones for this spec): invoke the `test-runner` subagent to run the full suite — it returns a condensed failure report instead of flooding the main context with test output.
+If any tests fail: fix based on the report (read the failing test files directly if needed), then re-run via `test-runner` until green.
 
 **b) Run linter:**
 - TypeScript: `npx eslint . && npx tsc --noEmit`
@@ -140,7 +124,7 @@ If any tests fail: diagnose and fix before continuing.
 Fix any issues and commit: `git add -A && git commit -m "fix({scope}): address linter findings"`
 
 ### 6. Update Documentation
-Spawn `documentation-writer` agent (context:fork) with:
+Invoke the `documentation-writer` subagent with:
 - The spec (acceptance criteria + interface definitions)
 - The implemented interfaces (read the actual source files)
 - Current state of relevant docs (`docs/dev/architecture.md`, `docs/user/` if relevant)

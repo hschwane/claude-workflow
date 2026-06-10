@@ -1,5 +1,7 @@
 ---
-disable-model-invocation: true
+name: commit
+description: Create a quality-gated conventional commit (format + lint + type-check before committing). Use whenever changes should be committed in a project using this workflow.
+argument-hint: "[optional commit message override]"
 ---
 
 # Commit
@@ -33,6 +35,8 @@ If nothing is staged: run `git add -A` after confirming with the user that they 
 
 If any gate fails and auto-fix was not possible: report the errors and stop. Do NOT commit broken code.
 
+After auto-fixes (eslint --fix, prettier, ruff format, etc.): re-stage the modified files with `git add` so the fixes are included in the commit.
+
 ### 3. Generate Commit Message
 If no manual message was provided, analyze the staged diff and generate a conventional commit message:
 
@@ -59,5 +63,8 @@ Rules:
 git commit -m "{generated-message}"
 ```
 
-### 5. Report
+### 5. Push (feature branches)
+If on a feature/fix/chore branch: push it (`git push -u origin {branch}`). Pushing work branches after every commit is allowed and encouraged (backup, visibility) — the quality gate applies when merging via `/pr`. Never push directly to `develop`, `main`, or `master` (exception: `/release` performs the release merge).
+
+### 6. Report
 Print the commit hash and message. Suggest next step if obvious (e.g., "Next: /pr to create a pull request").
