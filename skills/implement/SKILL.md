@@ -46,7 +46,7 @@ Example: `feature/feat-001-oauth-login`
 Update spec frontmatter: `status: ready` → `status: in-progress`. File stays in `docs/specs/ready/`.
 
 ### 2. Save Initial Checkpoint
-Write to `.claude/memory/context.md`:
+Write to `.claude/memory/context.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
 ```markdown
 ## In Progress
 task: {SPEC_ID} - {title}
@@ -55,8 +55,6 @@ branch: {branch}
 spec_file: {spec_path}
 last_completed: "Started implementation"
 next_step: "Phase 1: Write failing tests"
-remaining_subtasks:
-{list all subtasks}
 saved_at: {timestamp}
 ```
 
@@ -105,21 +103,11 @@ git push -u origin {branch}
 ```
 Use `feat` for features, `fix` for bugs. Pushing the feature branch after every commit is fine and serves as a backup — the quality gate (CI + reviews) happens when merging via `/pr`, not on push.
 
-**e) Update checkpoint:**
-```markdown
-## In Progress
-task: {SPEC_ID} - {title}
-phase: implement
-branch: {branch}
-spec_file: {spec_path}
-last_completed: "Subtask #{N}: {description} — committed {hash}"
-next_step: "Subtask #{N+1}: {description}"
-remaining_subtasks:
-  - #{N+1}: ...
-saved_at: {timestamp}
-```
+**e) Update progress** (two small edits, ~50 tokens total):
+1. Tick the subtask's checkbox in the spec file (`- [ ] #N:` → `- [x] #N:`) — **the spec is the single source of truth for remaining work**
+2. Update only the changed lines in the checkpoint: `last_completed`, `next_step`, `saved_at`
 
-This ensures `/resume` can pick up from exactly the right subtask.
+This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
 
 ### 5. Final Verification
 After all subtasks are complete:

@@ -36,7 +36,7 @@ fi
 
 if [ "$UNSUPERVISED" = "true" ] && [ "$STOP_ACTIVE" != "true" ]; then
   # Block the stop and tell Claude to continue the checkpointed work
-  echo '{"decision": "block", "reason": "Unsupervised mode is active and .claude/memory/context.md still contains an In Progress section. Continue the work from the checkpoint (next_step). If you are genuinely blocked, write a Blocked section to .claude/memory/context.md; if the work is complete, clear the In Progress section."}'
+  echo '{"decision": "block", "reason": "Unsupervised mode is active and .claude/memory/context.md still contains an In Progress section. Continue the work from the checkpoint (next_step). If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to .claude/memory/context.md; if the work is complete, clear the In Progress section."}'
   exit 0
 fi
 

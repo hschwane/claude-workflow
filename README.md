@@ -33,7 +33,7 @@ The development lifecycle:
 | `/pr` | Create draft PR → wait for CI → `code-reviewer`, `security-reviewer`, conditionally `architect-reviewer` → fix all findings → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
 | `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context.md` |
-| `/unsupervised on\|off` | Toggle autonomous mode — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
+| `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 
 ## Agents
 
@@ -99,42 +99,44 @@ Pushing rules in both models: **push your feature branch freely after every comm
 
 ## Unsupervised Mode & Resume Logic
 
-Unsupervised mode lets a long task (or a queue of tasks) run without a human, surviving rate limits and session ends. The moving parts:
+Unsupervised mode lets a long task (or a queue of tasks) run without a human. The primary design is **in-session**: you start a task, leave the session open (terminal or VS Code extension — same console, context preserved), and the hooks keep Claude working, pause it when your token budget runs low, and resume it automatically.
+
+```
+/unsupervised on 80       # enable; pause at 80% of the 5h or weekly limit
+/implement FEAT-001       # start the task, leave the session open
+```
+
+The moving parts:
 
 | Piece | Role |
 |-------|------|
-| `.claude/memory/settings.md` | `unsupervised: true` — the mode flag, set by `/unsupervised on` |
-| `.claude/memory/context.md` | The checkpoint: `## In Progress` with task, branch, last completed step, next step |
-| `session-start.sh` (SessionStart hook) | Injects the checkpoint + "AUTO-RESUME REQUIRED" directive into every new session |
-| `completeness-check.sh` (Stop hook) | In unsupervised mode, blocks Claude from stopping while `## In Progress` exists (with a loop guard via `stop_hook_active`) |
-| `scripts/claude-loop.sh` | Outer supervisor: restarts headless sessions until done or blocked |
+| `.claude/memory/settings.md` | `unsupervised: true` + optional `usage_threshold: 80` — set by `/unsupervised on [80]` |
+| `.claude/memory/context.md` | The checkpoint: task, branch, spec pointer, last/next step (subtask progress lives in the spec's checkboxes) |
+| `completeness-check.sh` (Stop hook) | Blocks Claude from stopping while `## In Progress` exists (loop guard via `stop_hook_active`) |
+| `usage-guard.sh` (PostToolUse hook) | Watches session (5h) and weekly (7d) usage; trips at the threshold |
+| `statusline.sh` (status line) | Shows `ctx \| 5h \| 7d` usage and caches the official `rate_limits` data for the guard |
+| `session-start.sh` (SessionStart hook) | Injects the checkpoint + auto-resume directive when a NEW session starts |
+| `scripts/claude-loop.sh` | **Optional** headless fallback for terminal-only/overnight scenarios |
 
-The flow:
+The in-session flow:
 
 ```
-/unsupervised on                      → settings.md flag set
-/implement FEAT-001                   → checkpoint written, work starts
-        │
-        ├─ Claude tries to stop early → Stop hook blocks: "continue from next_step"
-        ├─ session dies (rate limit)  → loop waits, starts a FRESH headless session
-        │                               (claude -p; checkpoint re-injected by SessionStart hook,
-        │                                /resume reads spec + git state and continues)
-        ├─ genuine blocker            → Claude writes "## Blocked" → loop exits (code 2)
-        └─ all work done              → "## In Progress" cleared  → loop exits (code 0)
+work ──► usage-guard trips at threshold (e.g. 80%)
+              │  "pause: commit current step, update checkpoint"
+              ▼
+         wait loop: bash usage-guard.sh --wait   (repeats, ~90s sleep per call,
+              │      same session, same console)  cache-friendly < 5min apart)
+              ▼  prints RESUME_OK once usage ≤ threshold−10  (5h window slides)
+         continue working ──► … ──► done: "## In Progress" cleared, Stop allowed
 ```
 
-Run it:
-```bash
-/unsupervised on          # in Claude Code
-/implement FEAT-001       # start the task
-./scripts/claude-loop.sh  # in a terminal; then walk away
-tail -f .claude/memory/unsupervised.log
-```
+**Token-budget guard (`usage_threshold`)**: pausing at e.g. 80% keeps 20% headroom for your own interactive use and avoids ever hitting the hard limit mid-task. Usage data comes from the official statusline `rate_limits` field (cached locally) with the community-established OAuth usage endpoint as fallback; if neither is available the guard fails open. Hysteresis (resume at threshold−10) prevents flapping.
 
-Design notes:
-- Each loop session starts **fresh** instead of `--continue`: all state lives in the checkpoint, fresh sessions are cheaper right after a rate limit, and the first loop run works without a prior conversation.
-- The loop runs `claude -p` with `--dangerously-skip-permissions` by default (override via `CLAUDE_LOOP_PERMISSIONS`) — only use it in a trusted repository, ideally in a container/VM.
-- Every subtask commit updates the checkpoint, so a resume loses at most one subtask of work.
+**Why in-session?** No context loss, no new consoles, works identically in the CLI and the VS Code extension (hooks and the status line run in both). The wait loop is just repeated short Bash calls ~90s apart, so the prompt cache stays warm — waiting costs almost nothing.
+
+**Checkpoint cost**: a checkpoint update is 1-2 small file edits (~50-100 tokens) per subtask — noise compared to the thousands of tokens a subtask implementation uses. Checkpoints are deliberately minimal (no duplicated subtask lists; the spec's checkboxes are the source of truth) and are pure crash insurance in the in-session design: the running conversation already has the context.
+
+**If the session dies anyway** (crash, hard rate limit, closed laptop): reopen it — the SessionStart hook injects the checkpoint with an AUTO-RESUME directive and Claude continues, in the CLI and in VS Code alike. For fully unattended recovery in a terminal (e.g. overnight on a server) there is `./scripts/claude-loop.sh`, which waits for the usage threshold, starts fresh headless sessions from the checkpoint, and exits on `## Blocked` (code 2) or completion (code 0). It uses `--dangerously-skip-permissions` by default (`CLAUDE_LOOP_PERMISSIONS` to override) — only in trusted repos, ideally containerized.
 
 ## Languages Supported
 

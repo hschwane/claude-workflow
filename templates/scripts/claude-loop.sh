@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
-# Unsupervised mode supervisor.
-# Runs Claude headless in a loop, automatically resuming after rate limit resets.
-# Claude will not ask interactive questions; any genuine blocker is written
-# to .claude/memory/context.md as "## Blocked" and this script exits.
+# OPTIONAL headless fallback for unsupervised mode.
+#
+# The primary unsupervised design is in-session: the Stop hook keeps Claude
+# working and the usage guard pauses/resumes inside the open session (works in
+# the terminal AND the VS Code extension — just leave the session open).
+# Use this script only when no session can stay open (e.g. overnight on a
+# server, or to recover unattended after a crash / hard rate limit).
+#
+# Runs Claude headless in a loop, resuming from the checkpoint each time.
+# Respects the usage threshold from .claude/memory/settings.md (waits via
+# usage-guard.sh before each session). Any genuine blocker is written to
+# .claude/memory/context.md as "## Blocked" and this script exits.
 #
 # Usage:
 #   ./scripts/claude-loop.sh                  # default: 60min reset wait, 20 sessions max
@@ -72,6 +80,17 @@ echo ""
 SESSION=0
 while [ $SESSION -lt $MAX_SESSIONS ]; do
   SESSION=$((SESSION + 1))
+
+  # Respect the usage threshold before starting a session
+  if [ -x ".claude/hooks/usage-guard.sh" ] || [ -f ".claude/hooks/usage-guard.sh" ]; then
+    while true; do
+      GUARD_OUT=$(bash .claude/hooks/usage-guard.sh --wait 2>/dev/null || true)
+      echo "$GUARD_OUT" | grep -q "RESUME_OK" && break
+      log "Usage threshold active — waiting. ($GUARD_OUT)"
+      sleep 120
+    done
+  fi
+
   log "Session $SESSION / $MAX_SESSIONS starting..."
 
   # Headless run (-p): claude executes one autonomous session and exits.

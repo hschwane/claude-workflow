@@ -63,7 +63,8 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 .claude/hooks/*.sh       ← copy all from temp clone (templates/hooks/*.sh)
 
 # Smart merge (hook configuration — add new entries, never remove existing ones):
-.claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json
+.claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json;
+                           add "statusLine" only if the project has none
 ```
 
 **Never touch** (project-specific files):

@@ -44,12 +44,14 @@ Ask (AskUserQuestion):
 Create `.claude/` directory with:
 ```
 .claude/
-├── settings.json          ← from templates/hooks/hooks.json (merge `hooks` key if settings.json exists)
+├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine` keys if settings.json exists; keep an existing statusLine)
 ├── hooks/
 │   ├── auto-format.sh     ← parses stdin JSON, formats by language
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
-│   ├── completeness-check.sh
-│   └── session-start.sh   ← shows in-progress work / auto-resume directive
+│   ├── completeness-check.sh  ← Stop hook: keeps unsupervised work going
+│   ├── session-start.sh   ← shows in-progress work / auto-resume directive
+│   ├── usage-guard.sh     ← token-budget threshold for unsupervised mode
+│   └── statusline.sh      ← status line + usage cache for the guard
 ├── agents/                ← copy all agent .md files
 ├── skills/                ← copy all skill directories (each as {name}/SKILL.md)
 ├── workflow-source.json

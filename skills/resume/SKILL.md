@@ -43,11 +43,11 @@ Ask the user: "Should I continue from here?" (unless there is only one obvious n
 
 ### 3. Restore Context
 Before continuing, read the relevant files:
-- The spec file for the in-progress task
+- The spec file for the in-progress task — **its unchecked subtask boxes are the source of truth for remaining work** (the checkpoint only stores the pointer)
 - Current git branch: `git branch --show-current`
-- Any notes in the checkpoint about what was done
+- Recent commits on the branch (`git log --oneline -5`) — they confirm which subtasks really completed
 
-Verify the git state matches the checkpoint (correct branch, expected files).
+Verify the git state matches the checkpoint (correct branch, expected files). If the spec's checkboxes and the git log disagree, trust the git log and fix the checkboxes.
 
 ### 4. Continue Work
 Continue from the `Next step` in the checkpoint by invoking the appropriate skill behavior:
@@ -60,7 +60,7 @@ Continue from the `Next step` in the checkpoint by invoking the appropriate skil
 Clear the `## In Progress` section from `.claude/memory/context.md` once the work is truly complete (merged PR or confirmed done by user).
 
 ## Checkpoint Format
-(Written by other skills when they save progress)
+(Written by other skills when they save progress. Deliberately minimal: remaining subtasks are NOT duplicated here — they live as checkboxes in the spec file.)
 
 ```markdown
 ## In Progress
@@ -70,10 +70,5 @@ branch: feature/feat-001-oauth-login
 spec_file: docs/specs/ready/FEAT-001-oauth-login.md
 last_completed: "Subtask #2: Implement GoogleOAuthProvider — committed abc1234"
 next_step: "Implement Subtask #3: GitHubOAuthProvider in src/auth/providers/github.ts"
-remaining_subtasks:
-  - "#3: GitHubOAuthProvider"
-  - "#4: /oauth/callback route"
-  - "#5: Session creation with OAuth tokens"
-  - "#6: Update docs"
 saved_at: 2026-06-10T14:32:00Z
 ```

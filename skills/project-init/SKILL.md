@@ -228,8 +228,8 @@ From `templates/`:
 Copy to `.claude/`:
 - All agent files from this plugin's `agents/`
 - All skill directories from this plugin's `skills/` (preserve the `{name}/SKILL.md` directory structure)
-- Hook scripts from this plugin's `templates/hooks/` (all 4: auto-format, protect-files, completeness-check, session-start)
-- `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` key into it)
+- All hook scripts from this plugin's `templates/hooks/` (auto-format, protect-files, completeness-check, session-start, usage-guard, statusline)
+- `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` and `statusLine` keys into it — keep an existing `statusLine` if the user has one)
 
 Write `.claude/workflow-source.json`:
 ```json
