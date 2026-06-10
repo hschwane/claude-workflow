@@ -1,0 +1,41 @@
+site_name: "{{PROJECT_NAME}}"
+site_description: "{{PROJECT_DESCRIPTION}}"
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Workflow:
+      - Overview: workflow/README.md
+      - Lifecycle: workflow/lifecycle.md
+      - Conventions: workflow/conventions.md
+      - Quality: workflow/quality.md
+      - Release: workflow/release.md
+  - Developer:
+      - Architecture: dev/architecture.md
+      - Setup: dev/setup.md
+      - Style Guide: dev/style-guide.md
+  - User Guide: user/README.md
+
+plugins:
+  - search
+
+# Serve locally: mkdocs serve
+# Build static site: mkdocs build

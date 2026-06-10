@@ -1,0 +1,56 @@
+# Conventions
+
+## Commit Messages
+
+Format: `type(scope): description`
+
+```
+feat(auth): add OAuth login with Google
+fix(session): correct token expiry calculation
+test(auth): add OAuth integration tests
+docs(api): update authentication endpoints
+refactor(auth): extract OAuthProvider interface
+chore: update dependencies
+perf(db): add index on user.email
+ci: add security audit step
+```
+
+**Types:** `feat` | `fix` | `refactor` | `test` | `docs` | `chore` | `perf` | `ci`
+
+Rules:
+- Imperative mood: "add" not "added" or "adds"
+- Lowercase, no trailing period
+- Max 72 chars on first line
+- Scope is the affected module/component
+
+## Branch Names
+
+```
+feature/feat-001-oauth-login
+fix/bug-042-session-expiry
+chore/update-dependencies
+```
+
+## Spec IDs
+
+- Features: `FEAT-001`, `FEAT-002`, ...
+- Bugs: `BUG-001`, `BUG-002`, ...
+
+Zero-padded to 3 digits. Never reuse an ID.
+
+## Version Tags
+
+Format: `v{MAJOR}.{MINOR}.{PATCH}` — e.g., `v1.2.3`
+
+Follows [Semantic Versioning](https://semver.org/):
+- PATCH: bug fixes only
+- MINOR: new features, backwards-compatible
+- MAJOR: breaking changes
+
+## File Structure Conventions
+
+- One module per file; keep files under ~300 lines
+- `src/` — all production source code
+- `tests/` — all test files, mirroring `src/` structure
+- `docs/` — documentation (never generated, always human/AI readable)
+- `.claude/` — AI workflow infrastructure (don't hand-edit)

@@ -1,0 +1,31 @@
+# ADR-001: {{DECISION_TITLE}}
+
+**Date:** {{YYYY-MM-DD}}
+**Status:** Accepted
+
+## Context
+
+{{WHAT_PROBLEM_NEEDED_TO_BE_SOLVED}}
+
+## Decision
+
+{{WHAT_WAS_DECIDED}}
+
+## Alternatives Considered
+
+| Option | Pros | Cons | Rejected because |
+|--------|------|------|-----------------|
+| {{OPTION_A}} | | | |
+| {{OPTION_B}} | | | |
+
+## Consequences
+
+**Positive:**
+- {{POSITIVE_CONSEQUENCE}}
+
+**Negative / Trade-offs:**
+- {{TRADEOFF}}
+
+## AI-Friendliness Notes
+
+{{HOW_THIS_DECISION_AFFECTS_AI_ASSISTED_DEVELOPMENT}}

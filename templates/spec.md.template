@@ -1,0 +1,52 @@
+---
+id: {{TYPE}}-{{NNN}}
+type: {{feature|bug}}
+status: draft
+size: medium
+created: {{YYYY-MM-DD}}
+updated: {{YYYY-MM-DD}}
+github_issue: ~
+---
+
+# {{Title}}
+
+## User Story
+As a [specific user type], I want [concrete goal], so that [measurable benefit].
+
+<!-- Bug format:
+**Observed:** [what happens]
+**Expected:** [what should happen]
+**Steps to reproduce:**
+1. ...
+2. ...
+-->
+
+## Acceptance Criteria
+- [ ] [Testable: system does X when Y]
+- [ ] [Testable: system rejects Z with error message W]
+
+## Out of Scope
+- [Explicitly excluded item]
+
+## Technical Approach
+<!-- Filled in by Tech Planner during /refine -->
+
+### Affected Components
+- `src/` — reason
+
+### Interface Definitions
+<!-- Must be complete before status → ready. This is the contract for the test-writer. -->
+```typescript
+// Define interfaces here
+```
+
+## Subtasks
+<!-- Filled in by Tech Planner during /refine -->
+- [ ] #1: [Title] — [description]
+
+## Open Questions
+<!-- Must be empty before status → ready -->
+
+## Sign-off
+- [ ] Requirements Engineer
+- [ ] Tech Planner

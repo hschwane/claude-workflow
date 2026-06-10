@@ -1,0 +1,47 @@
+# {{PROJECT_NAME}}
+
+{{PROJECT_DESCRIPTION}}
+
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `/draft feature "title"` | Add raw feature idea to backlog |
+| `/draft bug "title"` | Report a bug |
+| `/brainstorm` | Analyze project state + generate backlog ideas |
+| `/refine FEAT-001` | Refine a draft into a ready spec (RE + Tech Planner) |
+| `/implement FEAT-001` | Implement a ready spec (tests first, then code) |
+| `/commit` | Quality-gated conventional commit |
+| `/pr` | Create PR, wait for CI, run reviews, auto-merge |
+| `/release patch\|minor\|major` | Bump version, tag, trigger CI release |
+| `/workflow-update` | Update claude-workflow plugin to latest version |
+| `/resume` | Resume in-progress work after token limit or interruption |
+| `/unsupervised on\|off` | Toggle unsupervised mode (no questions, loop-safe) |
+
+## Architecture
+
+{{ARCHITECTURE_SUMMARY}}
+
+Tech stack: {{TECH_STACK}}
+
+@docs/workflow/README.md
+@docs/dev/architecture.md
+
+## Agents
+
+Spawn specialized agents proactively for: codebase exploration, code reviews, security checks, documentation writing, and any task requiring reading many files.
+
+Available: `requirements-engineer`, `tech-planner`, `test-writer`, `code-reviewer`, `security-reviewer`, `architect-reviewer`, `documentation-writer`
+
+## Session Behavior
+
+If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
+
+If `.claude/memory/settings.md` contains `unsupervised: true`:
+- **Never** use `AskUserQuestion` — apply autonomous defaults from the `/unsupervised` skill
+- If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to `.claude/memory/context.md` and stop — do not wait for input
+- When all work is complete, clear `## In Progress` from `.claude/memory/context.md` and stop
+
+## Memory
+
+`.claude/memory/` contains project memory (decisions, context, gotchas, tech-debt). Read these when they are relevant — they are not auto-loaded.

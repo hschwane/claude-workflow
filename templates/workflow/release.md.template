@@ -1,0 +1,56 @@
+# Release Process: {{PROJECT_NAME}}
+
+## Version Scheme
+[Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
+- `PATCH` — bug fixes, no API changes
+- `MINOR` — new features, backwards-compatible
+- `MAJOR` — breaking changes
+
+## Version Source of Truth
+{{VERSION_SOURCE_OF_TRUTH}}
+<!-- Examples:
+- TypeScript/Node: package.json → "version"
+- Python: pyproject.toml → [project] version
+- C++: CMakeLists.txt → project(... VERSION x.y.z)
+-->
+
+## Release Type
+{{RELEASE_TYPE}}
+<!-- Examples:
+- npm package: published to npmjs.com
+- PyPI package: published to pypi.org
+- GitHub Release only: binary/tag with release notes
+- Docker image: pushed to registry
+-->
+
+## Release Steps (automated by `/release`)
+
+1. Bump version in `{{VERSION_FILE}}`
+2. Regenerate `{{VERSION_INJECT_FILE}}` (build-time version injection)
+3. Update `CHANGELOG.md` from commits since last tag
+4. Commit: `chore: release vX.Y.Z`
+5. Tag: `vX.Y.Z`
+6. Push branch + tag
+7. GitHub Actions `release.yml` triggers and:
+   - Runs tests
+   - Builds
+   - Publishes to {{PUBLISH_TARGET}}
+   - Creates GitHub Release with CHANGELOG notes
+
+## Branching Model
+{{BRANCHING_MODEL}}
+<!-- Examples:
+- main only: all releases from main
+- git flow: release branches from develop
+-->
+
+## Hotfix Process
+For critical patches on already-released versions:
+1. Branch from the release tag: `git checkout -b hotfix/v1.2.1 v1.2.0`
+2. Apply fix + commit
+3. `/release patch` from the hotfix branch
+4. Merge back to main
+
+## Required Secrets (GitHub Actions)
+<!-- List required GitHub Secrets for CI publish step -->
+{{REQUIRED_SECRETS}}

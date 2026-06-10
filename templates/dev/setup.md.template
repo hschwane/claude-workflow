@@ -1,0 +1,59 @@
+# Developer Setup: {{PROJECT_NAME}}
+
+## Prerequisites
+
+- {{PREREQUISITE}} (version {{VERSION}})
+
+## Installation
+
+```bash
+git clone {{REPO_URL}}
+cd {{PROJECT_NAME}}
+{{INSTALL_COMMAND}}
+```
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in the values:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `{{VAR_NAME}}` | {{DESCRIPTION}} | Yes |
+
+## Running Locally
+
+```bash
+{{RUN_COMMAND}}
+```
+
+## Running Tests
+
+```bash
+{{TEST_COMMAND}}
+```
+
+## Building
+
+```bash
+{{BUILD_COMMAND}}
+```
+
+## Workflow Commands (Claude Code)
+
+```
+/draft feature "idea"    add to backlog
+/refine FEAT-001         refine a spec
+/implement FEAT-001      implement a spec
+/pr                      create PR with reviews
+/release patch           release a version
+```
+
+See [docs/workflow/README.md](../workflow/README.md) for the full workflow.
+
+## Troubleshooting
+
+{{TROUBLESHOOTING_NOTES}}

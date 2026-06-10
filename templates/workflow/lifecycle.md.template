@@ -1,0 +1,43 @@
+# Development Lifecycle
+
+## Stages
+
+```
+IDEA → DRAFT → REFINE → IMPLEMENT → PR → (RELEASE)
+```
+
+### Draft
+A raw idea or bug report added with `/draft`. No planning required.
+Spec file created in `docs/specs/backlog/`. Minimal content — just enough to capture the idea.
+
+### Refine
+A Requirements Engineer and Tech Planner iterate on the draft until it meets the **Definition of Ready**.
+Triggered with `/refine {id}`. The user can choose autonomy level (fully-autonomous / key-questions-only / many-questions).
+Spec moves to `docs/specs/ready/` when DoR is satisfied.
+
+### Implement
+Tests are written first (isolated context, spec-only), then code is implemented subtask by subtask.
+Each subtask gets its own commit. Run with `/implement {id}`.
+Progress is checkpointed — use `/resume` after any interruption.
+
+### PR
+CI runs first (lint + typecheck + tests + security). Claude waits for CI, then runs code review,
+security review, and optionally architect review. All findings are fixed before merge.
+Run with `/pr`. Claude auto-merges after all reviews pass.
+
+### Release
+Version bump, CHANGELOG update, git tag, push. CI publishes the release.
+Run with `/release patch|minor|major`.
+
+---
+
+## Branching
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Always deployable. Direct pushes only for hotfixes. |
+| `feature/feat-001-title` | Feature branches — one per spec |
+| `fix/bug-042-title` | Bug fix branches |
+| `chore/description` | Maintenance work |
+
+Branches are created by `/implement` and deleted by `/pr` after merge.

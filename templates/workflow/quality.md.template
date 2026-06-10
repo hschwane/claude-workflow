@@ -1,0 +1,48 @@
+# Quality Standards
+
+## Definition of Ready (DoR)
+
+A spec must meet ALL of these before implementation starts:
+
+- [ ] User Story is clear: who / what / why
+- [ ] All acceptance criteria are testable (no vague language like "should work well")
+- [ ] Interface definitions are complete (types, signatures, shapes)
+- [ ] All subtasks are defined and independently committable
+- [ ] Out-of-scope is explicit
+- [ ] No open questions remain
+- [ ] Requirements Engineer sign-off
+- [ ] Tech Planner sign-off
+
+## Definition of Done (DoD)
+
+A feature is done only when ALL of these are true:
+
+- [ ] All CI checks pass (lint + typecheck + tests + security + build)
+- [ ] All code review findings addressed
+- [ ] All security review findings addressed
+- [ ] Documentation updated (architecture.md, user docs if applicable)
+- [ ] Spec moved to `docs/specs/completed/`
+- [ ] PR merged to main
+
+## Quality Gates
+
+| Gate | Trigger | Owner |
+|------|---------|-------|
+| Auto-format | Every file edit | Hook (PostToolUse) |
+| Subtask tests | Per subtask during implement | Claude (local) |
+| Linter | Per subtask during implement | Claude (local) |
+| CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
+| Code review | After CI passes | `code-reviewer` agent |
+| Security review | After CI passes | `security-reviewer` agent |
+| Architect review | After CI passes (structural changes) | `architect-reviewer` agent |
+| Documentation | After all tests green | `documentation-writer` agent |
+
+## Test Strategy
+
+{{TEST_STRATEGY}}
+
+## Security
+- Dependency audits run in CI on every PR
+- Security agent reviews every PR
+- No secrets in code — use environment variables
+- `.env` is protected by the file-protection hook

@@ -1,0 +1,43 @@
+# Deploy Process: {{PROJECT_NAME}}
+
+## Target Environment
+{{DEPLOY_TARGET}}
+<!-- Examples: Vercel, AWS EC2, Kubernetes, Fly.io, VPS via SSH -->
+
+## Trigger
+{{DEPLOY_TRIGGER}}
+<!-- Examples:
+- Automatic on release tag push (via release.yml)
+- Manual via /release skill
+- On merge to main
+-->
+
+## Deploy Steps
+
+### Prerequisites
+- GitHub Secret `{{DEPLOY_SECRET_NAME}}` must be set
+- {{OTHER_PREREQUISITES}}
+
+### Automated Steps (in CI `deploy.yml` or `release.yml`)
+{{AUTOMATED_DEPLOY_STEPS}}
+
+### Manual Steps (if any)
+{{MANUAL_DEPLOY_STEPS}}
+
+## Rollback
+{{ROLLBACK_PROCEDURE}}
+<!-- Example:
+1. git revert to previous tag: git checkout v1.1.0
+2. Re-run deploy steps with old version
+3. OR: use platform UI to roll back deployment
+-->
+
+## Health Check
+After deploy, verify:
+- [ ] {{HEALTH_CHECK_URL}} returns 200
+- [ ] {{SMOKE_TEST_DESCRIPTION}}
+
+## Required GitHub Secrets
+| Secret | Description |
+|--------|-------------|
+| `{{SECRET_NAME}}` | {{SECRET_DESCRIPTION}} |

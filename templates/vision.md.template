@@ -1,0 +1,33 @@
+# Product Vision: {{PROJECT_NAME}}
+
+## Problem Statement
+[What problem does this solve? Who has this problem? How are they solving it today?]
+
+## Target Audience
+**Primary users:** [Who are they? What is their technical level? What do they care about?]
+
+**Secondary users:** [Optional: other groups who benefit]
+
+## Core Value Proposition
+[What does this product do better/differently than alternatives? One to two sentences.]
+
+## Key Goals
+1. [Goal 1 — measurable if possible]
+2. [Goal 2]
+3. [Goal 3]
+
+## Non-Goals (Explicitly Out of Scope)
+- [Thing we are deliberately NOT building]
+- [Audience we are NOT targeting]
+
+## Success Metrics
+- [How do we measure if this is working?]
+
+## Guiding Principles
+[Optional: values or constraints that should guide feature decisions]
+- [e.g., "privacy first — collect minimum necessary data"]
+- [e.g., "offline-capable — no mandatory internet connection"]
+
+---
+*This document is used by the Requirements Engineer as context when refining features.*
+*Update it when the product direction changes.*

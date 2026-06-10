@@ -1,0 +1,45 @@
+# Architecture: {{PROJECT_NAME}}
+
+## Overview
+
+{{ARCHITECTURE_OVERVIEW}}
+
+## Tech Stack
+
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| {{LAYER}} | {{TECH}} | {{REASON}} |
+
+## Directory Structure
+
+```
+src/
+{{DIRECTORY_STRUCTURE}}
+```
+
+## Key Design Decisions
+
+See `docs/dev/adr/` for Architecture Decision Records.
+
+## Data Flow
+
+{{DATA_FLOW_DESCRIPTION}}
+
+## External Dependencies
+
+| Service | Purpose | Configuration |
+|---------|---------|---------------|
+| {{SERVICE}} | {{PURPOSE}} | `{{ENV_VAR}}` |
+
+## Scalability & Performance Notes
+
+{{PERFORMANCE_NOTES}}
+
+## AI-Friendliness Notes
+
+{{AI_NOTES}}
+<!-- Tips for working with this codebase in AI-assisted sessions:
+- Key files to read first: ...
+- Patterns to follow: ...
+- Things to avoid: ...
+-->

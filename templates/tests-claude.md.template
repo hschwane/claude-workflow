@@ -1,0 +1,22 @@
+# Testing Conventions
+
+Framework: {{TEST_FRAMEWORK}}
+Run: `{{TEST_COMMAND}}`
+
+## Structure
+
+Test files mirror `src/` — e.g., `src/auth/oauth.ts` → `tests/auth/oauth.test.ts`
+
+## Patterns
+
+```{{LANG}}
+{{TEST_EXAMPLE}}
+```
+
+## Rules
+
+- Each test is independent — no shared mutable state
+- Test names describe behavior: `"returns 401 when token is expired"`
+- Arrange / Act / Assert structure
+- Mock only external I/O (network, filesystem, time) — never mock your own code
+- Tests must be deterministic — no random data, no time dependencies without mocking

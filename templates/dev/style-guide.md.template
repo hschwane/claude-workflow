@@ -1,0 +1,57 @@
+# Style Guide: {{PROJECT_NAME}}
+
+## General Principles
+
+- Small files, single responsibility (aim for < 200 lines per file)
+- Explicit over implicit — name things clearly, avoid clever shortcuts
+- No global mutable state
+- Composition over inheritance
+- Handle errors explicitly — no silent failures
+
+## Naming
+
+- Variables/functions: `camelCase` (TS/JS) / `snake_case` (Python/Rust)
+- Types/Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Files: `kebab-case.ts` / `snake_case.py`
+- Boolean variables: prefix with `is`, `has`, `should`, `can`
+
+## Functions
+
+- One function, one purpose
+- Max ~20 lines; extract if longer
+- Name describes what it returns, not how it works
+- Prefer pure functions (no side effects) for business logic
+
+## Error Handling
+
+- Never swallow errors silently
+- Use typed errors / result types where the language supports it
+- Log errors with enough context to debug (never log raw user data)
+- Return errors to callers; don't throw across module boundaries
+
+## Comments
+
+- Write comments for WHY, never WHAT (the code shows what)
+- A comment that re-states the code is noise — delete it
+- Use TODO: for known tech debt (link to a spec or issue)
+
+## TypeScript-Specific
+
+- `strict: true` in tsconfig — no exceptions
+- No `any` — use `unknown` and narrow, or proper types
+- Prefer `type` over `interface` for plain shapes; use `interface` for extension points
+- Explicit return types on exported functions
+
+## Python-Specific
+
+- Type hints everywhere (`mypy strict`)
+- Prefer dataclasses / Pydantic models over plain dicts
+- `from __future__ import annotations` at top of every file
+
+## Testing
+
+- Test file mirrors source file location
+- Test name describes behavior: `it_returns_401_when_token_expired`
+- One assertion concept per test (can have multiple `expect` calls for the same thing)
+- No test interdependencies — each test is self-contained

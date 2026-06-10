@@ -1,0 +1,45 @@
+# Development Workflow
+
+This project follows an AI-assisted development workflow powered by [claude-workflow](https://github.com/{{WORKFLOW_REPO}}).
+
+## Lifecycle Overview
+
+```
+IDEA → [/draft] → BACKLOG → [/refine] → READY → [/implement] → IN-PROGRESS → [/pr] → DONE
+                                                                                        ↓
+                                                                               [/release] → RELEASED
+```
+
+## Commands
+
+| Command | Phase | What it does |
+|---------|-------|-------------|
+| `/brainstorm` | Planning | Analyze project + generate backlog ideas with you |
+| `/draft feature "title"` | Draft | Create raw backlog entry (no planning needed) |
+| `/draft bug "title"` | Draft | Report a bug |
+| `/refine FEAT-001` | Refinement | RE + Tech Planner iterate until spec is ready |
+| `/implement FEAT-001` | Implementation | Tests first (isolated context), then code |
+| `/commit` | Implementation | Quality-gated conventional commit |
+| `/pr [base]` | Review | CI → code review → security review → auto-merge |
+| `/release patch\|minor\|major` | Release | Version bump + changelog + tag + publish |
+| `/resume` | Recovery | Continue interrupted in-progress work |
+| `/workflow-update` | Maintenance | Update workflow plugin to latest version |
+
+## Specs
+
+Specs live in `docs/specs/`:
+- `backlog/` — raw drafts, not yet refined
+- `ready/` — refined, DoR met, ready to implement
+- `completed/` — implemented and merged
+
+## Quality Gates
+
+| Gate | When | Who |
+|------|------|-----|
+| Auto-format | Every file edit | Hook |
+| Tests | Per subtask (during implement) | Claude locally |
+| CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
+| Code review | After CI passes | `code-reviewer` agent |
+| Security review | After CI passes | `security-reviewer` agent |
+| Architect review | After CI passes (structural changes) | `architect-reviewer` agent |
+| Documentation | After all tests green | `documentation-writer` agent |

@@ -1,0 +1,32 @@
+# {{PROJECT_NAME}} — User Guide
+
+## Getting Started
+
+{{GETTING_STARTED}}
+
+## Features
+
+{{FEATURES_OVERVIEW}}
+
+## How To
+
+### {{TASK_1}}
+
+{{TASK_1_INSTRUCTIONS}}
+
+### {{TASK_2}}
+
+{{TASK_2_INSTRUCTIONS}}
+
+## Configuration
+
+{{CONFIGURATION}}
+
+## FAQ
+
+**{{QUESTION_1}}**
+{{ANSWER_1}}
+
+## Support
+
+{{SUPPORT_INFO}}

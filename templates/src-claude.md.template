@@ -1,0 +1,27 @@
+# Source Code Conventions
+
+Tech stack: {{TECH_STACK}}
+
+## Structure
+
+```
+src/
+{{SRC_STRUCTURE}}
+```
+
+## Patterns
+
+- {{KEY_PATTERN_1}}
+- {{KEY_PATTERN_2}}
+
+## Do / Don't
+
+| Do | Don't |
+|----|-------|
+| Use typed interfaces from `types.ts` | Use `any` |
+| Return errors explicitly | Throw across module boundaries |
+| Keep files under 200 lines | Put business logic in route handlers |
+
+## Key Types
+
+The main interfaces live in `{{TYPES_FILE}}`. Read it before adding new code.

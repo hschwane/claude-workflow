@@ -1,0 +1,56 @@
+# Contributing to {{PROJECT_NAME}}
+
+## Development Workflow
+
+This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI-assisted development workflow.
+
+### Lifecycle
+
+```
+/draft → /refine → /implement → /pr → /release
+```
+
+1. **Draft** — Add raw ideas to backlog: `/draft feature "idea"`
+2. **Refine** — Turn a draft into a spec with Requirements Engineer + Tech Planner: `/refine FEAT-001`
+3. **Implement** — Write tests first, then code: `/implement FEAT-001`
+4. **PR** — CI runs, then AI reviews, then auto-merge: `/pr`
+5. **Release** — Version bump + tag + publish: `/release patch`
+
+### Branch Naming
+```
+feature/feat-001-short-title
+fix/bug-042-short-description
+chore/update-dependencies
+```
+
+### Commit Format
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+```
+feat(auth): add OAuth login with Google
+fix(session): correct token expiry calculation
+test(auth): add OAuth integration tests
+docs(api): update authentication endpoints
+chore: update dependencies
+```
+
+Types: `feat` | `fix` | `refactor` | `test` | `docs` | `chore` | `perf` | `ci`
+
+### Definition of Ready (before implementation)
+- [ ] User Story is clear (who / what / why)
+- [ ] All acceptance criteria are testable
+- [ ] Interface definitions are complete
+- [ ] All subtasks defined
+- [ ] No open questions
+- [ ] RE sign-off + TP sign-off
+
+### Definition of Done (before merge)
+- [ ] All tests pass (CI green)
+- [ ] Linter clean
+- [ ] All code review findings addressed
+- [ ] All security review findings addressed
+- [ ] Documentation updated
+- [ ] Spec moved to `docs/specs/completed/`
+
+## Local Setup
+
+See [docs/dev/setup.md](docs/dev/setup.md).
