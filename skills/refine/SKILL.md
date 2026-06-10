@@ -37,6 +37,14 @@ Ask the user (AskUserQuestion) before starting:
 - `auto-accept`: When RE and TP both sign off, automatically move to ready
 - `manual-approval`: Show me the final spec and wait for my OK
 
+**Question 3 — Model tier for the planning agents** (requirements-engineer + tech-planner; these are `model: inherit` agents — the choice is passed as the per-invocation `model` parameter, pinned agents like code-explorer are unaffected):
+- `session-model` (recommended — name the current session model in the option label): the agents use whatever the session runs on
+- `better-than-sonnet`: pass `opus` — for tricky or high-stakes specs when the session runs Sonnet
+- `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the spec is routine
+- `haiku`: pass `haiku` — cheapest; only for trivial specs, planning quality will suffer
+
+In unsupervised mode: skip this question, use `session-model`.
+
 Update spec status to `refining`.
 
 ### 1. Save Checkpoint
@@ -55,7 +63,7 @@ saved_at: {timestamp}
 
 ### 2. Requirements Engineering Phase
 
-Invoke the `requirements-engineer` subagent (runs in its own isolated context) with:
+Invoke the `requirements-engineer` subagent (isolated context; apply the model tier from Question 3 as the invocation's `model` parameter) with:
 ```
 DRAFT: {full spec file content}
 VISION: {docs/VISION.md content}
@@ -70,7 +78,7 @@ Update checkpoint.
 
 ### 3. Tech Planning Phase
 
-Invoke the `tech-planner` subagent (isolated context) with:
+Invoke the `tech-planner` subagent (isolated context; apply the model tier from Question 3) with:
 ```
 RE_OUTPUT: {requirements engineer's output}
 CODEBASE_SUMMARY: {result of reading: tree structure + key src/ files}

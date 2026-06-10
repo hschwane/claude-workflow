@@ -2,6 +2,7 @@
 name: workflow-coach
 description: Answers questions about this project's development workflow — lifecycle, skills/commands, branching, quality gates, releases, unsupervised mode — by reading docs/workflow/ and CONTRIBUTING.md. Use PROACTIVELY when the user asks how the workflow works or which command to use, so the workflow docs never need to be loaded into the main conversation. Read-only.
 disallowedTools: Write, Edit, NotebookEdit
+model: haiku
 ---
 
 # Workflow Coach

@@ -145,7 +145,8 @@ Select the matching release CI template (`templates/github/release-{type}.yml`).
 │       └── tech-debt.md
 ├── CHANGELOG.md
 ├── CLAUDE.md
-└── CONTRIBUTING.md
+├── CONTRIBUTING.md
+└── README.md              (project README — first thing visitors see)
 ```
 
 Plus shared scripts:
@@ -167,11 +168,13 @@ Copy matching configs from `templates/configs/`, filling in `{{PROJECT_NAME}}` p
 **Also copy per language:**
 - `templates/gitignore/{language}.gitignore` → `.gitignore`
 
-### 7. Write Root CLAUDE.md
-Create root `CLAUDE.md` from template, filling in:
+### 7. Write Root CLAUDE.md and README.md
+Create root `CLAUDE.md` from `templates/CLAUDE.md.template`, filling in:
 - Project name + description
 - Tech stack
 - Architecture summary (one paragraph)
+
+Create root `README.md` from `templates/README.md.template`, filling in project name, description, tech stack, `{{GITHUB_REPO}}` (or removing the CI badge line for local-only repos), `{{WORKFLOW_REPO}}`, and `{{LICENSE}}`. Leave `{{INSTALLATION}}` / `{{USAGE_EXAMPLE}}` as short honest placeholders for a brand-new project — `/implement` and the documentation-writer keep them current later.
 
 ### 8. Create Memory Files
 Write initial `.claude/memory/decisions.md` with the architecture and tech stack decisions made in this session.
@@ -187,6 +190,8 @@ Generate 6-10 initial feature ideas based on:
 - Any features explicitly mentioned by the user
 
 Present them interactively (same pattern as `/brainstorm`). Accepted ideas → create spec files in `docs/specs/backlog/`.
+
+Note: the IDs created here (FEAT-001, FEAT-002, …) start the project's ID sequence — later `/draft` calls continue counting from the highest existing ID. In unsupervised/automated runs this step may be skipped; the sequence then starts with the first `/draft`.
 
 ### 10. GitHub Repository Creation (if requested)
 ```
@@ -231,9 +236,9 @@ Copy to `.claude/`:
 - All hook scripts from this plugin's `templates/hooks/` (auto-format, protect-files, completeness-check, session-start, usage-guard, statusline)
 - `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` and `statusLine` keys into it — keep an existing `statusLine` if the user has one)
 
-Write `.claude/workflow-source.json`:
+Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if `.claude-plugin/plugin.json` cannot be found or has no `repository`, leave `repo` empty and note it in the report.
 ```json
-{ "repo": "{THIS_PLUGIN_REPO_URL}", "version": "{CURRENT_VERSION}", "installed": "{today}" }
+{ "repo": "{repository from plugin.json}", "version": "{version from plugin.json}", "installed": "{today}" }
 ```
 
 Initialize memory files with the decisions made during this session:
@@ -267,9 +272,14 @@ git push -u origin main
 **If the user chose Git Flow** (step 5 branching model):
 ```
 git checkout -b develop
+```
+Only if a GitHub remote exists (`git remote get-url origin` succeeds):
+```
 git push -u origin develop
 gh repo edit --default-branch develop
 ```
+For local-only repos skip the push/default-branch steps — `develop` simply being the checked-out working branch is sufficient.
+
 Document in `docs/workflow/release.md`: feature branches target `develop`; `/release` merges `develop` → `master` so the tip of `master` always equals the latest release. Stay on `develop` for further work.
 
 ### 15. Report

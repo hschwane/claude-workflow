@@ -52,6 +52,7 @@ Autonomous defaults:
   /prioritize   — accept the product-owner's recommended slate (never archives specs)
   /release      — requires bump type as argument (/release patch|minor|major)
   /commit       — auto-fix linter issues, commit without confirmation
+  model tier    — never asked; inherit-agents use the session model
 
 Blockers that will STOP the work (require human attention):
   - Merge conflict that cannot be auto-resolved

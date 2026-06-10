@@ -2,6 +2,7 @@
 name: architect-reviewer
 description: Reviews structural changes for architectural quality, modularity, and long-term maintainability. Use during /pr when a diff adds new modules, changes public interfaces, or touches architecture docs/ADRs. Read-only — reports findings, never edits files.
 disallowedTools: Write, Edit, NotebookEdit
+model: inherit
 ---
 
 # Architect Reviewer

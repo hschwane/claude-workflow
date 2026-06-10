@@ -62,9 +62,9 @@ Create `.claude/` directory with:
     └── tech-debt.md
 ```
 
-Write `.claude/workflow-source.json`:
+Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if it cannot be found, leave `repo` empty and note it in the report.
 ```json
-{ "repo": "{workflow_repo_url}", "version": "{current_version}", "installed": "{today}" }
+{ "repo": "{repository from plugin.json}", "version": "{version from plugin.json}", "installed": "{today}" }
 ```
 
 Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
@@ -126,6 +126,9 @@ Create `tests/CLAUDE.md` with testing pattern note.
 
 **g) CONTRIBUTING.md (if not present):**
 Create from `templates/CONTRIBUTING.md.template`.
+
+**g2) README.md (if not present):**
+Create root `README.md` from `templates/README.md.template`, filled with the detected project name, description, and tech stack from the analysis. **Never overwrite an existing README** — if one exists, only offer to append a short "Development" section linking to `docs/workflow/README.md`.
 
 **h) CLAUDE.md (if not present):**
 Create root `CLAUDE.md` from template, filled with detected tech stack and architecture summary.

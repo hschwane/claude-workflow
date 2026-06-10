@@ -1,0 +1,44 @@
+# {{PROJECT_NAME}}
+
+{{PROJECT_DESCRIPTION}}
+
+## Status
+
+![CI](https://github.com/{{GITHUB_REPO}}/actions/workflows/ci.yml/badge.svg)
+
+<!-- Remove the badge above if there is no GitHub remote. -->
+
+## Installation
+
+{{INSTALLATION}}
+<!-- e.g. `npm install {{PROJECT_NAME_KEBAB}}` / `pip install {{PROJECT_NAME}}` / build-from-source steps -->
+
+## Usage
+
+{{USAGE_EXAMPLE}}
+<!-- A minimal end-to-end example: the one command or code snippet that shows the project working. -->
+
+## Documentation
+
+- [User guide](docs/user/README.md)
+- [Architecture](docs/dev/architecture.md)
+- [Development setup](docs/dev/setup.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Tech Stack
+
+{{TECH_STACK}}
+
+## Development
+
+This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI-assisted development workflow:
+
+```
+/draft → /refine → /implement → /pr → /release
+```
+
+See [docs/workflow/README.md](docs/workflow/README.md) for the full lifecycle, or just ask — the `workflow-coach` agent answers process questions.
+
+## License
+
+{{LICENSE}}

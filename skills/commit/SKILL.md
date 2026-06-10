@@ -35,6 +35,8 @@ If nothing is staged: run `git add -A` after confirming with the user that they 
 
 If any gate fails and auto-fix was not possible: report the errors and stop. Do NOT commit broken code.
 
+**If a gate's tool is not available** (e.g. `npx eslint` fails because node_modules is not installed, or `ruff`/`mypy` is missing): skip that gate, print a clear warning ("⚠ eslint not available — lint gate skipped"), and continue with the commit. A missing tool is an environment gap, not broken code — but it must be visible, never silent.
+
 After auto-fixes (eslint --fix, prettier, ruff format, etc.): re-stage the modified files with `git add` so the fixes are included in the commit.
 
 ### 3. Generate Commit Message
