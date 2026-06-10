@@ -25,24 +25,23 @@ Read `.claude/workflow-source.json`:
 If this file doesn't exist: print an error explaining this project wasn't set up with `/project-init` and offer to create it manually.
 
 ### 2. Fetch Latest Version
-Clone the workflow repo into a temp directory (cross-platform):
-```bash
-# Unix/Mac/Git Bash:
-TMPDIR="${TMPDIR:-/tmp}/claude-workflow-update"
-# Windows PowerShell:
-# $TMPDIR = "$env:TEMP\claude-workflow-update"
+Clone the workflow repo into a temp directory. Pick the temp path for the shell you are actually using — detect it, don't assume:
+- Bash / Git Bash (also on Windows): `UPDATE_DIR="${TMPDIR:-/tmp}/claude-workflow-update"`
+- PowerShell: `$UPDATE_DIR = "$env:TEMP\claude-workflow-update"`
 
-git clone --depth 1 {repo_url} "$TMPDIR"
+If the directory already exists from a previous run, delete it first. Then:
+```
+git clone --depth 1 {repo_url} {UPDATE_DIR}
 ```
 Get the latest version tag:
 ```
-cd "$TMPDIR" && git tag --sort=-version:refname | head -1
+git -C {UPDATE_DIR} tag --sort=-version:refname | head -1
 ```
 
 If a target version was specified as an argument: use that instead of latest.
 
 ### 3. Show What Changed
-- Read `/tmp/claude-workflow-update/CHANGELOG.md`
+- Read `{UPDATE_DIR}/CHANGELOG.md`
 - Extract entries between current version and target version
 - Display them to the user
 
@@ -86,7 +85,7 @@ Write updated `.claude/workflow-source.json`:
 
 ### 7. Clean Up and Commit
 ```
-rm -rf "$TMPDIR"
+rm -rf {UPDATE_DIR}
 git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json
 git commit -m "chore: update claude-workflow to {new_version}"
 ```

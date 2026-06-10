@@ -166,6 +166,7 @@ skills/                       ← 13 skills ({name}/SKILL.md per skill)
 agents/                       ← 11 agent definitions
 templates/
 ├── CLAUDE.md.template
+├── README.md.template
 ├── CONTRIBUTING.md.template
 ├── spec.md.template
 ├── vision.md.template

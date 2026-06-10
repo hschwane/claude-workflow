@@ -26,6 +26,7 @@ skills/                      ← one directory per skill, each with SKILL.md
 agents/                      ← subagent definitions (each runs in an isolated context)
 templates/                   ← files copied into projects by project-init / project-onboard
   CLAUDE.md.template
+  README.md.template
   CONTRIBUTING.md.template
   spec.md.template
   vision.md.template
