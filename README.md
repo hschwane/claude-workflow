@@ -55,6 +55,21 @@ Agents are isolated subagents: each runs in its own context window, so heavy fil
 
 **Why agents and not main-thread work?** Subagents pay a startup overhead but keep the main context clean — the rule of thumb (matching [official guidance](https://code.claude.com/docs/en/best-practices)): anything that reads more than 3-4 files or produces large output goes to a subagent; anything interactive, stateful, or small stays in the main thread. That's why **release/deploy is a skill, not an agent** (sequential, needs user confirmations and main-context state), while exploration, test-output digestion, and reviews are agents.
 
+### Model routing
+
+Each agent pins the cheapest model that reliably does its job (`model` frontmatter); only the judgment-heavy agents follow your session model. This mirrors the established pattern — plan/review with the strongest model, execute with Sonnet, extract/digest with Haiku (the built-in Explore agent runs on Haiku for the same reason):
+
+| Tier | Agents | Rationale |
+|------|--------|-----------|
+| `haiku` (cheapest, ~⅓ of Sonnet) | `test-runner`, `workflow-coach` | Mechanical: run commands and condense output; answer questions from structured docs. No deep reasoning needed |
+| `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
+| `inherit` (your session model) | `requirements-engineer`, `tech-planner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` | Planning and reviews are where model quality pays off most. You control the tier with `/model` — run Opus for a tricky refinement, Sonnet for routine work |
+
+Overrides, from broadest to narrowest:
+- `CLAUDE_CODE_SUBAGENT_MODEL` env var forces one model for **all** subagents (beats everything)
+- Edit the `model:` line in `.claude/agents/{name}.md` in your project (after init/onboard the files are local)
+- Skills deliberately do **not** set `model:` — a skill's model override would change the main conversation's model for the rest of the turn, which is surprising when skills chain (e.g. `/pr` running `/commit`).
+
 ## Key Design Principles
 
 - **Token-efficient**: Only load what's needed. Subdirectory CLAUDE.md files, on-demand agents, CI does the mechanical work.

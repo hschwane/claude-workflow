@@ -46,6 +46,8 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 
 Likewise, use the workflow skills (`/commit`, `/draft`, `/resume`) whenever they match the task instead of ad-hoc equivalents.
 
+Model routing: agents pin their own model (`haiku` for mechanical work, `sonnet` for execution); planning/review agents inherit the session model — switch with `/model` to control their quality/cost. Adjust per agent in `.claude/agents/{name}.md`.
+
 ## Session Behavior
 
 If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
