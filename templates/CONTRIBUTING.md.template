@@ -23,6 +23,12 @@ fix/bug-042-short-description
 chore/update-dependencies
 ```
 
+### Branching & Pushing Rules
+- **Push to your feature branch freely** — after every commit is fine. Pushes are backups, not quality statements.
+- **The quality gate sits at the merge**: merging into the integration branch happens only via `/pr` (CI green, AI code/security review findings fixed).
+- **Never push directly to the integration branch** (`develop` in git flow, otherwise `main`). Exception: `/release` performs the release merge into `master` (git flow).
+- **Git flow projects**: `master` contains only released states — its tip always equals the latest release tag.
+
 ### Commit Format
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```

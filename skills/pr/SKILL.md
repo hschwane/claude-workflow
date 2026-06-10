@@ -20,7 +20,11 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
 
 ### 1. Pre-flight
 - `git status` — working directory must be clean. If dirty: run `/commit` first.
-- Identify current branch and base branch (argument, or default: `main` / `master`)
+- Identify current branch and base branch:
+  - explicit argument wins
+  - otherwise: `develop` if it exists (git flow — feature branches merge into develop, never directly into master)
+  - otherwise: `main` / `master`
+- Push the feature branch if not already pushed: `git push -u origin {branch}` (pushing feature branches is always allowed — the quality gate applies to the merge, not the push)
 - Check that the branch has commits not on the base: `git log origin/{base}..HEAD --oneline`
 
 ### 2. Create Pull Request

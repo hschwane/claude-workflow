@@ -77,10 +77,12 @@ CODEBASE_SUMMARY: {result of reading: tree structure + key src/ files}
 ARCHITECTURE: {docs/dev/architecture.md content if exists}
 ```
 
-For the codebase summary, read:
-- Top-level directory structure
-- Any existing modules similar to what the spec requires
-- Existing interfaces/types relevant to the spec
+For the codebase summary, invoke the `code-explorer` subagent with:
+```
+QUESTION: Which existing modules, interfaces, and patterns are relevant to implementing this spec? {one-line spec summary}
+SCOPE: {affected areas if known}
+```
+Its briefing (relevant files, key interfaces, patterns, pitfalls) becomes `CODEBASE_SUMMARY`. This keeps the file reading out of both the main context and the tech-planner's context.
 
 Read the TP output. Check:
 - Does it have `[TECH]` open questions (for RE)?

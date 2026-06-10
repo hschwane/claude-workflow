@@ -9,6 +9,7 @@
 | `/draft feature "title"` | Add raw feature idea to backlog |
 | `/draft bug "title"` | Report a bug |
 | `/brainstorm` | Analyze project state + generate backlog ideas |
+| `/prioritize` | Rank backlog against vision, pick items for next version |
 | `/refine FEAT-001` | Refine a draft into a ready spec (RE + Tech Planner) |
 | `/implement FEAT-001` | Implement a ready spec (tests first, then code) |
 | `/commit` | Quality-gated conventional commit |
@@ -28,11 +29,22 @@ Details (read on demand, not auto-loaded):
 - `docs/workflow/README.md` — workflow overview
 - `docs/dev/architecture.md` — architecture details
 
-## Agents
+## Agents — delegate proactively
 
-Spawn specialized agents proactively for: codebase exploration, code reviews, security checks, documentation writing, and any task requiring reading many files.
+IMPORTANT: Use these subagents automatically whenever they fit — do not ask first. The main context is the scarcest resource; anything that requires reading many files or produces large output belongs in a subagent.
 
-Available: `requirements-engineer`, `tech-planner`, `test-writer`, `code-reviewer`, `security-reviewer`, `architect-reviewer`, `documentation-writer`
+| Agent | Use when |
+|-------|----------|
+| `code-explorer` | Any codebase question that needs reading more than 3-4 files; before implementing in unfamiliar code |
+| `test-runner` | Any full test/lint run — returns a condensed failure report instead of raw output |
+| `workflow-coach` | The user asks how the dev workflow works or which command to use |
+| `product-owner` | Judging ideas/backlog items against the vision (used by /brainstorm, /prioritize) |
+| `code-reviewer` / `security-reviewer` / `architect-reviewer` | Reviewing a diff (used by /pr; also on direct request) |
+| `requirements-engineer` / `tech-planner` | Structured refinement (used by /refine) |
+| `test-writer` | Spec-only test creation (used by /implement Phase 1) |
+| `documentation-writer` | Doc updates after implementation (used by /implement) |
+
+Likewise, use the workflow skills (`/commit`, `/draft`, `/resume`) whenever they match the task instead of ad-hoc equivalents.
 
 ## Session Behavior
 

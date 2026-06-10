@@ -35,8 +35,10 @@ Read the spec file. Verify the Definition of Ready checklist:
 If DoR is not met: list what's missing and stop. Suggest `/refine {id}`.
 
 ### 1. Set Up Branch
-Check current branch. If not on a feature branch for this spec:
+Check current branch. If not on a feature branch for this spec, branch from the integration branch (`develop` if it exists — git flow; otherwise `main`/`master`):
 ```
+git checkout {develop|main}
+git pull
 git checkout -b feature/{lowercase-id}-{kebab-title}
 ```
 Example: `feature/feat-001-oauth-login`
@@ -95,12 +97,13 @@ Now implement each subtask in order. For each subtask:
 
 If tests fail: fix the implementation. Do not proceed to the next subtask until these tests pass.
 
-**d) Commit the subtask:**
+**d) Commit and push the subtask:**
 ```
 git add -A
 git commit -m "{type}({scope}): {subtask description}"
+git push -u origin {branch}
 ```
-Use `feat` for features, `fix` for bugs.
+Use `feat` for features, `fix` for bugs. Pushing the feature branch after every commit is fine and serves as a backup — the quality gate (CI + reviews) happens when merging via `/pr`, not on push.
 
 **e) Update checkpoint:**
 ```markdown
@@ -121,11 +124,8 @@ This ensures `/resume` can pick up from exactly the right subtask.
 ### 5. Final Verification
 After all subtasks are complete:
 
-**a) Run ALL tests** (not just the ones for this spec):
-```
-npm test     # or: pytest / cargo test / ctest
-```
-If any tests fail: diagnose and fix before continuing.
+**a) Run ALL tests** (not just the ones for this spec): invoke the `test-runner` subagent to run the full suite — it returns a condensed failure report instead of flooding the main context with test output.
+If any tests fail: fix based on the report (read the failing test files directly if needed), then re-run via `test-runner` until green.
 
 **b) Run linter:**
 - TypeScript: `npx eslint . && npx tsc --noEmit`

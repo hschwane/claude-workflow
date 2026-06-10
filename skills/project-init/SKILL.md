@@ -86,7 +86,7 @@ Based on language and architecture, ask:
 Ask (AskUserQuestion):
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
-3. **Branching model**: main-only (simpler) / Git Flow (feature + develop + release branches)
+3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
 
 Create:
 - `docs/workflow/release.md` from template, filled with their answers
@@ -263,6 +263,14 @@ If GitHub remote configured:
 ```
 git push -u origin main
 ```
+
+**If the user chose Git Flow** (step 5 branching model):
+```
+git checkout -b develop
+git push -u origin develop
+gh repo edit --default-branch develop
+```
+Document in `docs/workflow/release.md`: feature branches target `develop`; `/release` merges `develop` → `master` so the tip of `master` always equals the latest release. Stay on `develop` for further work.
 
 ### 15. Report
 ```

@@ -15,6 +15,7 @@ IDEA → [/draft] → BACKLOG → [/refine] → READY → [/implement] → IN-PR
 | Command | Phase | What it does |
 |---------|-------|-------------|
 | `/brainstorm` | Planning | Analyze project + generate backlog ideas with you |
+| `/prioritize` | Planning | Rank backlog against vision, pick next-version items |
 | `/draft feature "title"` | Draft | Create raw backlog entry (no planning needed) |
 | `/draft bug "title"` | Draft | Report a bug |
 | `/refine FEAT-001` | Refinement | RE + Tech Planner iterate until spec is ready |
@@ -23,7 +24,10 @@ IDEA → [/draft] → BACKLOG → [/refine] → READY → [/implement] → IN-PR
 | `/pr [base]` | Review | CI → code review → security review → auto-merge |
 | `/release patch\|minor\|major` | Release | Version bump + changelog + tag + publish |
 | `/resume` | Recovery | Continue interrupted in-progress work |
+| `/unsupervised on\|off` | Autonomy | No questions, autonomous defaults, loop-safe |
 | `/workflow-update` | Maintenance | Update workflow plugin to latest version |
+
+Questions about the process? Just ask — the `workflow-coach` agent answers from these docs without loading them into your session.
 
 ## Specs
 

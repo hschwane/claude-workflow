@@ -44,6 +44,7 @@ Autonomous defaults:
   /implement    — proceed immediately, no confirmation steps
   /pr           — auto-merge (squash) after green CI + reviews
   /brainstorm   — generate ideas, auto-create drafts for top suggestions
+  /prioritize   — accept the product-owner's recommended slate (never archives specs)
   /release      — requires bump type as argument (/release patch|minor|major)
   /commit       — auto-fix linter issues, commit without confirmation
 

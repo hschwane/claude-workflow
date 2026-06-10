@@ -16,7 +16,7 @@ Analyzes an existing project and installs the claude-workflow infrastructure wit
 ## Instructions
 
 ### 1. Analyze Existing Project
-Invoke an exploration subagent (isolated context, e.g. the general-purpose agent) to explore the project:
+Invoke the `code-explorer` subagent to explore the project:
 
 > Analyze this codebase and produce a concise report covering:
 > 1. Primary language(s) and tech stack

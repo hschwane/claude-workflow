@@ -63,5 +63,8 @@ Rules:
 git commit -m "{generated-message}"
 ```
 
-### 5. Report
+### 5. Push (feature branches)
+If on a feature/fix/chore branch: push it (`git push -u origin {branch}`). Pushing work branches after every commit is allowed and encouraged (backup, visibility) — the quality gate applies when merging via `/pr`. Never push directly to `develop`, `main`, or `master` (exception: `/release` performs the release merge).
+
+### 6. Report
 Print the commit hash and message. Suggest next step if obvious (e.g., "Next: /pr to create a pull request").

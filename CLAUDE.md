@@ -46,6 +46,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/project-onboard` | Add workflow infrastructure to an existing project |
 | `/draft` | Add a raw feature/bug to the backlog |
 | `/brainstorm` | Analyze project + generate backlog ideas interactively |
+| `/prioritize` | Rank backlog against vision, select next-version items |
 | `/refine` | RE + Tech Planner iterate until spec is ready |
 | `/implement` | Tests-first implementation, per-subtask commits |
 | `/commit` | Quality-gated conventional commit |
@@ -61,13 +62,17 @@ All agents are subagents — each runs in its own isolated context (unbiased, fr
 
 | Agent | When used |
 |-------|-----------|
+| `code-explorer` | During `/refine`, `/project-onboard`, ad-hoc — condensed codebase briefings |
 | `requirements-engineer` | During `/refine` — structures requirements |
 | `tech-planner` | During `/refine` — plans interfaces + subtasks |
+| `product-owner` | During `/brainstorm`, `/prioritize` — vision fit + priorities |
 | `test-writer` | During `/implement` — writes tests before impl |
+| `test-runner` | During `/implement`, `/release` — runs tests, digests output |
 | `code-reviewer` | During `/pr` — reviews code quality |
 | `security-reviewer` | During `/pr` — reviews for security issues |
 | `architect-reviewer` | During `/pr` — reviews structural changes |
 | `documentation-writer` | During `/implement` — updates docs after impl |
+| `workflow-coach` | Ad-hoc — answers workflow questions from docs/workflow/ |
 
 ## Contributing to claude-workflow
 
@@ -75,6 +80,7 @@ To improve the workflow itself:
 1. Create a branch: `git checkout -b feature/improve-X`
 2. Edit the relevant SKILL.md or agent .md files
 3. Test by using the skill in a test project with `--plugin-dir`
-4. Commit with conventional commits
-5. Tag a new version: `git tag v1.x.0`
-6. Push: `git push && git push --tags`
+4. Commit with conventional commits — **pushing the feature branch after every commit is fine** (pushes are backups; the quality gate is the review at merge time)
+5. Merge to `master` only after review (PR or explicit approval) — `master` is what users install from
+6. Tag a new version: `git tag v1.x.0`
+7. Push: `git push && git push --tags`

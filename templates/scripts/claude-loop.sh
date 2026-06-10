@@ -28,7 +28,7 @@ SESSION_TIMEOUT="2h"   # kill a session that hangs
 CONTEXT_FILE=".claude/memory/context.md"
 LOG_FILE=".claude/memory/unsupervised.log"
 PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
-RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in .claude/memory/context.md. Follow the /resume skill. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to .claude/memory/context.md and stop. When everything is complete, clear the '## In Progress' section."
+RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in .claude/memory/context.md. Follow the /resume skill: read the checkpoint, verify the git state, and continue from next_step. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to .claude/memory/context.md and stop. When everything is complete, clear the '## In Progress' section."
 
 log() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -75,9 +75,12 @@ while [ $SESSION -lt $MAX_SESSIONS ]; do
   log "Session $SESSION / $MAX_SESSIONS starting..."
 
   # Headless run (-p): claude executes one autonomous session and exits.
-  # --continue picks up the most recent conversation in this directory.
+  # Each session starts FRESH on purpose — all needed state lives in the
+  # checkpoint (.claude/memory/context.md), which the SessionStart hook
+  # injects. Fresh sessions are deterministic, work on the first run, and
+  # don't re-load a huge prior conversation right after a rate limit.
   EXIT=0
-  timeout "$SESSION_TIMEOUT" claude --continue -p "$RESUME_PROMPT" \
+  timeout "$SESSION_TIMEOUT" claude -p "$RESUME_PROMPT" \
     $PERMISSION_FLAGS 2>&1 | tee -a "$LOG_FILE" || EXIT=$?
 
   # ── Evaluate outcome ────────────────────────────────────────────────────────

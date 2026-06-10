@@ -40,8 +40,9 @@
 ## Branching Model
 {{BRANCHING_MODEL}}
 <!-- Examples:
-- main only: all releases from main
-- git flow: release branches from develop
+- main only: all releases tagged on main
+- git flow: features merge into develop; /release merges develop → master and tags;
+  the tip of master always equals the latest release
 -->
 
 ## Hotfix Process
@@ -49,7 +50,7 @@ For critical patches on already-released versions:
 1. Branch from the release tag: `git checkout -b hotfix/v1.2.1 v1.2.0`
 2. Apply fix + commit
 3. `/release patch` from the hotfix branch
-4. Merge back to main
+4. Merge back to `main` (main-only) or to both `master` and `develop` (git flow)
 
 ## Required Secrets (GitHub Actions)
 <!-- List required GitHub Secrets for CI publish step -->
