@@ -7,7 +7,7 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 Open Claude Code in your project directory and paste:
 
 ```
-Clone https://github.com/hschwane/claude-workflow to /tmp/claude-workflow, run /tmp/claude-workflow/bootstrap.sh from the current directory, then read and follow .claude/skills/bootstrap/SKILL.md.
+Clone https://github.com/hschwane/claude-workflow to /tmp/claude-workflow, then follow /tmp/claude-workflow/BOOTSTRAP.md.
 ```
 
 ## What It Does
