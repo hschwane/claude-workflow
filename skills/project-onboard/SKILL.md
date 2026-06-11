@@ -40,8 +40,12 @@ Ask (AskUserQuestion):
 
 ### 3. Install Workflow Infrastructure
 
-**a) Copy from claude-workflow plugin:**
-Create `.claude/` directory with:
+**a) Verify or install workflow system files:**
+
+Check whether `bootstrap.sh` was already run by reading `.claude/workflow-source.json`:
+- If the file exists and contains a `pluginPath` field → `bootstrap.sh` ran. All system files (agents, skills, hooks, settings.json, claude-loop.sh) are already in place. Skip the copy below.
+- If the file is absent or has no `pluginPath` → `bootstrap.sh` was not used (legacy BOOTSTRAP.md path). Perform the full copy now:
+
 ```
 .claude/
 ├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine` keys if settings.json exists; keep an existing statusLine)
@@ -53,13 +57,7 @@ Create `.claude/` directory with:
 │   ├── usage-guard.sh     ← token-budget threshold for unsupervised mode
 │   └── statusline.sh      ← status line + usage cache for the guard
 ├── agents/                ← copy all agent .md files
-├── skills/                ← copy all skill directories (each as {name}/SKILL.md)
-├── workflow-source.json
-└── memory/
-    ├── decisions.md
-    ├── context.md
-    ├── gotchas.md
-    └── tech-debt.md
+└── skills/                ← copy all skill directories (each as {name}/SKILL.md)
 ```
 
 Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if it cannot be found, leave `repo` empty and note it in the report.
@@ -160,3 +158,23 @@ Next steps:
   /draft feature "title"   to add first items manually
   /workflow-update         to update to latest version later
 ```
+
+### 7. Offer to Remove Plugin Directory
+*Note: if this skill was invoked from `/bootstrap`, the deletion offer will be handled there — skip this step.*
+
+If called directly (not from `/bootstrap`), read `.claude/workflow-source.json`.
+If the `pluginPath` field is set **and** that path still exists on disk:
+  Ask (AskUserQuestion):
+    "All workflow files have been installed into .claude/. The original plugin directory is no longer
+     needed for this project:
+       {pluginPath}
+     Delete it now? (It can be re-cloned from GitHub any time.)"
+  Options: [Yes, delete it / No, keep it]
+
+  If **Yes**: run `rm -rf "{pluginPath}"` and update `.claude/workflow-source.json` — remove
+    the `pluginPath` key (the path no longer exists).
+    Print: "Deleted {pluginPath}"
+
+  If **No**: print: "Kept. You can delete it manually later: rm -rf {pluginPath}"
+
+If `pluginPath` is not set, or the path does not exist: skip silently.

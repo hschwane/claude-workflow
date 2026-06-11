@@ -1,33 +1,63 @@
 # claude-workflow Bootstrap
 
-## For Claude: follow these steps
+## Quick Setup
 
-1. Clone the plugin if `~/.claude/plugins/claude-workflow` does not already exist:
+1. **Run `bootstrap.sh`** from your project directory:
    ```bash
-   git clone https://github.com/hschwane/claude-workflow ~/.claude/plugins/claude-workflow
+   bash /path/to/claude-workflow/bootstrap.sh
+   ```
+   This copies agents, skills, hooks, and scripts into `.claude/` — no AI needed.
+
+2. **Open Claude Code** in your project directory:
+   ```bash
+   claude
    ```
 
-2. Ask the user: **"Is this a new project (empty directory) or an existing project you want to onboard?"**
-
-3. Based on the answer, read the matching skill file and execute every step in it as a task —
-   the skill does not need to be registered, just follow its instructions directly:
-   - **New project:** `~/.claude/plugins/claude-workflow/skills/project-init/SKILL.md`
-   - **Existing project:** `~/.claude/plugins/claude-workflow/skills/project-onboard/SKILL.md`
-
-   Note: subagents called by these skills (e.g. `code-explorer`) are not registered yet.
-   Do their work inline in the main thread instead of spawning them.
-
-4. When the skill completes, the workflow is fully set up in `.claude/`. Future sessions
-   load it automatically — no `--plugin-dir` needed.
+3. **Run the bootstrap skill:**
+   ```
+   /bootstrap
+   ```
+   Claude will ask whether this is a new or existing project, then guide you through the full setup.
 
 ---
 
-## For humans
+## For Claude: Follow These Steps
 
-After setup just run `claude` in your project directory — the workflow is embedded in `.claude/`.
+If you are Claude and a user has directed you here (or pasted the Quick Start prompt below):
+
+1. Clone the plugin to a temp directory if not already done:
+   ```bash
+   git clone https://github.com/hschwane/claude-workflow /tmp/claude-workflow
+   ```
+
+2. Run `bootstrap.sh` from the **current project directory** (not from inside the plugin):
+   ```bash
+   bash /tmp/claude-workflow/bootstrap.sh
+   ```
+   This copies agents, skills, hooks, and scripts into `.claude/`.
+
+3. Read and follow all instructions in `.claude/skills/bootstrap/SKILL.md`.
+   (Skills are now available in `.claude/skills/`. You can read the SKILL.md directly
+   even within this session — no restart needed.)
+
+---
+
+## After Setup
+
+The workflow is embedded in `.claude/`. No `--plugin-dir` needed in future sessions.
 
 | Task | Command |
 |------|---------|
 | Update the workflow inside a project | `/workflow-update` |
 | Plugin development (live edits) | `claude --plugin-dir ~/.claude/plugins/claude-workflow` |
 | Update the plugin itself | `cd ~/.claude/plugins/claude-workflow && git pull` |
+
+## Legacy / Manual Method
+
+The old `--plugin-dir` approach still works if you prefer it:
+```
+claude --plugin-dir /path/to/claude-workflow
+/project-init    # new project
+/project-onboard # existing project
+```
+Note: with this method, the plugin directory deletion offer at the end of onboarding is skipped (the local path is not recorded).

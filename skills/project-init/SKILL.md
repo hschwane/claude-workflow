@@ -181,6 +181,10 @@ Write initial `.claude/memory/decisions.md` with the architecture and tech stack
 
 Write `.claude/memory/context.md` noting this is a fresh project init.
 
+Write empty placeholder files:
+- `.claude/memory/gotchas.md` (header only: `# Gotchas`)
+- `.claude/memory/tech-debt.md` (header only: `# Tech Debt`)
+
 ### 9. Initial Backlog Brainstorm
 Tell the user: "Let's create some initial backlog items from your vision. I'll suggest some; accept, reject, or add your own."
 
@@ -196,20 +200,6 @@ Note: the IDs created here (FEAT-001, FEAT-002, …) start the project's ID sequ
 ### 10. GitHub Repository Creation (if requested)
 ```
 gh repo create {project-name} --{public|private} --source=. --remote=origin
-```
-
-Create GitHub labels (`--force` updates labels that already exist, e.g. the default `bug` label):
-```
-gh label create feature --force --color 0075ca --description "New feature"
-gh label create bug --force --color d73a4a --description "Bug report"
-gh label create backlog --force --color e4e669 --description "In backlog"
-gh label create refining --force --color 0075ca --description "Being refined"
-gh label create ready --force --color 0e8a16 --description "Ready to implement"
-gh label create "in-progress" --force --color fbca04 --description "Being implemented"
-gh label create done --force --color cfd3d7 --description "Implemented and merged"
-gh label create small --force --color bfd4f2 --description "Small effort"
-gh label create medium --force --color d4c5f9 --description "Medium effort"
-gh label create large --force --color e99695 --description "Large effort"
 ```
 
 ### 11. Copy Docs Templates
@@ -229,26 +219,9 @@ From `templates/`:
 - `github/issue-feature.md` → `.github/ISSUE_TEMPLATE/feature.md`
 - `github/issue-bug.md` → `.github/ISSUE_TEMPLATE/bug.md`
 
-### 12. Install Workflow Infrastructure
-Copy to `.claude/`:
-- All agent files from this plugin's `agents/`
-- All skill directories from this plugin's `skills/` (preserve the `{name}/SKILL.md` directory structure)
-- All hook scripts from this plugin's `templates/hooks/` (auto-format, protect-files, completeness-check, session-start, usage-guard, statusline)
-- `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` and `statusLine` keys into it — keep an existing `statusLine` if the user has one)
-
-Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if `.claude-plugin/plugin.json` cannot be found or has no `repository`, leave `repo` empty and note it in the report.
-```json
-{ "repo": "{repository from plugin.json}", "version": "{version from plugin.json}", "installed": "{today}" }
-```
-
-Initialize memory files with the decisions made during this session:
-- `.claude/memory/decisions.md`
-- `.claude/memory/context.md` (project created, ready to start)
-- `.claude/memory/gotchas.md` (empty)
-- `.claude/memory/tech-debt.md` (empty)
-
-Make hooks executable: `chmod +x .claude/hooks/*.sh`
-Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh` and make it executable: `chmod +x scripts/claude-loop.sh`
+### 12. GitHub Labels and Issue Templates
+If a GitHub repository was set up in step 10, follow the **GitHub Setup** instructions in
+`.claude/skills/project-onboard/SKILL.md` (Step 4) to create the standard labels and issue templates.
 
 ### 13. MkDocs Setup (if user chose HTML docs)
 ```

@@ -2,6 +2,14 @@
 
 A professional, reusable AI-assisted software development workflow for Claude Code. Covers the full lifecycle from idea to release.
 
+## Quick Start
+
+Open Claude Code in your project directory and paste:
+
+```
+Clone https://github.com/hschwane/claude-workflow to /tmp/claude-workflow, run /tmp/claude-workflow/bootstrap.sh from the current directory, then read and follow .claude/skills/bootstrap/SKILL.md.
+```
+
 ## What It Does
 
 ```
@@ -10,21 +18,13 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 
 An idea enters the backlog as a one-liner, gets refined into a testable spec, is implemented test-first, passes CI and AI reviews in a PR, and ships with a semver release — each step is one command.
 
-## Quick Start
-
-Open Claude Code in your project directory and paste:
-
-```
-Clone https://github.com/hschwane/claude-workflow to ~/.claude/plugins/claude-workflow if not already there,
-then read ~/.claude/plugins/claude-workflow/BOOTSTRAP.md and follow its instructions.
-```
-
 ## Skills
 
 Skills are the user-facing commands. Setup skills:
 
 | Skill | What it does |
 |-------|--------------|
+| `/bootstrap` | Entry point after running `bootstrap.sh` — checks prerequisites, asks new/existing, routes to init or onboard |
 | `/project-init` | Create a new project from scratch: vision workshop, architecture decision, configs, CI, GitHub repo, hooks, initial backlog |
 | `/project-onboard` | Install the workflow into an existing project without disrupting it (analyzes the codebase first via `code-explorer`) |
 | `/workflow-update` | Pull a newer plugin version into the project; overwrites system files, never touches project files |
@@ -165,8 +165,9 @@ Inside a project that uses this workflow:
 ## Repository Structure
 
 ```
+bootstrap.sh                  ← one-shot installer: copies static plugin files into a project
 .claude-plugin/plugin.json    ← plugin manifest (metadata only; components are auto-discovered)
-skills/                       ← 13 skills ({name}/SKILL.md per skill)
+skills/                       ← 14 skills ({name}/SKILL.md per skill)
 agents/                       ← 11 agent definitions
 templates/
 ├── CLAUDE.md.template

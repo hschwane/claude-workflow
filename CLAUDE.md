@@ -4,23 +4,28 @@ This repository IS the claude-workflow plugin. It provides a professional AI-ass
 
 ## How to Use This in a Project
 
-**New project:**
-```
-claude --plugin-dir /path/to/claude-workflow
-/project-init
-```
-
-**Existing project:**
-```
-claude --plugin-dir /path/to/claude-workflow
-/project-onboard
+**Recommended (run `bootstrap.sh` first, then Claude):**
+```bash
+# From your project directory:
+bash /path/to/claude-workflow/bootstrap.sh
+claude
+# then inside Claude:
+/bootstrap
 ```
 
-After onboarding, the plugin files are copied into the project's `.claude/` directory — the project becomes self-contained and no longer needs `--plugin-dir`.
+**Alternative (direct via `--plugin-dir`, no bootstrap.sh needed):**
+```
+claude --plugin-dir /path/to/claude-workflow
+/project-init    # new project
+/project-onboard # existing project
+```
+
+After setup, the plugin files are copied into the project's `.claude/` directory — the project becomes self-contained and no longer needs `--plugin-dir`.
 
 ## Repository Structure
 
 ```
+bootstrap.sh                 ← one-shot installer: copies static plugin files into a project
 .claude-plugin/plugin.json   ← plugin manifest (metadata only; skills/ and agents/ are auto-discovered)
 skills/                      ← one directory per skill, each with SKILL.md
 agents/                      ← subagent definitions (each runs in an isolated context)
@@ -37,12 +42,13 @@ templates/                   ← files copied into projects by project-init / pr
   scripts/                   ← claude-loop.sh (unsupervised mode supervisor)
 ```
 
-Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `hooks/hooks.json`) so the plugin itself does not activate hooks whose scripts only exist after project-init/onboard copies them into a project's `.claude/hooks/`.
+Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `hooks/hooks.json`) so the plugin itself does not activate hooks whose scripts only exist after `bootstrap.sh` / project-init / project-onboard copies them into a project's `.claude/hooks/`.
 
 ## Skills
 
 | Skill | Description |
 |-------|-------------|
+| `/bootstrap` | Entry point after `bootstrap.sh` — prerequisites check, new/existing routing |
 | `/project-init` | Create a new project with full infrastructure |
 | `/project-onboard` | Add workflow infrastructure to an existing project |
 | `/draft` | Add a raw feature/bug to the backlog |
