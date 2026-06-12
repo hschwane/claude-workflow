@@ -18,6 +18,15 @@ Analyzes the current project state and helps generate new backlog ideas through 
 
 ## Instructions
 
+### 0. Branch Check
+Run `git branch --show-current`. If the result is not `develop`, `main`, or `master`, warn the user:
+
+> ⚠ You are on branch `{branch}`. Brainstorming is a planning activity and should normally run on your integration branch (`develop` or `main`) so spec changes don't end up on feature branches. Continue here, or switch branches first?
+
+Ask (AskUserQuestion): [Continue on this branch / I'll switch first — stopping now]
+
+If the user wants to switch: stop.
+
 ### 1. Invoke Product Owner Agent
 Invoke the `product-owner` subagent with:
 ```
@@ -58,7 +67,7 @@ Next: /refine FEAT-007   to start refining the first new item
 ```
 
 ### 5. Update Memory
-Append a note to `.claude/memory/context.md`:
+Append a note to the branch context file (`.claude/memory/context-{branch}.md`):
 ```markdown
 ## Last Brainstorm
 date: {YYYY-MM-DD}

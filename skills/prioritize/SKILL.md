@@ -18,6 +18,15 @@ Ranks all backlog items against the product vision (via the product-owner agent)
 
 ## Instructions
 
+### 0. Branch Check
+Run `git branch --show-current`. If the result is not `develop`, `main`, or `master`, warn the user:
+
+> ⚠ You are on branch `{branch}`. Prioritization is a planning activity and should normally run on your integration branch (`develop` or `main`). Continue here, or switch branches first?
+
+Ask (AskUserQuestion): [Continue on this branch / I'll switch first — stopping now]
+
+If the user wants to switch: stop.
+
 ### 1. Collect Backlog State
 - List all specs in `docs/specs/backlog/` (id, title, size if present)
 - List `docs/specs/ready/` (already refined — mention but exclude from ranking)
@@ -44,7 +53,7 @@ Ask (AskUserQuestion, multiSelect): "Which items should move forward for refinem
 In unsupervised mode: accept the agent's recommended slate as-is.
 
 ### 4. Record the Selection
-Append to `.claude/memory/context.md`:
+Append to the branch context file (`.claude/memory/context-{branch}.md`):
 ```markdown
 ## Next Version Plan
 selected: {ids in refinement order}

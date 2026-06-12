@@ -67,6 +67,21 @@ next_step: "Wait for CI, then run code review"
 saved_at: {timestamp}
 ```
 
+### 3b. Spec-Only Diff Check
+
+Run:
+```bash
+git diff --name-only origin/{base}...HEAD | grep -v "^docs/specs/" | head -1
+```
+
+If this outputs **nothing** — every changed file in this branch is under `docs/specs/` — take the spec-only fast path:
+- Skip step 4 (CI wait)
+- Skip step 5 (code review), step 6 (security review), step 7 (architect review)
+- Verify once more immediately before merging: re-run the same command and confirm it is still empty
+- Proceed directly to step 9 (merge) — the "ask before merging" conditions in step 9 still apply
+
+**Only use this path if you are 100% certain the entire diff is within `docs/specs/`.** Any non-spec file in the diff → run the full PR flow with CI and reviews.
+
 ### 4. Wait for CI — hard gate
 
 First check whether the repository has any checks configured:

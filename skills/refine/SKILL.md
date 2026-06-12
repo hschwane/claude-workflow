@@ -18,7 +18,16 @@ Turns a raw draft into a ready-to-implement spec through an iterative Requiremen
 
 ## Instructions
 
-### 0. Setup
+### 0. Branch Check
+Run `git branch --show-current`. If the result is not `develop`, `main`, or `master`, warn the user:
+
+> ⚠ You are on branch `{branch}`. Refinement is a planning activity and should normally run on your integration branch (`develop` or `main`) so spec changes don't accumulate on feature branches. Continue here, or switch branches first?
+
+Ask (AskUserQuestion): [Continue on this branch / I'll switch first — stopping now]
+
+If the user wants to switch: stop. Do not proceed until they re-run `/refine` from the right branch.
+
+### 0.1 Setup
 Find the spec:
 - By ID: search `docs/specs/backlog/` for matching file
 - By GitHub issue: `gh issue view {number}` and find linked spec
