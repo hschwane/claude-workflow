@@ -22,9 +22,39 @@ Creates a new software project from scratch with the full claude-workflow infras
 - If `gh` is not authenticated: `gh auth status` — if not logged in, prompt user to run `gh auth login`
 - Ask (AskUserQuestion): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
 
+### 0.5 Design Document Review (Optional)
+
+Ask (AskUserQuestion): "Do you have any design documents, requirements, or notes to share before we start? (PRD, concept notes, wireframe descriptions, feature lists — anything goes.)"
+
+If the user shares documents:
+
+1. **Accept all input**: Ask for the document content (paste or describe) and any additional context, constraints, or special instructions.
+
+2. **Analyze thoroughly** — extract and record:
+   - Project name, description, type, primary language (if mentioned)
+   - Target users, core problem, value proposition, goals, explicit non-goals
+   - Architectural ideas, technology preferences, or constraints
+   - Features, requirements, release/deploy intentions
+
+3. **Evaluate critically** — before proceeding, think independently:
+   - Are the goals realistic given the stated scope?
+   - Are there internal contradictions or missing pieces?
+   - Is the scope appropriate (too broad / too narrow)?
+   - What are 3-5 concrete improvements that would strengthen the project?
+   - Would you recommend a different approach for any stated decision?
+
+4. **Present your analysis**: Summarize what you understood, share your evaluation (strengths and concerns), and list your improvement suggestions. Ask the user to confirm or clarify before moving on.
+
+5. **Pre-fill subsequent steps** from the confirmed information:
+   - Fields that are clearly defined in the document → **skip the question entirely** (display the derived value with a brief note like "From design doc: …")
+   - Fields with a reasonable pre-selection → **show the pre-selected value** and ask the user to confirm or change it
+   - Fields not covered → ask normally as usual
+
+Keep a mental note of which values came from the document so the user can always see what was derived vs. what they still need to decide.
+
 ### 1. Project Basics
-Ask the user (AskUserQuestion):
-1. **Project name** (if not in args)
+Ask the user (AskUserQuestion) — **skip questions already resolved in step 0.5; for pre-filled values, confirm rather than ask fresh**:
+1. **Project name** (if not in args and not in design doc)
 2. **Short description** (one sentence)
 3. **Project type**: Web API / Web Frontend / CLI tool / Library / Desktop App / Other
 4. **Primary language**: TypeScript (recommended) / Python / Rust / C++ / Other
@@ -33,6 +63,8 @@ If user selects JavaScript instead of TypeScript: note "TypeScript is recommende
 
 ### 2. Product Vision Workshop
 Tell the user: "Let me help you define the product vision — this guides the Requirements Engineer during refinement. Answer these questions as briefly or thoroughly as you like."
+
+**If vision elements were extracted from the design document in step 0.5, pre-fill the corresponding questions and ask the user to confirm or refine rather than asking from scratch.**
 
 Ask (AskUserQuestion):
 1. "Who are the primary users of this project? What's their technical level?"
@@ -44,7 +76,7 @@ Ask (AskUserQuestion):
 Write `docs/VISION.md` from the template, filled with the user's answers.
 
 ### 3. Architecture Decision
-Based on project type and language, present an opinionated recommendation:
+Based on project type and language, present an opinionated recommendation. **Consider any architectural ideas or technology preferences from the design document when making the recommendation.**
 
 **TypeScript Web API:**
 > Recommended: Clean Architecture + Express/Fastify + Zod validation + Vitest + Prisma/Drizzle
@@ -83,7 +115,7 @@ Based on language and architecture, ask:
 3. **Monorepo?**: No (single package) / Yes (workspaces)
 
 ### 5. Release & Deploy Setup
-Ask (AskUserQuestion):
+Ask (AskUserQuestion) — **pre-select values inferred from the design document (step 0.5) and ask user to confirm or change**:
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
