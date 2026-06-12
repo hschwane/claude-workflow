@@ -190,7 +190,7 @@ memory), and the initial git commit. Full instructions are in your agent definit
 
 Wait for the agent to complete and review its report before proceeding.
 
-Run `/reload` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
+Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
 
 ### 9. Initial Backlog Brainstorm
 
