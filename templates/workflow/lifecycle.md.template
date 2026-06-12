@@ -31,6 +31,25 @@ Run with `/release patch|minor|major`.
 
 ---
 
+## Context Management
+
+Long sessions (especially `/implement` on a non-trivial feature) can approach the context limit. Compress proactively rather than reactively.
+
+**When to run `/compact`:**
+- After each subtask's commit — right before starting the next one
+- After a `/pr` review-and-fix cycle closes
+- After `/refine` finishes (before `/implement` begins)
+- Whenever the conversation exceeds ~40 messages
+
+**Before every compact:**
+1. Commit and push all in-progress changes
+2. Update `.claude/memory/context.md` (task ID, branch, next step)
+3. Confirm spec checkboxes reflect actual progress
+
+After compacting, read `.claude/memory/context.md` to re-orient before continuing.
+
+---
+
 ## Branching
 
 This project uses: **{{BRANCHING_MODEL}}**

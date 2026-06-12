@@ -63,3 +63,26 @@ If `.claude/memory/settings.md` contains `unsupervised: true`:
 ## Memory
 
 `.claude/memory/` contains project memory (decisions, context, gotchas, tech-debt). Read these when they are relevant — they are not auto-loaded.
+
+## Context Management
+
+Compress the conversation proactively to avoid token exhaustion mid-task. Long sessions accumulate context fast — a single `/implement` run for a non-trivial feature can approach the limit.
+
+**Compact after every natural boundary:**
+- After each subtask's commit during `/implement` (right before starting the next subtask)
+- After a `/pr` review-and-fix cycle completes
+- After `/refine` finishes and the spec is ready
+- Whenever the conversation exceeds ~40 messages or starts feeling sluggish
+
+**Before every compact, ensure all state is on disk:**
+1. All in-progress changes are committed and pushed
+2. `.claude/memory/context.md` reflects the current task ID, branch, and next step
+3. Spec checkboxes match actual progress (they are the subtask source of truth)
+
+**How to compact:** run `/compact` in Claude Code. The harness summarizes the conversation; the summary plus the memory files give full orientation for the next burst of work.
+
+**After compacting:** read `.claude/memory/context.md` before continuing so you pick up exactly where the work left off.
+
+**Safe vs. unsafe compact windows:**
+- **Safe**: immediately after a successful commit + checkpoint update — everything is persisted
+- **Unsafe**: mid-subtask with uncommitted edits, or while waiting for a tool result — finish the atomic unit first
