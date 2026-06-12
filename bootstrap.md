@@ -10,7 +10,31 @@ You are being asked to install the claude-workflow development workflow. Follow 
 
 ---
 
-## Step 1: Confirm the Target
+## Step 1: Verify Prerequisites
+
+**Check that `gh` (GitHub CLI) is available:**
+
+```bash
+gh --version
+```
+
+If `gh` is not found, stop immediately and tell the user:
+
+> "`gh` (GitHub CLI) is required but not installed. Install it from https://cli.github.com, then re-run this bootstrap."
+
+Do not proceed until `gh` is confirmed available.
+
+**Check that `gh` is authenticated:**
+
+```bash
+gh auth status
+```
+
+If not authenticated, tell the user to run `gh auth login` and complete the login flow before continuing. Wait for confirmation that authentication succeeded before moving on.
+
+---
+
+## Step 2: Confirm the Target
 
 Ask the user (AskUserQuestion):
 
@@ -19,7 +43,7 @@ Ask the user (AskUserQuestion):
 
 ---
 
-## Step 2: Clone the Plugin to a Temporary Location
+## Step 3: Clone the Plugin to a Temporary Location
 
 Run this Bash command:
 
@@ -33,7 +57,7 @@ If the clone fails (no `git`, no network, `CLONE_FAILED`):
 
 ---
 
-## Step 3: Load the Skill
+## Step 4: Load the Skill
 
 Read the appropriate skill file:
 
@@ -46,7 +70,7 @@ Read it now, before proceeding.
 
 ---
 
-## Step 4: Execute the Skill
+## Step 5: Execute the Skill
 
 Follow the instructions in the SKILL.md **exactly as if the user had typed `/project-init` or `/project-onboard`**.
 
@@ -67,7 +91,7 @@ The skill will copy all agent and skill files into the project's `.claude/agents
 
 ---
 
-## Step 5: Clean Up
+## Step 6: Clean Up
 
 After the skill completes:
 
@@ -82,10 +106,11 @@ The project is now **self-contained** — the full workflow is embedded in `.cla
 ## Summary
 
 ```
-1. Ask: new project or existing? Target directory?
-2. git clone https://github.com/hschwane/claude-workflow /tmp/claude-workflow-bootstrap
-3. Read /tmp/claude-workflow-bootstrap/skills/project-init/SKILL.md
+1. Verify gh is installed and authenticated — stop if not
+2. Ask: new project or existing? Target directory?
+3. git clone https://github.com/hschwane/claude-workflow /tmp/claude-workflow-bootstrap
+4. Read /tmp/claude-workflow-bootstrap/skills/project-init/SKILL.md
    (or project-onboard/SKILL.md for existing projects)
-4. Execute the skill instructions exactly
-5. rm -rf /tmp/claude-workflow-bootstrap
+5. Execute the skill instructions exactly
+6. rm -rf /tmp/claude-workflow-bootstrap
 ```
