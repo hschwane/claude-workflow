@@ -10,6 +10,40 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 
 An idea enters the backlog as a one-liner, gets refined into a testable spec, is implemented test-first, passes CI and AI reviews in a PR, and ships with a semver release — each step is one command.
 
+## Quick Start
+
+**Install in one prompt** — paste this into any Claude Code session (web app, VS Code extension, or console):
+
+```
+Clone https://github.com/hschwane/claude-workflow into /tmp/claude-workflow-bootstrap, then read /tmp/claude-workflow-bootstrap/bootstrap.md and follow the instructions.
+```
+
+Claude will ask whether you want a new project or to onboard an existing one, then run the full setup automatically.
+
+### Manual setup (if you prefer `--plugin-dir`)
+
+**New project:**
+```bash
+cd ~/my-projects
+claude --plugin-dir /path/to/claude-workflow
+```
+Then in Claude Code:
+```
+/project-init
+```
+
+**Existing project:**
+```bash
+cd my-existing-project
+claude --plugin-dir /path/to/claude-workflow
+```
+Then:
+```
+/project-onboard
+```
+
+After onboarding, the plugin is embedded in `.claude/` — just run `claude` normally.
+
 ## Skills
 
 Skills are the user-facing commands. Setup skills:
@@ -82,30 +116,6 @@ Overrides, from broadest to narrowest:
 - **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are read-only (`disallowedTools: Write, Edit`).
 - **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits.
 - **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
-
-## Quick Start
-
-### New Project
-```bash
-cd ~/my-projects
-claude --plugin-dir /path/to/claude-workflow
-```
-Then in Claude Code:
-```
-/project-init
-```
-
-### Existing Project
-```bash
-cd my-existing-project
-claude --plugin-dir /path/to/claude-workflow
-```
-Then:
-```
-/project-onboard
-```
-
-After onboarding, the plugin is embedded in `.claude/` — just run `claude` normally.
 
 ## Branching Models
 
