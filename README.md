@@ -118,6 +118,24 @@ Overrides, from broadest to narrowest:
 - **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits.
 - **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
 
+## Parallel Sessions
+
+You can run multiple Claude Code sessions on the same repository simultaneously — with one constraint: **each session must be on a different git branch**. Each branch gets its own isolated checkpoint file (`.claude/memory/context-{branch}.md`), so sessions never collide.
+
+**Safe — recommended pattern:**
+
+| Session | Branch | Task |
+|---------|--------|------|
+| A | `feature/feat-001-login` | `/implement FEAT-001` |
+| B | `develop` | `/refine FEAT-002` or `/brainstorm` |
+| C | `feature/feat-003-api` | `/pr` waiting for CI |
+
+Session A codes, Session B refines a different spec, Session C handles a PR — all simultaneously, no conflicts.
+
+**Not safe:** two sessions on the **same branch**. They share the same checkpoint file and can conflict on source files. Don't do it.
+
+**Rule of thumb:** one session per branch. Keep each implementation session on its own feature branch. Use a dedicated session on `develop` (or `main`) for planning work (refine, draft, brainstorm) that doesn't touch feature code.
+
 ## Branching Models
 
 `/project-init` asks which model the project uses; all skills adapt automatically:

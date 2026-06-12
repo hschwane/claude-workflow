@@ -31,6 +31,27 @@ Run with `/release patch|minor|major`.
 
 ---
 
+## Parallel Sessions
+
+You can run multiple Claude Code sessions on this repository simultaneously, **as long as each session is on a different git branch**. Each branch has its own isolated checkpoint file (`.claude/memory/context-{branch}.md`), so sessions never overwrite each other's state.
+
+**Safe — recommended parallel workflow:**
+
+| Session | Branch | Doing |
+|---------|--------|-------|
+| A | `feature/feat-001-login` | `/implement FEAT-001` |
+| B | `develop` (or `feature/feat-002-signup`) | `/refine FEAT-002` |
+
+Session A implements on its feature branch. Session B refines a different spec from develop or its own branch. No conflict.
+
+**Not safe — same branch, two sessions:**
+
+Two sessions both on `feature/feat-001-login` will race to write the same checkpoint file and may conflict on source files. Don't do it.
+
+**Rule of thumb:** one session per branch. Keep implementation sessions on their feature branches. Use a separate session on `develop` for refinement, drafting, and brainstorming of other specs.
+
+---
+
 ## Context Management
 
 Long sessions (especially `/implement` on a non-trivial feature) can approach the context limit. Compress proactively rather than reactively.
@@ -43,10 +64,10 @@ Long sessions (especially `/implement` on a non-trivial feature) can approach th
 
 **Before every compact:**
 1. Commit and push all in-progress changes
-2. Update `.claude/memory/context.md` (task ID, branch, next step)
+2. Update the branch context file (`.claude/memory/context-{branch}.md`) with task ID and next step
 3. Confirm spec checkboxes reflect actual progress
 
-After compacting, read `.claude/memory/context.md` to re-orient before continuing.
+After compacting, read the branch context file to re-orient before continuing.
 
 ---
 
