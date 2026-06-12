@@ -182,7 +182,7 @@ If `approval: manual-approval`:
 git mv docs/specs/backlog/{filename} docs/specs/ready/{filename}
 ```
 
-If GitHub remote exists: update issue labels — remove `backlog`, add `ready`.
+If `.claude/memory/decisions.md` does NOT contain `GitHub integration: no`: update issue labels — remove `backlog`, add `ready` (`gh issue edit {github_issue} --remove-label backlog --add-label ready`).
 
 Commit:
 ```bash

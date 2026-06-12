@@ -183,6 +183,7 @@ Write `{TARGET_DIR}/.claude/memory/decisions.md`:
 - Release type: {RELEASE_TYPE}
 - Deploy: {DEPLOY}
 - Branching: {BRANCHING_MODEL}
+- GitHub integration: {yes if GITHUB_REPO is yes-public or yes-private, else no}
 ```
 
 Write `{TARGET_DIR}/.claude/memory/context.md`:

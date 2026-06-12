@@ -104,6 +104,9 @@ Added: {today}
 
 ## Existing Patterns
 {key patterns observed from analysis}
+
+## Integrations
+- GitHub integration: {yes if user confirmed GitHub in step 2, else no}
 ```
 
 Write initial `.claude/memory/context.md`:
@@ -140,7 +143,7 @@ If CLAUDE.md already exists: offer to add the workflow commands table to it.
 Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
 
 ### 4. GitHub Setup (if applicable)
-If GitHub remote exists:
+Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
 - Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, small, medium, large — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 

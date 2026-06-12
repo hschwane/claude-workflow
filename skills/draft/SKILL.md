@@ -69,8 +69,10 @@ For bugs, replace User Story with:
 1. [To be filled in /refine]
 ```
 
-### 4. GitHub Integration (if available)
-Check if GitHub remote exists: `git remote get-url origin`
+### 4. GitHub Integration (if enabled)
+First check `.claude/memory/decisions.md` for `GitHub integration: no` — if present, skip this step entirely (user chose local-only during init/onboard).
+
+Otherwise check if GitHub remote exists: `git remote get-url origin`
 If it points to GitHub (contains `github.com`):
 - Create issue: `gh issue create --title "{title}" --label "{type},backlog" --body-file "{spec-file}"` (label `feature` or `bug` matching the type)
 - Note the returned issue number
