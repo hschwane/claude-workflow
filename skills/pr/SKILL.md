@@ -139,7 +139,7 @@ After successful merge:
 - Pull latest: `git pull`
 - If a spec file is linked (`docs/specs/ready/{id}-*.md`):
   - Update frontmatter `status: in-progress` → `status: done`
-  - Move file: `docs/specs/ready/` → `docs/specs/completed/`
+  - `git mv docs/specs/ready/{filename} docs/specs/completed/{filename}`
   - Commit: `git add docs/specs/ && git commit -m "docs(specs): complete {id}"`
 - Clear the `## In Progress` section from `.claude/memory/context.md`
 

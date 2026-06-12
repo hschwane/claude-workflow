@@ -169,12 +169,14 @@ If `approval: manual-approval`:
 
 ### 7. Move to Ready
 
-Move the spec file from `docs/specs/backlog/{file}` to `docs/specs/ready/{file}`.
+```bash
+git mv docs/specs/backlog/{filename} docs/specs/ready/{filename}
+```
 
 If GitHub remote exists: update issue labels — remove `backlog`, add `ready`.
 
 Commit:
-```
+```bash
 git add docs/specs/
 git commit -m "docs(specs): refine {id} — ready to implement"
 ```
