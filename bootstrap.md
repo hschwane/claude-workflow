@@ -12,25 +12,64 @@ You are being asked to install the claude-workflow development workflow. Follow 
 
 ## Step 1: Verify Prerequisites
 
-**Check that `gh` (GitHub CLI) is available:**
+### 1a. Ensure `gh` is in PATH
 
+Run:
 ```bash
 gh --version
 ```
 
-If `gh` is not found, stop immediately and tell the user:
+**If `gh` is found:** continue to 1b.
 
-> "`gh` (GitHub CLI) is required but not installed. Install it from https://cli.github.com, then re-run this bootstrap."
+**If `gh` is not found**, search common install locations before giving up:
 
-Do not proceed until `gh` is confirmed available.
+```bash
+# Common locations to probe (run each; stop at the first hit)
+/usr/local/bin/gh --version
+/opt/homebrew/bin/gh --version          # macOS Apple Silicon Homebrew
+~/.local/bin/gh --version
+"$HOME/.local/bin/gh" --version
+/usr/bin/gh --version
+# Windows common paths:
+"C:/Program Files/GitHub CLI/gh.exe" --version
+"$LOCALAPPDATA/Programs/GitHub CLI/gh.exe" --version
+```
 
-**Check that `gh` is authenticated:**
+If a working binary is found at a non-PATH location:
+- Add the directory to `PATH` for the current session: `export PATH="$PATH:/found/dir"` (Bash) or `$env:PATH += ";C:\found\dir"` (PowerShell)
+- Re-run `gh --version` to confirm it resolves
+- Continue to 1b
+
+If `gh` is not found anywhere, **try to install it** before stopping:
+
+Detect the OS and run the appropriate install command:
+
+| OS | Command to try |
+|----|---------------|
+| macOS (Homebrew available) | `brew install gh` |
+| macOS (no Homebrew) | `curl -sL https://cli.github.com/packages/githubcli-archive-keyring.gpg \| …` — too complex; guide the user to run `brew install gh` or download from https://cli.github.com |
+| Ubuntu / Debian | `sudo mkdir -p /etc/apt/keyrings && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \| sudo dd of=/etc/apt/keyrings/githubcli-archive-keyring.gpg && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \| sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y` |
+| Fedora / RHEL / CentOS | `sudo dnf install gh -y` (after `sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo`) |
+| Windows (winget available) | `winget install --id GitHub.cli -e` |
+| Windows (choco available) | `choco install gh -y` |
+| Windows (scoop available) | `scoop install gh` |
+| Any (go available) | `go install github.com/cli/cli/v2/cmd/gh@latest` |
+
+After install, re-run `gh --version`. If it resolves, add its directory to PATH if needed and continue to 1b.
+
+**Only stop if installation fails or no install path is available.** Tell the user exactly what was tried, what failed, and that they should install `gh` manually from https://cli.github.com and re-run bootstrap.
+
+### 1b. Ensure `gh` is authenticated
 
 ```bash
 gh auth status
 ```
 
-If not authenticated, tell the user to run `gh auth login` and complete the login flow before continuing. Wait for confirmation that authentication succeeded before moving on.
+If not authenticated, tell the user to run:
+```bash
+gh auth login
+```
+and complete the interactive login flow. Wait for confirmation that `gh auth status` passes before moving on.
 
 ---
 
@@ -106,7 +145,8 @@ The project is now **self-contained** — the full workflow is embedded in `.cla
 ## Summary
 
 ```
-1. Verify gh is installed and authenticated — stop if not
+1. Ensure gh is in PATH (search common locations, install if missing, only stop if all else fails)
+   Then ensure gh is authenticated
 2. Ask: new project or existing? Target directory?
 3. git clone https://github.com/hschwane/claude-workflow /tmp/claude-workflow-bootstrap
 4. Read /tmp/claude-workflow-bootstrap/skills/project-init/SKILL.md
