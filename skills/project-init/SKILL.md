@@ -22,6 +22,25 @@ Creates a new software project from scratch with the full claude-workflow infras
 - If `gh` is not authenticated: `gh auth status` — if not logged in, prompt user to run `gh auth login`
 - Ask (AskUserQuestion): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
 
+### 0.1 Model Tier for Design Phase (Supervised Mode Only)
+
+Skip this step in unsupervised mode.
+
+Explain and ask (AskUserQuestion):
+
+> "The **design phase** (vision workshop, architecture decisions) benefits from high-quality reasoning.  
+> The **scaffolding phase** (file creation, template copying, git setup) will automatically run on a Sonnet subagent to save tokens — your session model does not affect it.  
+>  
+> Which model tier do you want for the design phase?"
+
+Options:
+- **Session model** (recommended — proceed as-is; good if already on Opus/Sonnet)
+- **Switch to Opus / Fable** — strongest reasoning; ideal for complex domains or tricky architecture decisions
+- **Switch to Sonnet** — balanced cost/quality; good default
+- **Switch to Haiku** — cheapest; fine when requirements are already clear and straightforward
+
+If the user chooses a specific model: tell them to run `/model opus`, `/model sonnet`, or `/model haiku` now, then confirm when ready. Wait for confirmation before proceeding.
+
 ### 0.5 Design Document Review (Optional)
 
 Ask (AskUserQuestion): "Do you have any design documents, requirements, or notes to share before we start? (PRD, concept notes, wireframe descriptions, feature lists — anything goes.)"
@@ -126,94 +145,55 @@ Create:
 
 Select the matching release CI template (`templates/github/release-{type}.yml`).
 
-### 6. Create Project Structure
+### 5b. Hand Off to Scaffolder
 
-**Directory layout:**
+All design decisions are now complete. Write a **1–3 sentence architecture summary paragraph** capturing: stack choices, key layer/module structure, and primary conventions. This will go into the project's root CLAUDE.md — write it with that audience in mind.
+
+Then determine:
+- `GITIGNORE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
+- `CI_LANGUAGE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
+- `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`
+- `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
+- `TARGET_DIR`: the absolute path to the new project directory.
+
+Invoke the `project-scaffolder` agent with this prompt (fill in every `{…}` placeholder):
+
 ```
-{project-name}/
-├── src/
-│   └── CLAUDE.md          (code conventions)
-├── tests/
-│   └── CLAUDE.md          (testing conventions)
-├── docs/
-│   ├── VISION.md          (already written)
-│   ├── workflow/
-│   │   ├── README.md
-│   │   ├── lifecycle.md
-│   │   ├── conventions.md
-│   │   ├── quality.md
-│   │   ├── release.md     (already written)
-│   │   └── deploy.md      (if applicable)
-│   ├── dev/
-│   │   ├── architecture.md (already written)
-│   │   ├── setup.md
-│   │   ├── style-guide.md
-│   │   └── adr/
-│   │       └── ADR-001-architecture.md (already written)
-│   ├── user/
-│   │   └── README.md
-│   └── specs/
-│       ├── backlog/
-│       ├── ready/
-│       └── completed/
-├── .github/
-│   ├── workflows/
-│   │   ├── ci.yml
-│   │   └── release.yml
-│   ├── dependabot.yml
-│   └── ISSUE_TEMPLATE/
-│       ├── feature.md
-│       └── bug.md
-├── .claude/
-│   ├── settings.json
-│   ├── hooks/
-│   ├── agents/
-│   ├── skills/
-│   ├── workflow-source.json
-│   └── memory/
-│       ├── decisions.md
-│       ├── context.md
-│       ├── gotchas.md
-│       └── tech-debt.md
-├── CHANGELOG.md
-├── CLAUDE.md
-├── CONTRIBUTING.md
-└── README.md              (project README — first thing visitors see)
+[PROJECT DECISIONS]
+PROJECT_NAME: {name}
+PROJECT_DESCRIPTION: {one-sentence description}
+PROJECT_TYPE: {Web API | Web Frontend | CLI tool | Library | Desktop App | Other}
+LANGUAGE: {TypeScript | Python | Rust | C++ | Other}
+ARCHITECTURE_LABEL: {e.g. "Clean Architecture + Express + Zod + Vitest + Prisma"}
+ARCHITECTURE_SUMMARY: {the 1–3 sentence paragraph you just wrote}
+TESTING_SCOPE: {Unit only | Unit + Integration | Unit + Integration + E2E}
+DOCS_TYPE: {Markdown | MkDocs HTML}
+MONOREPO: {No | Yes}
+RELEASE_TYPE: {npm | pypi | github | docker | internal}
+DEPLOY: {none | manual | vercel | aws | other | self-hosted}
+BRANCHING_MODEL: {main-only | git-flow}
+GITHUB_REPO: {yes-public | yes-private | no}
+PLUGIN_SOURCE_DIR: {absolute path determined above}
+TARGET_DIR: {absolute path to the new project directory}
+GITIGNORE_TEMPLATE: {typescript | python | rust | cpp}
+CI_LANGUAGE_TEMPLATE: {typescript | python | rust | cpp}
+RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}
+TODAY: {today's date, YYYY-MM-DD}
+WORKFLOW_REPO: {repository field from .claude-plugin/plugin.json}
+WORKFLOW_VERSION: {version field from .claude-plugin/plugin.json}
+
+[TASK]
+Create the full project structure: directories, language-specific configs, CI templates, docs
+templates, root CLAUDE.md and README.md, workflow infrastructure (.claude/ with agents/skills/hooks/
+memory), and the initial git commit. Full instructions are in your agent definition.
 ```
 
-Plus shared scripts:
-- `scripts/claude-loop.sh` ← from `templates/scripts/claude-loop.sh`
-
-Plus language-specific files:
-- TypeScript: `package.json`, `tsconfig.strict.json`, `eslint.config.js`, `.prettierrc`, `src/version.ts` (auto-generated), `scripts/generate-version.js`
-- Python: `pyproject.toml`, `src/{package_name}/__init__.py`, `src/{package_name}/version.py`
-- Rust: `Cargo.toml` (with workspace if monorepo)
-- C++: `CMakeLists.txt`, `.clang-format`, `src/version.h.in`
-
-Copy matching configs from `templates/configs/`, filling in `{{PROJECT_NAME}}` placeholders.
-
-**TypeScript only:** also copy:
-- `templates/configs/package.json.template` → `package.json` (fill in name + description)
-- `templates/configs/generate-version.js` → `scripts/generate-version.js`
-- Create empty `src/version.ts` (will be auto-generated on first build)
-
-**Also copy per language:**
-- `templates/gitignore/{language}.gitignore` → `.gitignore`
-
-### 7. Write Root CLAUDE.md and README.md
-Create root `CLAUDE.md` from `templates/CLAUDE.md.template`, filling in:
-- Project name + description
-- Tech stack
-- Architecture summary (one paragraph)
-
-Create root `README.md` from `templates/README.md.template`, filling in project name, description, tech stack, `{{GITHUB_REPO}}` (or removing the CI badge line for local-only repos), `{{WORKFLOW_REPO}}`, and `{{LICENSE}}`. Leave `{{INSTALLATION}}` / `{{USAGE_EXAMPLE}}` as short honest placeholders for a brand-new project — `/implement` and the documentation-writer keep them current later.
-
-### 8. Create Memory Files
-Write initial `.claude/memory/decisions.md` with the architecture and tech stack decisions made in this session.
-
-Write `.claude/memory/context.md` noting this is a fresh project init.
+Wait for the agent to complete and review its report before proceeding.
 
 ### 9. Initial Backlog Brainstorm
+
+> **Supervised mode:** Scaffolding is complete. If you switched to a different model at step 0.1 and want to switch back for this creative phase, run `/model {model}` now.
+
 Tell the user: "Let's create some initial backlog items from your vision. I'll suggest some; accept, reject, or add your own."
 
 Generate 6-10 initial feature ideas based on:
@@ -228,6 +208,7 @@ Note: the IDs created here (FEAT-001, FEAT-002, …) start the project's ID sequ
 ### 10. GitHub Repository Creation (if requested)
 ```
 gh repo create {project-name} --{public|private} --source=. --remote=origin
+git push -u origin main
 ```
 
 Create GitHub labels (`--force` updates labels that already exist, e.g. the default `bug` label):
@@ -244,87 +225,32 @@ gh label create medium --force --color d4c5f9 --description "Medium effort"
 gh label create large --force --color e99695 --description "Large effort"
 ```
 
-### 11. Copy Docs Templates
-From `templates/`:
-- `workflow/README.md.template` → `docs/workflow/README.md`
-- `workflow/lifecycle.md.template` → `docs/workflow/lifecycle.md`
-- `workflow/conventions.md.template` → `docs/workflow/conventions.md`
-- `workflow/quality.md.template` → `docs/workflow/quality.md` (fill in test strategy)
-- `dev/architecture.md.template` → `docs/dev/architecture.md` (filled in by step 3)
-- `dev/setup.md.template` → `docs/dev/setup.md`
-- `dev/style-guide.md.template` → `docs/dev/style-guide.md`
-- `dev/adr/ADR-001.md.template` → `docs/dev/adr/ADR-001-architecture.md` (filled in by step 3)
-- `dev/user-readme.md.template` → `docs/user/README.md`
-- `CHANGELOG.md.template` → `CHANGELOG.md`
-- `src-claude.md.template` → `src/CLAUDE.md`
-- `tests-claude.md.template` → `tests/CLAUDE.md`
-- `github/issue-feature.md` → `.github/ISSUE_TEMPLATE/feature.md`
-- `github/issue-bug.md` → `.github/ISSUE_TEMPLATE/bug.md`
-
-### 12. Install Workflow Infrastructure
-Copy to `.claude/`:
-- All agent files from this plugin's `agents/`
-- All skill directories from this plugin's `skills/` (preserve the `{name}/SKILL.md` directory structure)
-- All hook scripts from this plugin's `templates/hooks/` (auto-format, protect-files, completeness-check, session-start, usage-guard, statusline)
-- `templates/hooks/hooks.json` → `.claude/settings.json` (if `.claude/settings.json` already exists, merge the `hooks` and `statusLine` keys into it — keep an existing `statusLine` if the user has one)
-
-Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if `.claude-plugin/plugin.json` cannot be found or has no `repository`, leave `repo` empty and note it in the report.
-```json
-{ "repo": "{repository from plugin.json}", "version": "{version from plugin.json}", "installed": "{today}" }
-```
-
-Initialize memory files with the decisions made during this session:
-- `.claude/memory/decisions.md`
-- `.claude/memory/context.md` (project created, ready to start)
-- `.claude/memory/gotchas.md` (empty)
-- `.claude/memory/tech-debt.md` (empty)
-
-Make hooks executable: `chmod +x .claude/hooks/*.sh`
-Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh` and make it executable: `chmod +x scripts/claude-loop.sh`
-
-### 13. MkDocs Setup (if user chose HTML docs)
-```
-pip install mkdocs-material
-mkdocs new .
-```
-Configure `mkdocs.yml` for Material theme with the docs/ structure.
-Add `mkdocs serve` to `docs/dev/setup.md`.
-
-### 14. Initial Commit
-```
-git add -A
-git commit -m "chore: initialize project with claude-workflow infrastructure"
-```
-
-If GitHub remote configured:
-```
-git push -u origin main
-```
-
 **If the user chose Git Flow** (step 5 branching model):
 ```
 git checkout -b develop
-```
-Only if a GitHub remote exists (`git remote get-url origin` succeeds):
-```
 git push -u origin develop
 gh repo edit --default-branch develop
 ```
-For local-only repos skip the push/default-branch steps — `develop` simply being the checked-out working branch is sufficient.
+For local-only repos: create `develop` branch locally but skip the push/default-branch steps.
 
-Document in `docs/workflow/release.md`: feature branches target `develop`; `/release` merges `develop` → `master` so the tip of `master` always equals the latest release. Stay on `develop` for further work.
+Update `docs/workflow/release.md` noting feature branches target `develop` and the `/release` flow.
 
 ### 15. Report
 ```
 Project initialized ✓
 {project-name}
 
-Created:
-  Docs: VISION.md, architecture.md, ADR-001, workflow docs
+Design (main session):
+  Docs: VISION.md, architecture.md, ADR-001, release.md
+  Backlog: {N} initial items in docs/specs/backlog/
+
+Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}
   CI: .github/workflows/ci.yml + release.yml
   Infrastructure: .claude/ (agents, skills, hooks, memory)
-  Backlog: {N} initial items in docs/specs/backlog/
+  Root files: CLAUDE.md, README.md, CONTRIBUTING.md
+  Committed: yes (branch: {main|develop})
+
   {GitHub repo: https://github.com/.../...}
 
 Workflow commands:

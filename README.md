@@ -79,6 +79,7 @@ Agents are isolated subagents: each runs in its own context window, so heavy fil
 | `requirements-engineer` | Turns a draft into user story, testable acceptance criteria, out-of-scope list, open questions | `/refine` |
 | `tech-planner` | Turns requirements into interface definitions (the test-writer's contract), technical approach, ordered subtasks | `/refine` |
 | `product-owner` | Judges ideas/backlog against `docs/VISION.md`, scores relevance, recommends next-version slate | `/brainstorm`, `/prioritize` |
+| `project-scaffolder` | Mechanical file creation after design decisions: directories, language configs, CI templates, docs, workflow infrastructure, initial commit — runs on Sonnet to save tokens during `/project-init` | `/project-init` scaffolding phase |
 | `test-writer` | Writes the failing test suite from acceptance criteria + interfaces only — by design it cannot see implementation code | `/implement` Phase 1 |
 | `test-runner` | Executes test/lint runs and digests the output into a short failure report | `/implement`, `/release` |
 | `code-reviewer` | Quality review of the diff: correctness, conventions, tests, complexity | `/pr` |
@@ -96,7 +97,7 @@ Each agent pins the cheapest model that reliably does its job (`model` frontmatt
 | Tier | Agents | Rationale |
 |------|--------|-----------|
 | `haiku` (cheapest, ~⅓ of Sonnet) | `test-runner`, `workflow-coach` | Mechanical: run commands and condense output; answer questions from structured docs. No deep reasoning needed |
-| `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
+| `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner`, `project-scaffolder` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
 | `inherit` (your session model) | `requirements-engineer`, `tech-planner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` | Planning and reviews are where model quality pays off most. You control the tier with `/model` — run Opus for a tricky refinement, Sonnet for routine work |
 
 **Interactive tier choice**: `/refine` and `/pr` ask once per run (supervised mode only) which tier their `inherit`-agents should use — **session model** (recommended) / **better than Sonnet** (Opus, Fable, … lumped together; passed as `opus`) / **Sonnet** / **Haiku**. The answer is passed as the per-invocation `model` parameter (resolution order: `CLAUDE_CODE_SUBAGENT_MODEL` env var > per-invocation parameter > agent frontmatter > session model), so your session model itself never changes. Pinned agents (haiku/sonnet tiers above) are unaffected. In unsupervised mode the question is skipped and the session model applies.
