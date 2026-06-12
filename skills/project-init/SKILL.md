@@ -192,20 +192,61 @@ Wait for the agent to complete and review its report before proceeding.
 
 Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
 
-### 9. Initial Backlog Brainstorm
+### 9. Initial Backlog — Four-Phase Structure
 
 > **Supervised mode:** Scaffolding is complete. If you switched to a different model at step 0.1 and want to switch back for this creative phase, run `/model {model}` now.
 
-Tell the user: "Let's create some initial backlog items from your vision. I'll suggest some; accept, reject, or add your own."
+Explain the four-phase approach to the user, then generate and review the backlog phase by phase.
 
-Generate 6-10 initial feature ideas based on:
-- The product vision (goals, target users, core value proposition)
-- The project type and typical features for that type
-- Any features explicitly mentioned by the user
+**The four phases:**
 
-Present them interactively (same pattern as `/brainstorm`). Accepted ideas → create spec files in `docs/specs/backlog/`.
+| Phase | Name | Goal |
+|-------|------|------|
+| 1 | Technical Backbone | Deploy a blank/template version of the app — just enough to verify the architecture, CI/CD pipeline, and infrastructure are working. The user can manually confirm the base is solid before real features are built. |
+| 2 | Walking Skeleton | The simplest possible end-to-end implementation of every major workflow. No polish, no edge cases — but every important user journey is navigable so the user can confirm the direction is correct. |
+| 3 | MVP | All use cases complete and usable. Skip comfort features, advanced automation, and polish. The core product is testable and buildable. |
+| 4 | Future | Remaining ideas from the design phase, not needed for the MVP. Added to the backlog so nothing is lost — the user decides which to pursue after the MVP is validated. |
 
-Note: the IDs created here (FEAT-001, FEAT-002, …) start the project's ID sequence — later `/draft` calls continue counting from the highest existing ID. In unsupervised/automated runs this step may be skipped; the sequence then starts with the first `/draft`.
+**Generate proposed items for each phase** based on the product vision, architecture decisions, and any design documents from step 0.5:
+
+- **Phase 1 — Technical Backbone (3–6 items):** Build system working, CI green (lint/type-check/test), core infrastructure provisioned (database, auth provider, cloud services — specific to the project type and deploy target from steps 3–5), release/deploy pipeline end-to-end, smoke test / health check endpoint so the user can verify the skeleton is alive in the deployed environment.
+
+- **Phase 2 — Walking Skeleton (3–7 items):** Identify the major user workflows from the vision (the "happy paths" — each important use case). One spec per workflow, implemented at the minimum fidelity that proves the path works. Keep these thin: real data flow, real UI screens, but no validation, no error handling, no styling beyond functional.
+
+- **Phase 3 — MVP (4–10 items):** For each Phase 2 workflow, add the items that make it production-quality: input validation, error handling, data persistence, user feedback. Also cover any use cases from the design doc not yet addressed. Omit comfort features, advanced automation, and anything "nice to have."
+
+- **Phase 4 — Future (5–15 items):** Everything else from the design documents — advanced features, automation, performance optimizations, UX polish, integrations. These are ideas to revisit after the MVP is validated, not commitments.
+
+**Present phase by phase.** For each phase:
+1. State the phase name and one-sentence goal.
+2. List all proposed items with a brief rationale for each.
+3. Ask (AskUserQuestion): "Phase N items — what would you like to do? [Accept all / Let me choose / Add or change items / Skip this phase]"
+   - **Accept all**: proceed.
+   - **Let me choose**: user selects which items to keep; optionally adds new ones.
+   - **Add or change items**: accept additions/modifications, then confirm.
+   - **Skip**: move to the next phase without creating any items for this phase.
+
+**Create spec files for all accepted items:**
+```
+docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md
+```
+Frontmatter:
+```yaml
+id: {TYPE}-{NNN}
+type: feature
+status: draft
+phase: {1|2|3|4}
+created: {today}
+updated: {today}
+github_issue: ~
+```
+Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /refine]`. Phase 4 items add a note: `> Future feature — consider after MVP is validated.`
+
+IDs are sequential across all phases (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
+
+If GitHub remote exists: create GitHub issues for all accepted items (`gh issue create --label "feature,backlog"`).
+
+After all phases: print a summary table — phase, item count, IDs created.
 
 ### 10. GitHub Repository Creation (if requested)
 ```
@@ -244,7 +285,11 @@ Project initialized ✓
 
 Design (main session):
   Docs: VISION.md, architecture.md, ADR-001, release.md
-  Backlog: {N} initial items in docs/specs/backlog/
+  Backlog: {N} items across 4 phases
+    Phase 1 (Backbone): {N} items
+    Phase 2 (Skeleton): {N} items
+    Phase 3 (MVP):      {N} items
+    Phase 4 (Future):   {N} items
 
 Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}

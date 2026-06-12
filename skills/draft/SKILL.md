@@ -13,6 +13,7 @@ Creates a raw, minimal backlog entry for a feature idea or bug report. No planni
 /draft feature "Title of the feature"
 /draft bug "Short description of the bug"
 /draft feature "Title" "Optional longer description or context"
+/draft feature "Title" phase:2
 ```
 
 ## Instructions
@@ -22,6 +23,7 @@ Extract from the user's message:
 - `type`: `feature` or `bug`. If missing, ask: "Is this a feature or a bug?"
 - `title`: the main description
 - `description`: any additional context (optional)
+- `phase`: integer 1–4 if provided as `phase:N` (optional; `~` if absent)
 
 ### 2. Determine Next ID
 - List files in `docs/specs/backlog/`, `docs/specs/ready/`, `docs/specs/completed/`
@@ -38,6 +40,7 @@ Use this template, filling in what you know:
 id: {TYPE}-{NNN}
 type: {feature|bug}
 status: draft
+phase: {N if provided, else ~}
 created: {YYYY-MM-DD}
 updated: {YYYY-MM-DD}
 github_issue: ~
