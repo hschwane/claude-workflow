@@ -25,6 +25,7 @@ MEM=".claude/memory"
 SETTINGS="$MEM/settings.md"
 CACHE="$MEM/usage-cache.json"
 WAIT_MARKER="$MEM/usage-wait.active"
+OFFER_MARKER="$MEM/usage-supervised-offered.active"
 CRED="${CLAUDE_CREDENTIALS:-$HOME/.claude/.credentials.json}"
 RESUME_MARGIN=10   # resume when usage <= threshold - margin (hysteresis)
 MODE="${1:-hook}"
@@ -179,22 +180,53 @@ case "$MODE" in
 
   *)  # hook mode (PostToolUse)
     cat > /dev/null 2>&1 || true   # drain stdin
-    [ "$UNSUPERVISED" != "true" ] && exit 0
-    [ -z "$THRESHOLD" ] && exit 0
-    # already pausing? stay silent so the wait loop isn't interrupted
-    if [ -f "$WAIT_MARKER" ]; then
-      AGE=$(( $(now) - $(mtime "$WAIT_MARKER") ))
-      [ "$AGE" -lt 600 ] && exit 0
-      rm -f "$WAIT_MARKER"
+
+    if [ "$UNSUPERVISED" = "true" ]; then
+      [ -z "$THRESHOLD" ] && exit 0
+      # already pausing? stay silent so the wait loop isn't interrupted
+      if [ -f "$WAIT_MARKER" ]; then
+        AGE=$(( $(now) - $(mtime "$WAIT_MARKER") ))
+        [ "$AGE" -lt 600 ] && exit 0
+        rm -f "$WAIT_MARKER"
+      fi
+      get_usage || exit 0   # fail open
+      if [ "$(max_pct)" -ge "$THRESHOLD" ]; then
+        touch "$WAIT_MARKER"
+        {
+          echo "USAGE THRESHOLD REACHED (${THRESHOLD}%): $(usage_line)"
+          echo "Pause now: 1) finish/commit only the current atomic step, 2) update the checkpoint in .claude/memory/context.md,"
+          echo "3) then run: bash .claude/hooks/usage-guard.sh --wait   repeatedly until it prints RESUME_OK, then continue working."
+          echo "Do not start new subtasks before RESUME_OK."
+        } >&2
+        exit 2
+      fi
+      exit 0
     fi
+
+    # Supervised mode: offer to switch to unsupervised when usage is high.
+    # Uses threshold from settings.md if set, otherwise defaults to 80%.
+    SUPERVISED_THRESHOLD=${THRESHOLD:-80}
+
+    # If the offer was already made this crossing, stay silent.
+    # Clear the marker if usage has recovered so the offer can fire again later.
+    if [ -f "$OFFER_MARKER" ]; then
+      if get_usage && [ "$(max_pct)" -le $(( SUPERVISED_THRESHOLD - RESUME_MARGIN )) ]; then
+        rm -f "$OFFER_MARKER"   # recovered — allow re-offer on next crossing
+      fi
+      exit 0
+    fi
+
     get_usage || exit 0   # fail open
-    if [ "$(max_pct)" -ge "$THRESHOLD" ]; then
-      touch "$WAIT_MARKER"
+    if [ "$(max_pct)" -ge "$SUPERVISED_THRESHOLD" ]; then
+      touch "$OFFER_MARKER"
+      PCT=$(max_pct)
       {
-        echo "USAGE THRESHOLD REACHED (${THRESHOLD}%): $(usage_line)"
-        echo "Pause now: 1) finish/commit only the current atomic step, 2) update the checkpoint in .claude/memory/context.md,"
-        echo "3) then run: bash .claude/hooks/usage-guard.sh --wait   repeatedly until it prints RESUME_OK, then continue working."
-        echo "Do not start new subtasks before RESUME_OK."
+        echo "SUPERVISED_USAGE_ALERT (${PCT}%): $(usage_line)"
+        echo "Session usage has reached ${SUPERVISED_THRESHOLD}%. Use AskUserQuestion to offer the user a switch to unsupervised mode:"
+        echo "  Question: 'Session usage is at ${PCT}%. Switch to unsupervised mode so auto-resume is available if this session is interrupted?'"
+        echo "  Options: [Yes — unsupervised on 80 / Yes — let me pick the threshold / No — continue supervised]"
+        echo "If the user agrees, run the /unsupervised skill with their chosen threshold (default 80)."
+        echo "If the user declines, continue normally. This alert won't repeat until usage drops below $((SUPERVISED_THRESHOLD - RESUME_MARGIN))% and rises again."
       } >&2
       exit 2
     fi

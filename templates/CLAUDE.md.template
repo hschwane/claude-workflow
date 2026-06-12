@@ -54,6 +54,8 @@ For pure "where is X?" file/symbol discovery, use the **built-in Explore agent**
 
 If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
 
+If a hook reports `SUPERVISED_USAGE_ALERT`: use `AskUserQuestion` to ask the user whether they want to switch to unsupervised mode now (so auto-resume becomes available). Options: yes at 80% / yes with a custom threshold / no. If they agree, run `/unsupervised on [threshold]`; if not, continue normally. The alert will not repeat until usage drops and rises again.
+
 If `.claude/memory/settings.md` contains `unsupervised: true`:
 - **Never** use `AskUserQuestion` — apply autonomous defaults from the `/unsupervised` skill
 - If a hook reports `USAGE THRESHOLD REACHED`: commit the current atomic step, update the checkpoint, then run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working
