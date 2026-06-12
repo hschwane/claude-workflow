@@ -59,7 +59,8 @@ Create `.claude/` directory with:
     ├── decisions.md
     ├── context.md
     ├── gotchas.md
-    └── tech-debt.md
+    ├── tech-debt.md
+    └── .gitignore      ← from templates/memory/.gitignore
 ```
 
 Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if it cannot be found, leave `repo` empty and note it in the report.
@@ -115,6 +116,8 @@ Write initial `.claude/memory/context.md`:
 ## Status
 Onboarded on {today}. Ready to use workflow.
 ```
+
+Copy `templates/memory/.gitignore` → `.claude/memory/.gitignore` (prevents runtime state files from being committed to git).
 
 **e) Language-specific CI (if missing or user wants to add):**
 Check `.github/workflows/` — if no CI exists, offer to create it.

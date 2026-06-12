@@ -1,7 +1,7 @@
 {
   "name": "claude-workflow",
   "displayName": "Claude Workflow",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Professional AI-assisted software development workflow: draft → refine → implement → PR → release",
   "author": {
     "name": "Hendrik Schwanekamp",

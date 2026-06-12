@@ -1,0 +1,24 @@
+# Runtime state — never commit these to git.
+# Committing them causes conflicts and accidental state changes when merging/rebasing.
+#
+# Tracked files (shared project knowledge): decisions.md, gotchas.md, tech-debt.md
+# Everything else is ephemeral per-session state.
+
+# Unsupervised mode flag + usage threshold
+settings.md
+
+# Session checkpoints (branch-scoped and legacy root)
+context.md
+context-*.md
+
+# Headless auto-start marker (written by claude-loop.sh before each headless session)
+auto-start.marker
+
+# Usage guard runtime markers
+*.active
+
+# Cached API rate-limit data (refreshed each session)
+usage-cache.json
+
+# Unsupervised mode session log
+*.log
