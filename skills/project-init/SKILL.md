@@ -198,33 +198,33 @@ Run `/reload-skills` so Claude Code picks up the newly installed skills and agen
 
 Explain the four-phase approach to the user, then generate and review the backlog phase by phase.
 
-**The four phases:**
+**The four milestones (stored as `version:` in each spec):**
 
-| Phase | Name | Goal |
-|-------|------|------|
-| 1 | Technical Backbone | Deploy a blank/template version of the app — just enough to verify the architecture, CI/CD pipeline, and infrastructure are working. The user can manually confirm the base is solid before real features are built. |
-| 2 | Walking Skeleton | The simplest possible end-to-end implementation of every major workflow. No polish, no edge cases — but every important user journey is navigable so the user can confirm the direction is correct. |
-| 3 | MVP | All use cases complete and usable. Skip comfort features, advanced automation, and polish. The core product is testable and buildable. |
-| 4 | Future | Remaining ideas from the design phase, not needed for the MVP. Added to the backlog so nothing is lost — the user decides which to pursue after the MVP is validated. |
+| version | Name | Goal |
+|---------|------|------|
+| `tech-backbone` | Technical Backbone | Deploy a blank/template version of the app — just enough to verify the architecture, CI/CD pipeline, and infrastructure are working. The user manually confirms the base is solid before real features are built. |
+| `WS` | Walking Skeleton | The simplest possible end-to-end implementation of every major workflow. No polish, no edge cases — but every important user journey is navigable so the user can confirm the direction is correct. |
+| `MVP` | MVP | All use cases complete and usable. Skip comfort features, advanced automation, and polish. The core product is testable and buildable. |
+| `1.0.0` | 1.0.0 | Everything else from the design phase needed to reach version 1.0.0, not required for the MVP. Added so nothing is lost — the user decides which to pursue after the MVP is validated. Items that belong to future versions beyond 1.0.0 get a version string like `1.1.0`, `2.0.0`, etc. |
 
-**Generate proposed items for each phase** based on the product vision, architecture decisions, and any design documents from step 0.5:
+**Generate proposed items for each milestone** based on the product vision, architecture decisions, and any design documents from step 0.5:
 
-- **Phase 1 — Technical Backbone (3–6 items):** Build system working, CI green (lint/type-check/test), core infrastructure provisioned (database, auth provider, cloud services — specific to the project type and deploy target from steps 3–5), release/deploy pipeline end-to-end, smoke test / health check endpoint so the user can verify the skeleton is alive in the deployed environment.
+- **tech-backbone (3–6 items):** Build system working, CI green (lint/type-check/test), core infrastructure provisioned (database, auth provider, cloud services — specific to the project type and deploy target from steps 3–5), release/deploy pipeline end-to-end, smoke test / health check endpoint so the user can verify the skeleton is alive in the deployed environment.
 
-- **Phase 2 — Walking Skeleton (3–7 items):** Identify the major user workflows from the vision (the "happy paths" — each important use case). One spec per workflow, implemented at the minimum fidelity that proves the path works. Keep these thin: real data flow, real UI screens, but no validation, no error handling, no styling beyond functional.
+- **WS (3–7 items):** Identify the major user workflows from the vision (the "happy paths" — each important use case). One spec per workflow, implemented at the minimum fidelity that proves the path works. Keep these thin: real data flow, real UI screens, but no validation, no error handling, no styling beyond functional.
 
-- **Phase 3 — MVP (4–10 items):** For each Phase 2 workflow, add the items that make it production-quality: input validation, error handling, data persistence, user feedback. Also cover any use cases from the design doc not yet addressed. Omit comfort features, advanced automation, and anything "nice to have."
+- **MVP (4–10 items):** For each WS workflow, add the items that make it production-quality: input validation, error handling, data persistence, user feedback. Also cover any use cases from the design doc not yet addressed. Omit comfort features, advanced automation, and anything "nice to have."
 
-- **Phase 4 — Future (5–15 items):** Everything else from the design documents — advanced features, automation, performance optimizations, UX polish, integrations. These are ideas to revisit after the MVP is validated, not commitments.
+- **1.0.0 (5–15 items):** Everything else from the design documents. For items that clearly belong to a later version (e.g. a major new capability planned for 1.1), assign the appropriate version string (e.g. `1.1.0`) instead of `1.0.0`.
 
-**Present phase by phase.** For each phase:
-1. State the phase name and one-sentence goal.
+**Present milestone by milestone.** For each:
+1. State the milestone name (`tech-backbone` / `WS` / `MVP` / `1.0.0`) and its one-sentence goal.
 2. List all proposed items with a brief rationale for each.
-3. Ask (AskUserQuestion): "Phase N items — what would you like to do? [Accept all / Let me choose / Add or change items / Skip this phase]"
+3. Ask (AskUserQuestion): "{milestone} items — what would you like to do? [Accept all / Let me choose / Add or change items / Skip]"
    - **Accept all**: proceed.
    - **Let me choose**: user selects which items to keep; optionally adds new ones.
    - **Add or change items**: accept additions/modifications, then confirm.
-   - **Skip**: move to the next phase without creating any items for this phase.
+   - **Skip**: move to the next milestone without creating any items for this one.
 
 **Create spec files for all accepted items:**
 ```
@@ -235,18 +235,18 @@ Frontmatter:
 id: {TYPE}-{NNN}
 type: feature
 status: draft
-phase: {1|2|3|4}
+version: {tech-backbone|WS|MVP|1.0.0|1.1.0|…}
 created: {today}
 updated: {today}
 github_issue: ~
 ```
-Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /refine]`. Phase 4 items add a note: `> Future feature — consider after MVP is validated.`
+Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /refine]`.
 
-IDs are sequential across all phases (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
+IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
 
 If GitHub remote exists: create GitHub issues for all accepted items (`gh issue create --label "feature,backlog"`).
 
-After all phases: print a summary table — phase, item count, IDs created.
+After all milestones: print a summary — version string, item count, and ID range for each.
 
 ### 10. GitHub Repository Creation (if requested)
 ```
@@ -285,11 +285,11 @@ Project initialized ✓
 
 Design (main session):
   Docs: VISION.md, architecture.md, ADR-001, release.md
-  Backlog: {N} items across 4 phases
-    Phase 1 (Backbone): {N} items
-    Phase 2 (Skeleton): {N} items
-    Phase 3 (MVP):      {N} items
-    Phase 4 (Future):   {N} items
+  Backlog: {N} items
+    tech-backbone: {N} items
+    WS:            {N} items
+    MVP:           {N} items
+    1.0.0+:        {N} items
 
 Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}

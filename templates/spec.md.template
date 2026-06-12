@@ -2,7 +2,7 @@
 id: {{TYPE}}-{{NNN}}
 type: {{feature|bug}}
 status: draft
-phase: ~
+version: ~
 size: medium
 created: {{YYYY-MM-DD}}
 updated: {{YYYY-MM-DD}}
