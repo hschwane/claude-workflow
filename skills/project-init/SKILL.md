@@ -304,4 +304,8 @@ Workflow commands:
   /brainstorm           generate more backlog ideas
   /refine FEAT-001      refine first backlog item
   /draft feature "..."  add raw ideas quickly
+
+→ Restart your Claude Code session now.
+  Hooks, status line, and all skills are fully active only after a fresh
+  session start. Close this session and reopen it in the project directory.
 ```

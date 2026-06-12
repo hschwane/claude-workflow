@@ -161,4 +161,8 @@ Next steps:
   /brainstorm              to analyze and fill the backlog
   /draft feature "title"   to add first items manually
   /workflow-update         to update to latest version later
+
+→ Restart your Claude Code session now.
+  Hooks, status line, and all skills are fully active only after a fresh
+  session start. Close this session and reopen it in the project directory.
 ```

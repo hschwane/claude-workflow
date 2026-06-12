@@ -140,6 +140,13 @@ rm -rf /tmp/claude-workflow-bootstrap
 
 The project is now **self-contained** — the full workflow is embedded in `.claude/`. Future sessions only need `claude` (no `--plugin-dir` flag).
 
+Tell the user:
+
+> **Restart your Claude Code session now.**
+> The workflow hooks, status line, and all skills are fully active only after a fresh session start. Close this session and reopen it in the project directory — everything will be ready.
+
+Do not proceed with any further work in this session.
+
 ---
 
 ## Summary
