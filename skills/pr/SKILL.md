@@ -67,21 +67,30 @@ next_step: "Wait for CI, then run code review"
 saved_at: {timestamp}
 ```
 
-### 4. Wait for CI
-First check whether the repository has any checks configured for this PR (`gh pr checks {pr_url}`). If no checks exist (e.g., no CI workflow yet): note "No CI checks configured — skipping CI wait" and continue to step 5.
+### 4. Wait for CI — hard gate
+
+First check whether the repository has any checks configured:
+```bash
+gh pr checks {pr_url}
+```
+If no checks exist (e.g., no CI workflow yet): note "No CI checks configured — skipping CI wait" and continue to step 5.
+
+Otherwise, run the CI gate loop (this loop is used again after every review that pushes fixes):
 
 ```
 gh pr checks {pr_url} --watch
 ```
 
-Poll until all required checks finish. Print status as it updates.
+**HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
 **If CI fails:**
-- Read the failure details: `gh run view {run_id} --log-failed`
-- Diagnose and fix the issue
-- Push the fix
-- Return to step 4 (wait for CI again)
-- After 3 consecutive CI failures: pause and ask the user for guidance
+1. Read the failure details: `gh run view {run_id} --log-failed`
+2. Diagnose and fix the issue in the code
+3. Push the fix: `git add -A && git commit -m "fix(ci): {description}" && git push`
+4. Return to the top of this CI gate loop — wait for CI again
+5. Repeat until CI passes
+
+After 3 consecutive fix attempts without CI going green: ask the user for help diagnosing the failure. **Do not proceed until CI passes regardless of how many attempts it takes.** Only abandon if the user explicitly instructs you to skip CI.
 
 **If CI passes:** continue to step 5.
 
@@ -92,9 +101,9 @@ Invoke the `code-reviewer` subagent (apply the model tier chosen in pre-flight) 
 
 Read the agent's report. For each `[MUST FIX]` finding:
 - Fix the issue in the code
-- Run: `git add -A && git commit -m "fix(review): {short description}"`
+- Run: `git add -A && git commit -m "fix(review): {short description}" && git push`
 
-After all MUST FIX items are resolved, re-run CI if any code was changed (`gh pr checks --watch`).
+If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
 ### 6. Security Review
 Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flight) with:
@@ -102,9 +111,9 @@ Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flig
 
 For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
 - Fix the issue
-- Commit: `fix(security): {short description}`
+- Commit and push: `git add -A && git commit -m "fix(security): {short description}" && git push`
 
-After fixes, wait for CI again if needed.
+If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the architect review or merge until CI is green.
 
 ### 7. Architect Review (conditional)
 Only run if the diff includes:
@@ -117,12 +126,23 @@ Invoke the `architect-reviewer` subagent (apply the model tier chosen in pre-fli
 - Input: `docs/dev/architecture.md`
 - Input: any ADRs in `docs/dev/adr/`
 
-For each `[MUST FIX]` finding: fix and commit.
+For each `[MUST FIX]` finding:
+- Fix and push: `git add -A && git commit -m "fix(arch): {short description}" && git push`
+
+If any commits were pushed, run the CI gate loop from step 4 before proceeding to merge. Do not merge until CI is green.
 
 ### 8. Update Checkpoint
 Update `.claude/memory/context.md` with current state after each review cycle.
 
-### 9. Mark PR Ready + Merge
+### 9. Final CI Confirmation + Mark PR Ready + Merge
+
+Before merging, verify CI is currently green on the latest commit:
+```bash
+gh pr checks {pr_url}
+```
+If any check is pending or failed: run the CI gate loop from step 4 until all checks pass. **Do not convert to ready or merge with a failing or pending CI.**
+
+Once CI is confirmed green:
 - Convert draft PR to ready: `gh pr ready {pr_url}`
 - Auto-merge: `gh pr merge {pr_url} --squash --auto`
   - If `--auto` fails because auto-merge is not enabled in the repo settings: merge directly with `gh pr merge {pr_url} --squash`
