@@ -46,7 +46,7 @@ Example: `feature/feat-001-oauth-login`
 Update spec frontmatter: `status: ready` → `status: in-progress`. File stays in `docs/specs/ready/`.
 
 ### 2. Save Initial Checkpoint
-Write to `.claude/memory/context.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
+Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
 ```markdown
 ## In Progress
 task: {SPEC_ID} - {title}
@@ -105,7 +105,7 @@ Use `feat` for features, `fix` for bugs. Pushing the feature branch after every 
 
 **e) Update progress** (two small edits, ~50 tokens total):
 1. Tick the subtask's checkbox in the spec file (`- [ ] #N:` → `- [x] #N:`) — **the spec is the single source of truth for remaining work**
-2. Update only the changed lines in the checkpoint: `last_completed`, `next_step`, `saved_at`
+2. Update only the changed lines in the branch context file (`.claude/memory/context-{branch}.md`): `last_completed`, `next_step`, `saved_at`
 
 This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
 
@@ -135,7 +135,7 @@ Commit: `git add docs/ && git commit -m "docs({scope}): update docs for {title}"
 
 ### 7. Complete
 - The spec file stays in `docs/specs/ready/` with `status: in-progress` in its frontmatter (it moves to `docs/specs/completed/` after the PR merges, handled by `/pr`)
-- Clear `## In Progress` from `.claude/memory/context.md`
+- Clear `## In Progress` from the branch context file (`.claude/memory/context-{branch}.md`)
 
 Report:
 ```

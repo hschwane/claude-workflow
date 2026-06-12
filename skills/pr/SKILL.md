@@ -55,7 +55,7 @@ Auto-generate a PR description from the branch commits:
 ```
 
 ### 3. Save Checkpoint
-Write to `.claude/memory/context.md`:
+Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md`:
 ```markdown
 ## In Progress
 task: PR for {branch}
@@ -132,7 +132,7 @@ For each `[MUST FIX]` finding:
 If any commits were pushed, run the CI gate loop from step 4 before proceeding to merge. Do not merge until CI is green.
 
 ### 8. Update Checkpoint
-Update `.claude/memory/context.md` with current state after each review cycle.
+Update the branch context file (`.claude/memory/context-{branch}.md`) with current state after each review cycle.
 
 ### 9. Final CI Confirmation + Mark PR Ready + Merge
 
@@ -161,7 +161,7 @@ After successful merge:
   - Update frontmatter `status: in-progress` → `status: done`
   - `git mv docs/specs/ready/{filename} docs/specs/completed/{filename}`
   - Commit: `git add docs/specs/ && git commit -m "docs(specs): complete {id}"`
-- Clear the `## In Progress` section from `.claude/memory/context.md`
+- Clear the `## In Progress` section from the branch context file (`.claude/memory/context-{branch}.md`)
 
 ### 11. Report
 ```

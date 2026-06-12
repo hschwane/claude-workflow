@@ -9,10 +9,25 @@ set -euo pipefail
 
 INPUT=$(cat)
 
-CONTEXT_FILE=".claude/memory/context.md"
-SETTINGS_FILE=".claude/memory/settings.md"
+MEM=".claude/memory"
+SETTINGS_FILE="$MEM/settings.md"
 
-[ ! -f "$CONTEXT_FILE" ] && exit 0
+# Determine branch-scoped context file, with fallback to legacy context.md
+branch_context() {
+  local branch
+  branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
+  if [ -n "$branch" ] && [ -f "$MEM/context-${branch}.md" ]; then
+    echo "$MEM/context-${branch}.md"
+  elif [ -f "$MEM/context.md" ]; then
+    echo "$MEM/context.md"
+  else
+    echo ""
+  fi
+}
+
+CONTEXT_FILE=$(branch_context)
+
+[ -z "$CONTEXT_FILE" ] && exit 0
 
 # No in-progress work → nothing to do
 grep -q "^## In Progress" "$CONTEXT_FILE" 2>/dev/null || exit 0
@@ -36,13 +51,13 @@ fi
 
 if [ "$UNSUPERVISED" = "true" ] && [ "$STOP_ACTIVE" != "true" ]; then
   # Block the stop and tell Claude to continue the checkpointed work
-  echo '{"decision": "block", "reason": "Unsupervised mode is active and .claude/memory/context.md still contains an In Progress section. Continue the work from the checkpoint (next_step). If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to .claude/memory/context.md; if the work is complete, clear the In Progress section."}'
+  echo '{"decision": "block", "reason": "Unsupervised mode is active and the branch context file still contains an In Progress section. Continue the work from the checkpoint (next_step). If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if the work is complete, clear the In Progress section."}'
   exit 0
 fi
 
 # Informational reminder only (shown in transcript, does not block)
 echo ""
-echo "⚠  There is in-progress work recorded in .claude/memory/context.md"
+echo "⚠  There is in-progress work recorded in $CONTEXT_FILE"
 echo ""
 grep -A 10 "^## In Progress" "$CONTEXT_FILE" || true
 echo ""

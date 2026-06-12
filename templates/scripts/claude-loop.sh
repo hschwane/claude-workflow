@@ -33,10 +33,21 @@ set -euo pipefail
 RESET_MINUTES=${1:-60}
 MAX_SESSIONS=${2:-20}
 SESSION_TIMEOUT="2h"   # kill a session that hangs
-CONTEXT_FILE=".claude/memory/context.md"
 LOG_FILE=".claude/memory/unsupervised.log"
+AUTO_MARKER=".claude/memory/auto-start.marker"
 PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
-RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in .claude/memory/context.md. Follow the /resume skill: read the checkpoint, verify the git state, and continue from next_step. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to .claude/memory/context.md and stop. When everything is complete, clear the '## In Progress' section."
+
+# Determine branch-scoped context file (written by skills; falls back to legacy context.md)
+_branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
+if [ -n "$_branch" ] && [ -f ".claude/memory/context-${_branch}.md" ]; then
+  CONTEXT_FILE=".claude/memory/context-${_branch}.md"
+elif [ -f ".claude/memory/context.md" ]; then
+  CONTEXT_FILE=".claude/memory/context.md"
+else
+  CONTEXT_FILE=".claude/memory/context.md"   # preflight will catch the missing file
+fi
+
+RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in ${CONTEXT_FILE}. Follow the /resume skill: read the checkpoint, verify the git state, and continue from next_step. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to the context file and stop. When everything is complete, clear the '## In Progress' section."
 
 log() {
   local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -92,6 +103,9 @@ while [ $SESSION -lt $MAX_SESSIONS ]; do
   fi
 
   log "Session $SESSION / $MAX_SESSIONS starting..."
+
+  # Signal to session-start.sh that this is an auto-started session → force /resume
+  touch "$AUTO_MARKER"
 
   # Headless run (-p): claude executes one autonomous session and exits.
   # Each session starts FRESH on purpose — all needed state lives in the

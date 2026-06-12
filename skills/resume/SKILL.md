@@ -1,11 +1,11 @@
 ---
 name: resume
-description: Resume interrupted in-progress work from the checkpoint in .claude/memory/context.md. Use when a session starts with an AUTO-RESUME directive, or when the user asks to continue interrupted work.
+description: Resume interrupted in-progress work from the branch-scoped checkpoint in .claude/memory/. Use when a session starts with an AUTO-RESUME directive, or when the user asks to continue interrupted work.
 ---
 
 # Resume
 
-Resumes in-progress work that was interrupted by a token limit, session end, or manual stop. Reads the checkpoint from `.claude/memory/context.md` and continues from where work left off.
+Resumes in-progress work that was interrupted by a token limit, session end, or manual stop. Reads the branch-scoped checkpoint and continues from where work left off.
 
 ## Usage
 ```
@@ -22,10 +22,15 @@ If the summary mentions in-progress work (e.g., "was implementing subtask #3 of 
 If there is no compaction summary in the current context, proceed directly to step 1.
 
 ### 1. Read Current Context
-Read `.claude/memory/context.md`. Look for a section titled `## In Progress`.
+Determine the context file:
+1. Run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`
+2. Read `.claude/memory/context-{branch}.md` if it exists
+3. Otherwise fall back to `.claude/memory/context.md` (legacy)
 
-If no `## In Progress` section exists:
-- Print: "No in-progress work found in .claude/memory/context.md"
+Look for a section titled `## In Progress`.
+
+If no `## In Progress` section exists in either file:
+- Print: "No in-progress work found"
 - List any specs with status `in-progress` from `docs/specs/`
 - If specs with `in-progress` status exist: ask user which one to resume
 
@@ -57,10 +62,10 @@ Continue from the `Next step` in the checkpoint by invoking the appropriate skil
 - If `phase: release` → pick up from the release step
 
 ### 5. After Resuming
-Clear the `## In Progress` section from `.claude/memory/context.md` once the work is truly complete (merged PR or confirmed done by user).
+Clear the `## In Progress` section from the context file once the work is truly complete (merged PR or confirmed done by user).
 
 ## Checkpoint Format
-(Written by other skills when they save progress. Deliberately minimal: remaining subtasks are NOT duplicated here — they live as checkboxes in the spec file.)
+(Written by other skills when they save progress. File: `.claude/memory/context-{branch}.md` where `{branch}` = current branch with `/` → `-`. Deliberately minimal: remaining subtasks are NOT duplicated here — they live as checkboxes in the spec file.)
 
 ```markdown
 ## In Progress

@@ -75,6 +75,8 @@ Map plain-language requests to skills:
 
 If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
 
+If the session start context contains `=== IN-PROGRESS WORK FOUND ===`, tell the user what task is in progress and suggest they run `/resume` to continue — but do not resume automatically.
+
 If a hook reports `SUPERVISED_USAGE_ALERT`: use `AskUserQuestion` to ask the user whether they want to switch to unsupervised mode now (so auto-resume becomes available). Options: yes at 80% / yes with a custom threshold / no. If they agree, run `/unsupervised on [threshold]`; if not, continue normally. The alert will not repeat until usage drops and rises again.
 
 If `.claude/memory/settings.md` contains `unsupervised: true`:
@@ -86,6 +88,8 @@ If `.claude/memory/settings.md` contains `unsupervised: true`:
 ## Memory
 
 `.claude/memory/` contains project memory (decisions, context, gotchas, tech-debt). Read these when they are relevant — they are not auto-loaded.
+
+**Multi-session checkpoint isolation:** Context is stored per branch to avoid conflicts when multiple Claude Code sessions work on the same repository simultaneously. Always use `.claude/memory/context-{branch}.md` as the checkpoint file, where `{branch}` = current git branch with `/` replaced by `-` (e.g. `feature/feat-001-login` → `context-feature-feat-001-login.md`). Determine it at runtime: `git branch --show-current | sed 's|/|-|g'`. When reading context, try the branch-scoped file first; fall back to `context.md` only for legacy checkpoints.
 
 ## Context Management
 

@@ -48,7 +48,7 @@ In unsupervised mode: skip this question, use `session-model`.
 Update spec status to `refining`.
 
 ### 1. Save Checkpoint
-Write to `.claude/memory/context.md`:
+Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md`:
 ```markdown
 ## In Progress
 task: Refining {SPEC_ID} - {title}
@@ -181,7 +181,7 @@ git add docs/specs/
 git commit -m "docs(specs): refine {id} — ready to implement"
 ```
 
-Clear `## In Progress` from `.claude/memory/context.md`.
+Clear `## In Progress` from the branch context file.
 
 ### 8. Report
 ```
