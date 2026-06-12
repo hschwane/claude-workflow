@@ -44,11 +44,32 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 | `test-writer` | Spec-only test creation (used by /implement Phase 1) |
 | `documentation-writer` | Doc updates after implementation (used by /implement) |
 
-Likewise, use the workflow skills (`/commit`, `/draft`, `/resume`) whenever they match the task instead of ad-hoc equivalents.
-
 Model routing: agents pin their own model (`haiku` for mechanical work, `sonnet` for execution); planning/review agents inherit the session model. `/refine` and `/pr` ask once (supervised mode only) which tier their inherit-agents should use — session model / better-than-Sonnet (`opus`) / `sonnet` / `haiku` — and pass it as the per-invocation `model` parameter. Adjust defaults per agent in `.claude/agents/{name}.md`.
 
 For pure "where is X?" file/symbol discovery, use the **built-in Explore agent** (Haiku) — `code-explorer` is for briefings that need judgment (patterns, pitfalls, interfaces).
+
+## Skills — invoke proactively
+
+**CRITICAL: When the user's request matches a workflow skill, invoke that skill — never improvise your own process for something a skill already covers.**
+
+Executing the skill IS the correct response. Do not paraphrase its steps or attempt the work ad-hoc.
+
+Map plain-language requests to skills:
+
+| User says something like… | Skill to invoke |
+|--------------------------|-----------------|
+| "add a feature idea", "capture this bug", "log this idea" | `/draft` |
+| "brainstorm features", "what should we build next?", "generate backlog ideas" | `/brainstorm` |
+| "prioritize the backlog", "what should we work on?", "pick items for the next version" | `/prioritize` |
+| "refine FEAT-001", "plan feature X", "write requirements for X", "make X ready to implement" | `/refine` |
+| "implement FEAT-001", "build feature X", "start working on X", "code this up" | `/implement` |
+| "commit", "save my changes", "make a commit" | `/commit` |
+| "create a PR", "open a pull request", "submit for review", "merge this" | `/pr` |
+| "release", "ship a new version", "bump the version", "publish" | `/release` |
+| "resume", "continue where we left off", "I was interrupted", "pick up the task" | `/resume` |
+| "update the workflow", "upgrade claude-workflow", "get the latest workflow" | `/workflow-update` |
+
+**When in doubt whether a skill applies:** invoke the `workflow-coach` agent with the user's request before doing anything. It reads the workflow docs and skill definitions and will identify the right skill — or confirm none applies. Only invent a custom process after `workflow-coach` confirms no skill covers the situation.
 
 ## Session Behavior
 
