@@ -34,6 +34,8 @@ Read the spec file. Verify the Definition of Ready checklist:
 
 If DoR is not met: list what's missing and stop. Suggest `/refine {id}`.
 
+> 💡 **Model mode:** Implementation alternates planning with code-writing. If you're not already using it, suggest `/model opusplan` — Opus for the planning/reasoning, Sonnet for the routine code and tool calls. It fits this workflow and consumes your usage limit slower than running the whole session on Opus. Print this once as a non-blocking suggestion (in unsupervised mode too — print it, don't ask); continue on the current model unless the user switches.
+
 ### 1. Set Up Branch
 Check current branch. If not on a feature branch for this spec, branch from the integration branch (`develop` if it exists — git flow; otherwise `main`/`master`):
 ```

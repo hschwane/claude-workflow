@@ -52,7 +52,12 @@ Autonomous defaults:
   /prioritize   — accept the product-owner's recommended slate (never archives specs)
   /release      — requires bump type as argument (/release patch|minor|major)
   /commit       — auto-fix linter issues, commit without confirmation
-  model tier    — never asked; inherit-agents use the session model
+  model tier    — never asked; your session model applies throughout
+
+💡 Before you walk away, consider: /model opusplan
+  Unsupervised mode skips the per-run model-tier question and applies your
+  session model to everything. opusplan (Opus plans, Sonnet executes) gives
+  strong planning at lower usage-limit consumption than running all on Opus.
 
 Blockers that will STOP the work (require human attention):
   - Merge conflict that cannot be auto-resolved
