@@ -15,6 +15,13 @@ Analyzes an existing project and installs the claude-workflow infrastructure wit
 
 ## Instructions
 
+### 0. Check Prerequisites
+- Verify `git`, `gh` (GitHub CLI) are available (**required** — the workflow is git/GitHub based). If `gh` is not authenticated, run `gh auth status` and prompt the user to `gh auth login` if needed.
+- Check runtimes used by the quality gates and warn (do not block) if missing:
+  - `node --version` and `npx --version` — needed for the JS/TS gates (`eslint`, `prettier`, `tsc`)
+  - `python --version` (fall back to `python3 --version`, or `py --version` on Windows) — needed for the Python gates (`ruff`, `mypy`)
+- These are only relevant for the language detected in step 1. If the runtime for the project's primary language is missing, print a clear warning (e.g. "⚠ python not found — Python lint/type-check gates in /commit will be skipped until it's installed") and continue. A Rust/C++/other project that needs neither is fine.
+
 ### 1. Analyze Existing Project
 Invoke the `code-explorer` subagent to explore the project:
 

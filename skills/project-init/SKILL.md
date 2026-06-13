@@ -18,8 +18,12 @@ Creates a new software project from scratch with the full claude-workflow infras
 ## Instructions
 
 ### 0. Check Prerequisites
-- Verify `git`, `gh` (GitHub CLI) are available
+- Verify `git`, `gh` (GitHub CLI) are available (**required** — the workflow is git/GitHub based)
 - If `gh` is not authenticated: `gh auth status` — if not logged in, prompt user to run `gh auth login`
+- Check runtimes used by the quality gates and warn (do not block) if missing:
+  - `node --version` and `npx --version` — needed for the JS/TS gates (`eslint`, `prettier`, `tsc`)
+  - `python --version` (fall back to `python3 --version`, or `py --version` on Windows) — needed for the Python gates (`ruff`, `mypy`)
+  - These are only relevant for the project's chosen language. If the stack is Rust/C++/other and neither runtime is present, that's fine — just note it. If the runtime for the chosen language is missing, print a clear warning (e.g. "⚠ node not found — JS/TS lint/type-check gates in /commit will be skipped until it's installed") and continue.
 - Ask (AskUserQuestion): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
 
 ### 0.1 Model Tier for Design Phase (Supervised Mode Only)
