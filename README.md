@@ -107,7 +107,7 @@ Each agent pins the cheapest model that reliably does its job (`model` frontmatt
 Overrides, from broadest to narrowest:
 - `CLAUDE_CODE_SUBAGENT_MODEL` env var forces one model for **all** subagents (beats everything)
 - Edit the `model:` line in `.claude/agents/{name}.md` in your project (after init/onboard the files are local)
-- Skills deliberately do **not** set `model:` — a skill's model override would change the main conversation's model for the rest of the turn, which is surprising when skills chain (e.g. `/pr` running `/commit`).
+- Skills deliberately do **not** set `model:` — a skill's model override would change the main conversation's model for the rest of the turn, which is surprising when skills chain (e.g. `/pr` running `/commit`). The one exception is `/draft` (pinned to `haiku`): its work is purely mechanical (parse input, find the next ID, write a template entry, optional `gh issue create`) and gets fully reworked in `/refine`, so the cheapest model suffices. It's safe because `/draft` is a leaf skill — it never invokes other skills, and the `/brainstorm` path inlines draft's behavior rather than invoking it as a skill, so the model override doesn't leak into a brainstorm turn.
 
 ## Key Design Principles
 
