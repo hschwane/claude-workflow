@@ -107,12 +107,27 @@ gh pr checks {pr_url} --watch
 
 After 3 consecutive fix attempts without CI going green: ask the user for help diagnosing the failure. **Do not proceed until CI passes regardless of how many attempts it takes.** Only abandon if the user explicitly instructs you to skip CI.
 
-**If CI passes:** continue to step 5.
+**If CI passes:** continue to step 4b.
+
+### 4b. Review Scope Triage
+
+Scale review effort to the diff's size and risk:
+
+```bash
+git diff --stat origin/{base}...HEAD | tail -1     # total changed lines
+git diff --name-only origin/{base}...HEAD
+```
+
+Check the file list for **security-sensitive paths**: authentication/session/crypto/secrets code, `.env*`, dependency manifests and lockfiles, network request handling, SQL/database queries or migrations, child-process/exec/eval, deserialization, file-upload or path handling, permission/ACL logic. **When unsure whether a file is sensitive, treat it as sensitive.**
+
+- **Light review** — fewer than ~200 changed lines AND no security-sensitive files: run ONLY step 5 (code review). Skip steps 6 and 7.
+- **Full review** — everything else: run steps 5, 6, and 7 (architect review still conditional per its own criteria). A diff touching security-sensitive files gets the dedicated security review **regardless of size**.
 
 ### 5. Code Review
 Invoke the `code-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD` (full diff)
 - Input: root `CLAUDE.md` and `docs/dev/` style guides
+- If step 4b chose the light path, add: *"You are the only reviewer for this small, low-risk diff — also check security basics (injection, secrets in code, unsafe input handling) and structural fit."*
 
 Read the agent's report. For each `[MUST FIX]` finding:
 - Fix the issue in the code
@@ -120,7 +135,7 @@ Read the agent's report. For each `[MUST FIX]` finding:
 
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
-### 6. Security Review
+### 6. Security Review (skipped on the light-review path — see 4b)
 Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD`
 
@@ -130,7 +145,7 @@ For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
 
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the architect review or merge until CI is green.
 
-### 7. Architect Review (conditional)
+### 7. Architect Review (conditional; skipped on the light-review path — see 4b)
 Only run if the diff includes:
 - New files or directories in `src/`
 - Changes to module exports or public interfaces
@@ -183,8 +198,8 @@ After successful merge:
 PR merged ✓
 {pr_url}
 
-Reviews: code review ✓, security review ✓{, architect review ✓}
-Findings fixed: {N} code, {M} security{, K architect}
+Reviews: {code review ✓, security review ✓{, architect review ✓} | light review ✓ (small, low-risk diff)}
+Findings fixed: {N} code{, M security}{, K architect}
 Merged via: squash merge
 
 Branch cleaned up. On {base}.

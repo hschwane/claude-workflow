@@ -40,8 +40,8 @@ If the implementation introduces a new module, service, pattern, or significant 
 - New npm scripts or commands: document them
 - Changed deployment steps: update deploy.md
 
-### Always: Verify `docs/specs/` status
-- The spec file should have status `in-progress` → move to `docs/specs/completed/` once docs are written
+### Never: move the spec file
+- Do NOT move or modify the spec file in `docs/specs/` — it moves to `completed/` after the PR merges (handled by /pr)
 
 ## Writing Guidelines
 - **Developer docs**: precise, technical, assume expertise. Explain the WHY of design decisions.

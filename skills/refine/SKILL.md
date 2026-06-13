@@ -35,24 +35,30 @@ Find the spec:
 
 Read the spec file. Read `docs/VISION.md`. Read root `CLAUDE.md` for architecture context.
 
-Ask the user (AskUserQuestion) before starting:
+### 0.2 Complexity Triage
 
-**Question 1 — Autonomy level:**
-- `fully-autonomous`: RE and TP work until DoR is met, only asking when truly stuck
-- `key-questions-only`: Ask only the most critical questions (1-3 max)
-- `many-questions`: Interview mode — ask about each aspect
+Assess the draft's complexity. This is a judgment call — there are **no hard limits** (subtask counts etc.); weigh scope, novelty, risk, and ambiguity together:
 
-**Question 2 — Approval:**
-- `auto-accept`: When RE and TP both sign off, automatically move to ready
-- `manual-approval`: Show me the final spec and wait for my OK
+- **small** — isolated change in known territory: few components affected, no new public interfaces (or only trivial extensions of existing ones), no security relevance, scope is unambiguous
+- **medium** — moderate scope: new interfaces or several components affected, some ambiguity to resolve
+- **large** — new architecture or patterns, security-relevant, cross-cutting, breaking changes, or significant ambiguity
 
-**Question 3 — Model tier for the planning agents** (requirements-engineer + tech-planner; these are `model: inherit` agents — the choice is passed as the per-invocation `model` parameter, pinned agents like code-explorer are unaffected):
-- `session-model` (recommended — name the current session model in the option label): the agents use whatever the session runs on
-- `better-than-sonnet`: pass `opus` — for tricky or high-stakes specs when the session runs Sonnet
-- `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the spec is routine
-- `haiku`: pass `haiku` — cheapest; only for trivial specs, planning quality will suffer
+**When uncertain between two tiers, pick the higher one.** The tier scales the whole process: how many agents run, how many iteration rounds are allowed, and how many clarifying questions the user gets.
 
-In unsupervised mode: skip this question, use `session-model`.
+Show your assessment and ask (AskUserQuestion):
+> "I assess {id} as **{tier}** — {one-line reason}. Proceed?"
+- For small: [Fast-track it / Treat as medium / Treat as large]
+- For medium/large: [Proceed with defaults / Customize / Change tier]
+
+Defaults are: `fully-autonomous`, `auto-accept`, `session-model`. If the user picks **Customize**, ask the detailed questions:
+
+**Autonomy level:** `fully-autonomous` (agents work until DoR is met, only asking when truly stuck) / `key-questions-only` (1-3 critical questions max) / `many-questions` (interview mode)
+
+**Approval:** `auto-accept` (move to ready when both agents sign off) / `manual-approval` (show final spec, wait for OK)
+
+**Model tier for the planning agents** (requirements-engineer + tech-planner are `model: inherit` — pass the choice as the per-invocation `model` parameter; pinned agents like code-explorer are unaffected): `session-model` (recommended) / `opus` (tricky or high-stakes specs when the session runs Sonnet) / `sonnet` (saves budget when the session runs Opus/Fable) / `haiku` (only for trivial specs, planning quality will suffer)
+
+In unsupervised mode: skip all questions, trust the triage (bias toward the higher tier when uncertain), use the defaults.
 
 Update spec status to `refining`.
 
@@ -69,6 +75,22 @@ last_completed: "Started refinement"
 next_step: "Phase 1: Requirements Engineer analysis"
 saved_at: {timestamp}
 ```
+
+### 1b. Fast-Track Path (small specs only)
+
+For **small** specs, skip steps 2–4 entirely:
+
+1. **Codebase context**: if the affected files are already obvious from the current session, assemble a short summary yourself; otherwise invoke `code-explorer` as described in step 3.
+2. Invoke the `tech-planner` subagent ONCE in fast-track mode with:
+   ```
+   DRAFT: {full spec file content}
+   VISION: {docs/VISION.md content}
+   CODEBASE_SUMMARY: {briefing}
+   ARCHITECTURE: {docs/dev/architecture.md content if exists}
+   ```
+   No `RE_OUTPUT` — in fast-track mode the tech-planner derives the user story and acceptance criteria itself before planning.
+3. **If its output starts with `ESCALATE:`** — the spec is more complex than assessed. Inform the user, re-tier to medium (or large if the reason warrants), and run the normal steps 2–4; the partial output is useful context for the RE.
+4. Otherwise: continue at step 5, using the combined output for both the RE sections and the TP sections.
 
 ### 2. Requirements Engineering Phase
 
@@ -112,14 +134,15 @@ If the TP output contains RE questions:
 - Get updated RE output
 - Re-run TP if RE output changed significantly
 
-If `[USER]` questions remain from either agent:
-- Collect all questions and ask user in a single AskUserQuestion call
+If `[USER]` questions remain from either agent — scale to the tier:
+- **medium**: ask only questions that genuinely block the plan (max 3, single AskUserQuestion call); answer the rest with reasonable assumptions and record each assumption in the spec under a `## Assumptions` note
+- **large**: collect all questions and ask in a single AskUserQuestion call
 - Pass answers to the next iteration
 
 Continue iterating until:
 - No open questions from either agent
 - Both RE sign-off and TP sign-off present in their outputs
-- OR: maximum 3 iteration rounds reached (then ask user to resolve remaining questions manually)
+- OR: maximum iteration rounds reached — **1 round for medium, 3 for large** (then ask the user to resolve remaining questions manually)
 
 Update checkpoint after each iteration.
 

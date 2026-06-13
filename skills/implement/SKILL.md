@@ -124,10 +124,14 @@ If any tests fail: fix based on the report (read the failing test files directly
 Fix any issues and commit: `git add -A && git commit -m "fix({scope}): address linter findings"`
 
 ### 6. Update Documentation
+Decide the docs scope first:
+- **Technical docs — always in scope**: `docs/dev/architecture.md`, ADRs, API/interface docs. Every implementation must leave the technical docs accurate (for a pure bug fix the agent may conclude nothing needs changing, but it must check).
+- **User docs (`docs/user/`) — only when user-facing behavior changed**: new or changed CLI commands, endpoints, UI, configuration options, or visible behavior. For internal refactors and invisible bug fixes, leave user docs out of scope entirely — don't pass them as input.
+
 Invoke the `documentation-writer` subagent with:
 - The spec (acceptance criteria + interface definitions)
 - The implemented interfaces (read the actual source files)
-- Current state of relevant docs (`docs/dev/architecture.md`, `docs/user/` if relevant)
+- Current state of in-scope docs only (`docs/dev/architecture.md` always; `docs/user/` only if user-facing)
 
 The agent writes updated documentation. Review and apply the changes.
 

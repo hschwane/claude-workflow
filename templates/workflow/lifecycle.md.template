@@ -11,9 +11,8 @@ A raw idea or bug report added with `/draft`. No planning required.
 Spec file created in `docs/specs/backlog/`. Minimal content — just enough to capture the idea.
 
 ### Refine
-A Requirements Engineer and Tech Planner iterate on the draft until it meets the **Definition of Ready**.
-Triggered with `/refine {id}`. The user can choose autonomy level (fully-autonomous / key-questions-only / many-questions).
-Spec moves to `docs/specs/ready/` when DoR is satisfied.
+Refinement depth scales with a complexity triage (small / medium / large — judged by scope, novelty, risk, and ambiguity, no hard limits). Small specs are fast-tracked through a single combined planning pass that escalates itself if it finds hidden complexity; medium and large specs go through the full Requirements Engineer + Tech Planner iteration until the spec meets the **Definition of Ready**. Larger and more critical specs get more iteration rounds and more clarifying questions.
+Triggered with `/refine {id}`. Spec moves to `docs/specs/ready/` when DoR is satisfied.
 
 ### Implement
 Tests are written first (isolated context, spec-only), then code is implemented subtask by subtask.
@@ -21,8 +20,10 @@ Each subtask gets its own commit. Run with `/implement {id}`.
 Progress is checkpointed — use `/resume` after any interruption.
 
 ### PR
-CI runs first (lint + typecheck + tests + security). Claude waits for CI, then runs code review,
-security review, and optionally architect review. All findings are fixed before merge.
+CI runs first (lint + typecheck + tests + security). Claude waits for CI, then scales the reviews
+to the diff: small low-risk diffs get one combined review; anything touching security-sensitive
+files (auth, crypto, deps, input handling, …) always gets the dedicated security review, plus code
+review and optionally architect review. All findings are fixed before merge.
 Run with `/pr`. Claude auto-merges after all reviews pass.
 
 ### Release
