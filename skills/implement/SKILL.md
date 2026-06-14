@@ -46,6 +46,10 @@ Example: `feature/feat-001-oauth-login`
 
 Update spec frontmatter: `status: ready` → `status: in-progress`. File stays in `docs/specs/ready/`.
 
+If the spec has `github_issue` set and `.claude/memory/decisions.md` does NOT contain `GitHub integration: no`:
+- `gh issue edit {github_issue} --remove-label ready --add-label in-progress`
+- `gh issue comment {github_issue} --body "🔧 Implementation started on branch \`{branch}\`."`
+
 ### 2. Save Initial Checkpoint
 Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
 ```markdown
@@ -141,8 +145,15 @@ The agent writes updated documentation. Review and apply the changes.
 Commit: `git add docs/ && git commit -m "docs({scope}): update docs for {title}"`
 
 ### 7. Complete
-- The spec file stays in `docs/specs/ready/` with `status: in-progress` in its frontmatter (it moves to `docs/specs/completed/` after the PR merges, handled by `/pr`)
-- Clear `## In Progress` from the branch context file (`.claude/memory/context-{branch}.md`)
+
+Move the spec to completed:
+- Update frontmatter: `status: in-progress` → `status: done`
+- `git mv docs/specs/ready/{filename} docs/specs/completed/{filename}`
+- If `github_issue` is set and decisions.md does NOT contain `GitHub integration: no`:
+  - `gh issue comment {github_issue} --body "✅ Implementation complete on branch \`{branch}\`. PR incoming."`
+- `git add docs/specs/ && git commit -m "docs(specs): complete {id}"`
+
+Clear `## In Progress` from the branch context file (`.claude/memory/context-{branch}.md`).
 
 Report:
 ```

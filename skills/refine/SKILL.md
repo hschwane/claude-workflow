@@ -191,6 +191,34 @@ github_issue: {original value}
 - [x] Tech Planner
 ```
 
+### 5b. Draft Out-of-Scope Follow-ups
+
+Review the "Out of Scope" section assembled in step 5. Classify each item:
+- **Deferred work** — something that could be a future feature or enhancement (e.g., "admin UI for managing X", "export to PDF"): create a draft ticket
+- **Permanent constraint** — an architectural or project-level decision that will never change (e.g., "no i18n", "browser-only, no native app"): skip — this belongs in `docs/VISION.md`, not the backlog
+
+For each deferred out-of-scope item, create a draft file in `docs/specs/backlog/`:
+
+1. Determine the next available ID across all spec directories:
+   ```bash
+   ls docs/specs/backlog/ docs/specs/ready/ docs/specs/completed/ 2>/dev/null \
+     | grep -oP '(FEAT|BUG)-[0-9]+' | sort -t- -k2 -n | tail -1
+   ```
+   Increment the number (e.g., `FEAT-007` → `FEAT-008`). If none exist, start at `FEAT-001`.
+
+2. Write `docs/specs/backlog/{ID}-{kebab-title}.md` with frontmatter:
+   `id: {ID}`, `type: feature`, `status: draft`, `created: {today}`, and a body that includes:
+   - A short title
+   - A `## Background` section noting it was deferred from `{original-spec-id}` and why
+
+3. If any drafts were created:
+   ```bash
+   git add docs/specs/backlog/
+   git commit -m "docs(specs): draft follow-ups from {id} out-of-scope items"
+   ```
+
+List the created draft IDs in the final report (step 8).
+
 ### 6. Manual Approval (if configured)
 
 If `approval: manual-approval`:

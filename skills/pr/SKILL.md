@@ -51,6 +51,8 @@ Auto-generate a PR description from the branch commits:
 
 ## Testing
 {Brief note on what tests cover this}
+
+{If the spec has `github_issue` set: add a final line `Closes #{github_issue}` — GitHub will auto-close the issue on merge}
 ```
 
 ### 3. Save Checkpoint
@@ -186,10 +188,9 @@ After successful merge:
 - Delete local branch: `git branch -d {branch}`
 - Check out base branch: `git checkout {base}`
 - Pull latest: `git pull`
-- If a spec file is linked (`docs/specs/ready/{id}-*.md`):
-  - Update frontmatter `status: in-progress` → `status: done`
-  - `git mv docs/specs/ready/{filename} docs/specs/completed/{filename}`
-  - Commit: `git add docs/specs/ && git commit -m "docs(specs): complete {id}"`
+- If a spec file is linked:
+  - Check `docs/specs/ready/{id}-*.md` — if it still exists there (not yet moved by `/implement`): update frontmatter `status` → `done`, `git mv` to `docs/specs/completed/`, commit `docs(specs): complete {id}`
+  - If it is already in `docs/specs/completed/` (moved by `/implement`): nothing to do
 - Clear the `## In Progress` section from the branch context file (`.claude/memory/context-{branch}.md`)
 
 ### 11. Report
