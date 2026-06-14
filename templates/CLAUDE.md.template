@@ -95,6 +95,8 @@ Invoke the relevant skill for each item. After each completes, tick it off (`- [
 **3. Compact between phases:**
 After completing a group of tasks (e.g. all refines done, about to start implementations), run `/compact` before continuing. Before every compact: ensure all changes are committed and the checkpoint is up to date — `/compact` is only safe at a persisted boundary.
 
+After `/compact` returns: immediately read `.claude/memory/context-{branch}.md` to restore the task list, then continue with the next unchecked item — do not wait for user input. The multi-task session is still active.
+
 **4. Done only when every item is checked off:**
 Clear `## In Progress` only after all items show `[x]`. The Stop hook will remind you of remaining work if you try to stop early.
 
