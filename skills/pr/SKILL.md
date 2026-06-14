@@ -183,6 +183,12 @@ Once CI is confirmed green:
 - This is a MAJOR version change (breaking API)
 - The branch targets a protected branch that requires human approval
 
+**Wait for the merge to actually complete** — with `--auto` the merge is asynchronous. Poll until the PR state is `MERGED`:
+```bash
+gh pr view {pr_url} --json state -q .state
+```
+Check every 30 seconds. If not merged after 10 minutes: report to the user and stop.
+
 ### 10. Post-Merge Cleanup
 After successful merge:
 - Delete local branch: `git branch -d {branch}`
@@ -193,6 +199,38 @@ After successful merge:
   - If it is already in `docs/specs/completed/` (moved by `/implement`): nothing to do
 - Clear the `## In Progress` section from the branch context file (`.claude/memory/context-{branch}.md`)
 
+### 10b. Post-Merge CI Check
+
+After `git pull` on the base branch, verify that the CI triggered by the merge commit also passes:
+
+```bash
+MERGE_SHA=$(git rev-parse HEAD)
+gh run list --branch {base} --commit "$MERGE_SHA" --limit 5
+```
+
+If no runs appear within 60 seconds (repo may not attach runs to merge SHAs), fall back to:
+```bash
+gh run list --branch {base} --limit 3
+```
+
+**If runs are found:** wait for them to finish (`gh run watch {run_id}`).
+
+**If a run fails:**
+1. Read the logs: `gh run view {run_id} --log-failed`
+2. Diagnose and fix:
+   - **Simple fix** (typo, missing env var, trivial config): commit directly to `{base}` and push
+   - **Non-trivial fix**: create a new branch, open a new `/pr`, do not push directly to `{base}`
+3. Push and re-check:
+   ```bash
+   git push origin {base}
+   gh run list --branch {base} --limit 3
+   ```
+4. Repeat until all runs on `{base}` are green
+
+**If no runs are found after 60 seconds:** note "no post-merge CI detected" and continue.
+
+Record the final post-merge CI status for the report.
+
 ### 11. Report
 ```
 PR merged ✓
@@ -201,6 +239,7 @@ PR merged ✓
 Reviews: {code review ✓, security review ✓{, architect review ✓} | light review ✓ (small, low-risk diff)}
 Findings fixed: {N} code{, M security}{, K architect}
 Merged via: squash merge
+Post-merge CI: {pass ✓ | no CI detected | fixed after {N} iteration(s) ✓}
 
 Branch cleaned up. On {base}.
 ```
