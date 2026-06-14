@@ -37,6 +37,10 @@ if grep -q "^## Blocked" "$CONTEXT_FILE" 2>/dev/null; then
   exit 0
 fi
 
+# Collect remaining unchecked tasks (for display and block reason)
+UNCHECKED=$(grep "^- \[ \]" "$CONTEXT_FILE" 2>/dev/null || true)
+UNCHECKED_COUNT=$(echo "$UNCHECKED" | grep -c "." 2>/dev/null || echo "0")
+
 # Loop guard: if this stop was already caused by a Stop hook, don't block again
 if command -v jq &>/dev/null; then
   STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
@@ -50,14 +54,23 @@ if [ -f "$SETTINGS_FILE" ] && grep -q "^unsupervised: true" "$SETTINGS_FILE" 2>/
 fi
 
 if [ "$UNSUPERVISED" = "true" ] && [ "$STOP_ACTIVE" != "true" ]; then
-  # Block the stop and tell Claude to continue the checkpointed work
-  echo '{"decision": "block", "reason": "Unsupervised mode is active and the branch context file still contains an In Progress section. Continue the work from the checkpoint (next_step). If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if the work is complete, clear the In Progress section."}'
+  # Build a block reason that lists remaining tasks when present
+  if [ "$UNCHECKED_COUNT" -gt 0 ] 2>/dev/null; then
+    REMAINING_MSG="Remaining tasks ($UNCHECKED_COUNT): $(echo "$UNCHECKED" | head -5 | tr '\n' ' ')"
+  else
+    REMAINING_MSG="Check the checkpoint for next_step."
+  fi
+  echo "{\"decision\": \"block\", \"reason\": \"Unsupervised mode is active and the branch context file still contains an In Progress section. $REMAINING_MSG Continue working through the task list in order. If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if all work is complete, clear the In Progress section.\"}"
   exit 0
 fi
 
 # Informational reminder only (shown in transcript, does not block)
 echo ""
 echo "⚠  There is in-progress work recorded in $CONTEXT_FILE"
+if [ "$UNCHECKED_COUNT" -gt 0 ] 2>/dev/null; then
+  echo "   $UNCHECKED_COUNT task(s) still unchecked:"
+  echo "$UNCHECKED" | head -5 | sed 's/^/   /'
+fi
 echo ""
 grep -A 10 "^## In Progress" "$CONTEXT_FILE" || true
 echo ""

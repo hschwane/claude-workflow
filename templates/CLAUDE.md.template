@@ -71,6 +71,33 @@ Map plain-language requests to skills:
 
 **When in doubt whether a skill applies:** invoke the `workflow-coach` agent with the user's request before doing anything. It reads the workflow docs and skill definitions and will identify the right skill — or confirm none applies. Only invent a custom process after `workflow-coach` confirms no skill covers the situation.
 
+## Multi-Task Sessions
+
+When the user gives multiple tasks in one message (e.g. "refine FEAT-001, FEAT-002, then implement both"):
+
+**1. Checkpoint immediately — before any work:**
+Write the full task list to the branch-scoped context file (`.claude/memory/context-{branch}.md`) under `## In Progress`:
+```markdown
+## In Progress
+task: Multi-task session — {brief description}
+tasks:
+- [ ] Refine FEAT-001
+- [ ] Refine FEAT-002
+- [ ] Implement FEAT-001
+- [ ] Implement FEAT-002
+next_step: "Refine FEAT-001"
+saved_at: {timestamp}
+```
+
+**2. Work through in order — no stopping between tasks:**
+Invoke the relevant skill for each item. After each completes, tick it off (`- [x]`) and update `next_step`. Do not ask for confirmation between tasks and do not stop to summarize progress — proceed automatically.
+
+**3. Compact between phases:**
+After completing a group of tasks (e.g. all refines done, about to start implementations), run `/compact` before continuing. Before every compact: ensure all changes are committed and the checkpoint is up to date — `/compact` is only safe at a persisted boundary.
+
+**4. Done only when every item is checked off:**
+Clear `## In Progress` only after all items show `[x]`. The Stop hook will remind you of remaining work if you try to stop early.
+
 ## Session Behavior
 
 If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
