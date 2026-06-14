@@ -26,18 +26,21 @@ Ask (AskUserQuestion): [Continue on this branch / I'll switch first — stopping
 
 If the user wants to switch: stop.
 
-### 1. Collect Backlog State
-- List all specs in `docs/specs/backlog/` (id, title, size if present)
-- List `docs/specs/ready/` (already refined — mention but exclude from ranking)
+### 1. Assemble Inputs (read each file once)
+- Read `docs/VISION.md`
+- Read `docs/specs/backlog/` — for each file, read frontmatter + `## User Story` section (stop before `## Acceptance Criteria`). Build a combined BACKLOG string: one entry per item with its id, title, type, size, and user story.
+- List `docs/specs/ready/` filenames only (already refined — pass as context, exclude from ranking)
+- List `docs/specs/completed/` titles + read `CHANGELOG.md` (project history for the agent)
 - If the backlog is empty: suggest `/brainstorm` or `/draft` and stop.
 
 ### 2. Invoke Product Owner
-Invoke the `product-owner` subagent with:
+Pass the already-assembled content — do not re-read any files:
 ```
 MODE: prioritize
-VISION: docs/VISION.md
-STATE: docs/specs/completed/ titles + CHANGELOG.md
-BACKLOG: {list of backlog items with their spec file contents (frontmatter + user story only)}
+VISION: {content of docs/VISION.md}
+STATE: {completed titles + CHANGELOG.md content}
+BACKLOG: {assembled backlog string from step 1}
+READY: {list of already-refined items — for context only}
 FOCUS: {user's focus argument, if any}
 ```
 
