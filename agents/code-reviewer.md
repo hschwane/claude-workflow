@@ -1,8 +1,11 @@
 ---
 name: code-reviewer
 description: Reviews code changes for quality, maintainability, correctness, and adherence to project conventions. Use during /pr after CI passes, or whenever a diff needs an unbiased quality review. Read-only — reports findings, never edits files.
-disallowedTools: Write, Edit, NotebookEdit
 model: inherit
+disallowedTools:
+  - Write
+  - Edit
+  - NotebookEdit
 ---
 
 # Code Reviewer

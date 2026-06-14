@@ -1,8 +1,11 @@
 ---
 name: tech-planner
 description: Turns finalized requirements into a concrete technical plan with interface definitions, affected components, and implementation subtasks. Use during /refine after the requirements engineer has produced structured requirements. Read-only — outputs a plan, never edits files.
-disallowedTools: Write, Edit, NotebookEdit
 model: inherit
+disallowedTools:
+  - Write
+  - Edit
+  - NotebookEdit
 ---
 
 # Tech Planner

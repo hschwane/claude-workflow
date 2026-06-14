@@ -1,8 +1,11 @@
 ---
 name: requirements-engineer
 description: Turns a raw feature/bug draft into structured requirements with user stories, acceptance criteria, and open questions. Use during /refine when a backlog draft needs requirements analysis. Read-only — outputs a requirements document, never edits files.
-disallowedTools: Write, Edit, NotebookEdit
 model: inherit
+disallowedTools:
+  - Write
+  - Edit
+  - NotebookEdit
 ---
 
 # Requirements Engineer
