@@ -92,10 +92,15 @@ saved_at: {timestamp}
 **2. Work through in order — no stopping between tasks:**
 Invoke the relevant skill for each item. After each completes, tick it off (`- [x]`) and update `next_step`. Do not ask for confirmation between tasks and do not stop to summarize progress — proceed automatically.
 
-**3. Compact between phases:**
-After completing a group of tasks (e.g. all refines done, about to start implementations), run `/compact` before continuing. Before every compact: ensure all changes are committed and the checkpoint is up to date — `/compact` is only safe at a persisted boundary.
+**3. Compact between phases (user action — do not self-invoke):**
+`/compact` is a built-in Claude Code command that only the **user** can trigger — it cannot be reliably self-invoked across CLI, VS Code, or web environments. Do NOT call it yourself.
 
-After `/compact` returns: immediately read `.claude/memory/context-{branch}.md` to restore the task list, then continue with the next unchecked item — do not wait for user input. The multi-task session is still active.
+Instead, at a phase boundary (e.g. all refines done, about to start implementations):
+- Ensure all changes are committed and the checkpoint is fully up to date
+- In supervised mode: ask the user "Context is getting large — please run `/compact` so I can continue cleanly." Wait for confirmation, then continue.
+- In unsupervised mode: skip the compact, continue directly. The infrastructure will compress context automatically when needed.
+
+After the user runs `/compact`: immediately read `.claude/memory/context-{branch}.md` to restore the task list, then continue with the next unchecked item.
 
 **4. Done only when every item is checked off:**
 Clear `## In Progress` only after all items show `[x]`. The Stop hook will remind you of remaining work if you try to stop early.
