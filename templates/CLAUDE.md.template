@@ -91,8 +91,11 @@ next_step: "Refine FEAT-001"
 saved_at: {timestamp}
 ```
 
-**2. Work through in order — no stopping between tasks:**
-Invoke the relevant skill for each item. After each completes, tick it off (`- [x]`) and update `next_step`. Do not ask for confirmation between tasks and do not stop to summarize progress — proceed automatically.
+**2. Work through in order:**
+Invoke the relevant skill for each item. After each completes, tick it off (`- [x]`) and update `next_step`, then immediately start the next item.
+
+- **Supervised mode**: each skill runs normally — ask all the questions it normally asks. The only difference from a normal session is that after a skill finishes, move on to the next task automatically instead of stopping. Do not add extra confirmation prompts *between* tasks ("should I continue with the next item?") — just continue.
+- **Unsupervised mode**: all skills apply their autonomous defaults (no questions). Proceed fully automatically.
 
 **3. Compact between phases (user action — do not self-invoke):**
 `/compact` is a built-in Claude Code command that only the **user** can trigger — it cannot be reliably self-invoked across CLI, VS Code, or web environments. Do NOT call it yourself.
