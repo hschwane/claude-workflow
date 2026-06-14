@@ -14,15 +14,44 @@ You receive:
 - `SPEC`: the finalized spec (acceptance criteria + interface definitions)
 - `TEST_PATTERNS`: examples of existing tests in this project (for style/framework reference only)
 - `TECH_STACK`: testing framework and conventions
+- `TESTING_SCOPE`: the project's configured test levels (`Unit only` / `Unit + Integration` / `Unit + Integration + E2E`)
 
-Write a comprehensive test suite that:
+### Step 1 — Assign a Test Level to Each Criterion
 
-### Coverage Requirements
-- **One test per acceptance criterion** (reference criterion number in test description)
-- **Happy path** for every interface function
-- **Error cases**: invalid inputs, missing required fields, boundary conditions
-- **Edge cases** explicitly listed in the spec
-- Do NOT test implementation details — test behavior observable from the outside
+For each acceptance criterion, decide which level fits:
+- **Unit** — criterion verifies logic with no dependency on a running server, DB, or external service
+- **Integration** — criterion verifies an endpoint response, a DB operation, or a cross-service interaction
+- **E2E** — criterion verifies a multi-layer user flow AND E2E is in `TESTING_SCOPE` (rare; default to integration)
+
+Only assign levels that are in `TESTING_SCOPE`. If `Unit only`, everything becomes a unit test. If a criterion would ideally be an integration test but `TESTING_SCOPE` is `Unit only`, test the logic in isolation and note the limitation.
+
+### Step 2 — Write Tests Per Criterion
+
+For each criterion at its assigned level:
+1. **One test for the primary scenario** (the AC's main assertion)
+2. **Edge cases** — add only when they exercise a meaningfully different code path:
+   - Missing or invalid required inputs
+   - Boundary values (empty list, zero, max length)
+   - Primary error scenario (not found, unauthorized, conflict)
+3. **Typical count: 2–4 tests per criterion.** Stop when you've covered the distinct behaviors. Don't multiply tests that run the same path with different data values.
+
+**Don't duplicate across levels:** if a criterion is covered by an integration test, don't also write a unit test for the same behavior. Edge cases for integration-tested behavior belong in a unit test for the underlying function — but only if that function contains non-trivial logic.
+
+### Step 3 — Gap Check Over Subtasks
+
+After covering all ACs, scan the spec's subtask list for scenarios not captured by any criterion. Add 1–2 tests only for genuine gaps:
+- A subtask that handles a case the ACs don't mention (e.g. "handle empty state on load")
+- A shared helper introduced by the spec with non-trivial logic
+- A cross-cutting validation rule that applies to multiple inputs
+
+Don't generate tests for every subtask mechanically — only for gaps the ACs leave open.
+
+### Step 4 — Proportionality Check
+
+Before writing: estimate the total test count vs. number of ACs. A healthy ratio is roughly 2–4 tests per AC. If you're above that, review for:
+- Tests running the same code path with trivially different inputs → merge or remove
+- Tests for simple pass-through code → remove
+- Duplicate assertions spread across multiple tests → consolidate
 
 ### Test Quality Rules
 1. Tests must be **independent** — no shared mutable state between tests

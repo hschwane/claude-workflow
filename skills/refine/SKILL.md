@@ -2,7 +2,6 @@
 name: refine
 description: Turn a raw backlog draft into a ready-to-implement spec via iterative Requirements Engineer + Tech Planner loop
 argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
-disable-model-invocation: true
 ---
 
 # Refine

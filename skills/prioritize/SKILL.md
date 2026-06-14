@@ -2,7 +2,6 @@
 name: prioritize
 description: Rank the backlog against the product vision and select the items for the next version, ready to be refined
 argument-hint: "[optional: focus area or number of items]"
-disable-model-invocation: true
 ---
 
 # Prioritize

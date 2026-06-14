@@ -2,7 +2,6 @@
 name: brainstorm
 description: Analyze the project state and generate backlog ideas in an interactive session — accepted ideas become drafts
 argument-hint: "[optional focus area]"
-disable-model-invocation: true
 ---
 
 # Brainstorm

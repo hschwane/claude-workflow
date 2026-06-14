@@ -39,7 +39,32 @@ A feature is done only when ALL of these are true:
 
 ## Test Strategy
 
-{{TEST_STRATEGY}}
+**Konfigurierter Scope:** {{TESTING_SCOPE}}
+
+### Test-Ebenen
+
+**Unit Tests** — Geschäftslogik isoliert
+- Ziel: reine Funktionen, Domänenregeln, Eingabevalidierung, Berechnungen, Transformationen
+- Mock: nur externe I/O (Netzwerk, Dateisystem, DB, Zeit) — nie eigenen Code mocken
+- Fehlerfälle und Grenzwerte gehören hierher, nicht in Integration Tests
+
+**Integration Tests** — Komponenteninteraktionen an Systemgrenzen *(ab "Unit + Integration")*
+- Ziel: HTTP-Endpunkte, Datenbankoperationen, Service-Interaktionen, Message Handler
+- Ausführung: gegen echte Test-Dependencies (Test-DB, In-Memory-Äquivalent) — keine Mocks eigener Schichten
+- Grenzwerte und Fehlerfälle nicht wiederholen, die Unit Tests bereits abdecken
+
+**E2E Tests** — kritische Nutzer-Flows über alle Schichten *(nur bei "Unit + Integration + E2E")*
+- Ziel: Flows, die UI + Backend + DB überspannen und nicht auf Integration-Ebene verifizierbar sind
+- Limit: max. 3–5 Szenarien pro Feature; im Zweifel Integration Test bevorzugen
+- Nur schreiben, wenn ein E2E-Framework im Projekt tatsächlich konfiguriert ist
+
+### Regel: Eine Ebene pro Kriterium
+Jedes Akzeptanzkriterium wird genau **einer** Test-Ebene zugeordnet — der niedrigsten, die es sinnvoll abdeckt:
+- Kriterium prüft isolierte Logik (kein Netzwerk/DB nötig) → **Unit Test** (inkl. seiner Fehlerfälle)
+- Kriterium prüft Systemgrenze (Endpunkt, DB-Aufruf, externer Service) → **Integration Test**
+- Kriterium prüft Nutzer-Flow über mehrere Schichten → **E2E** (nur wenn im Scope und Framework vorhanden)
+
+Glue-Code (dünne Controller, Adapter, Wrapper) wird indirekt durch Integration Tests abgedeckt — keine eigenen Unit Tests nötig.
 
 ## Security
 - Dependency audits run in CI on every PR

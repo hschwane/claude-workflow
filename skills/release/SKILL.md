@@ -2,7 +2,6 @@
 name: release
 description: Bump version (semver), update changelog, tag, push, and monitor the CI release pipeline
 argument-hint: "patch|minor|major"
-disable-model-invocation: true
 ---
 
 # Release

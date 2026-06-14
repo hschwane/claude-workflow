@@ -2,7 +2,6 @@
 name: implement
 description: Implement a ready spec — tests first in an isolated subagent, then code per subtask with a commit after each
 argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
-disable-model-invocation: true
 ---
 
 # Implement
@@ -65,8 +64,10 @@ saved_at: {timestamp}
 Invoke the `test-writer` subagent. Pass it ONLY:
 - The spec's **Acceptance Criteria** section
 - The spec's **Interface Definitions** section
+- The spec's **Subtasks** list (for the gap check in Step 3 of the test-writer)
 - 1-2 representative existing test files (for framework/style reference only — NOT for copying implementations)
 - The project's test runner / tech stack from CLAUDE.md
+- `TESTING_SCOPE`: read the "Konfigurierter Scope:" line from `docs/workflow/quality.md`, or the `Testing:` field from `.claude/memory/decisions.md`
 
 **Do NOT provide the subagent with any existing implementation code or the full codebase.** The isolation is the point: tests must encode the spec, not the implementation.
 

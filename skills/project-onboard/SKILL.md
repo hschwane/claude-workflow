@@ -44,6 +44,7 @@ Ask (AskUserQuestion):
 2. **GitHub** — "Does this project use GitHub? [yes/no]"
 3. **Existing tests** — "I found {test info}. Should the workflow integrate with them? [yes / no, set up fresh]"
 4. **Docs format** — "For workflow documentation, use: [markdown files (default) / MkDocs HTML]"
+5. **Test scope** — "What test levels should the workflow use for this project? [Unit only / Unit + Integration / Unit + Integration + E2E]" — pre-select based on the detected test setup from step 1.
 
 ### 3. Install Workflow Infrastructure
 
@@ -84,7 +85,7 @@ docs/workflow/
 ├── README.md         ← templates/workflow/README.md.template
 ├── lifecycle.md      ← templates/workflow/lifecycle.md.template
 ├── conventions.md    ← templates/workflow/conventions.md.template
-└── quality.md        ← templates/workflow/quality.md.template
+└── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
 docs/dev/
 ├── setup.md          ← templates/dev/setup.md.template
 └── style-guide.md    ← templates/dev/style-guide.md.template

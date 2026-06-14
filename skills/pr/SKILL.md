@@ -2,7 +2,6 @@
 name: pr
 description: Create a pull request, wait for CI, run AI code/security/architecture reviews, fix findings, and auto-merge
 argument-hint: "[base-branch] [\"PR description\"]"
-disable-model-invocation: true
 ---
 
 # PR
