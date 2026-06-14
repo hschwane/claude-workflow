@@ -53,6 +53,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/commit` | Quality-gated conventional commit |
 | `/pr` | CI-first PR with AI review + auto-merge |
 | `/release` | Semver bump + changelog + tag + CI publish |
+| `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
 | `/resume` | Resume interrupted work from checkpoint |
 | `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
 | `/workflow-update` | Update plugin files to a newer version |

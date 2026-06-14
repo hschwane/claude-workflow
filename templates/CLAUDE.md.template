@@ -15,6 +15,7 @@
 | `/commit` | Quality-gated conventional commit |
 | `/pr` | Create PR, wait for CI, run reviews, auto-merge |
 | `/release patch\|minor\|major` | Bump version, tag, trigger CI release |
+| `/ship [focus] [patch\|minor\|major]` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
 | `/workflow-update` | Update claude-workflow plugin to latest version |
 | `/resume` | Resume in-progress work after token limit or interruption |
 | `/unsupervised on\|off` | Toggle unsupervised mode (no questions, loop-safe) |
@@ -66,6 +67,7 @@ Map plain-language requests to skills:
 | "commit", "save my changes", "make a commit" | `/commit` |
 | "create a PR", "open a pull request", "submit for review", "merge this" | `/pr` |
 | "release", "ship a new version", "bump the version", "publish" | `/release` |
+| "ship a version", "build the next release", "run the full dev cycle", "develop and release everything" | `/ship` |
 | "resume", "continue where we left off", "I was interrupted", "pick up the task" | `/resume` |
 | "update the workflow", "upgrade claude-workflow", "get the latest workflow" | `/workflow-update` |
 
