@@ -193,11 +193,15 @@ github_issue: {original value}
 
 ### 5b. Draft Out-of-Scope Follow-ups
 
-Review the "Out of Scope" section assembled in step 5. Classify each item:
+Review the "Out of Scope" section assembled in step 5. Also check the RE and TP outputs for any items flagged as out-of-scope during the iteration.
+
+**Rule: if any item is described with wording like "another ticket", "separate ticket", "future ticket", "follow-up ticket", or "own ticket", create a draft — no judgment call, always.**
+
+For other out-of-scope items without that explicit label, classify:
 - **Deferred work** — something that could be a future feature or enhancement (e.g., "admin UI for managing X", "export to PDF"): create a draft ticket
 - **Permanent constraint** — an architectural or project-level decision that will never change (e.g., "no i18n", "browser-only, no native app"): skip — this belongs in `docs/VISION.md`, not the backlog
 
-For each deferred out-of-scope item, create a draft file in `docs/specs/backlog/`:
+For each item that requires a draft, create a file in `docs/specs/backlog/`:
 
 1. Determine the next available ID across all spec directories:
    ```bash
