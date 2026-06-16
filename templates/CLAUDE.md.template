@@ -120,7 +120,7 @@ If a hook reports `SUPERVISED_USAGE_ALERT`: use `AskUserQuestion` to ask the use
 
 If `.claude/memory/settings.md` contains `unsupervised: true`:
 - **Never** use `AskUserQuestion` — apply autonomous defaults from the `/unsupervised` skill
-- If a hook reports `USAGE THRESHOLD REACHED`: commit the current atomic step, update the checkpoint, then run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working
+- If a hook reports `USAGE THRESHOLD REACHED`: commit the current atomic step, update the checkpoint, then **stop the session** — do not run `--wait` in a loop inside this session (it consumes context and causes the session to crash). The stop hook detects the usage marker and allows the stop. `claude-loop.sh` (if running) or the next session will auto-resume from the checkpoint.
 - If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to `.claude/memory/context.md` and stop — do not wait for input
 - When all work is complete, clear `## In Progress` from `.claude/memory/context.md` and stop
 
