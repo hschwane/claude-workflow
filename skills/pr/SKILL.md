@@ -25,13 +25,13 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
   - otherwise: `main` / `master`
 - Push the feature branch if not already pushed: `git push -u origin {branch}` (pushing feature branches is always allowed — the quality gate applies to the merge, not the push)
 - Check that the branch has commits not on the base: `git log origin/{base}..HEAD --oneline`
-- **Model tier for the review agents** (ask now, before the CI wait, so the user can walk away). The three reviewers are `model: inherit` agents; pass the choice as the per-invocation `model` parameter. Ask (AskUserQuestion): "Which model quality for the code/security/architecture reviews?"
-  - `session-model` (recommended — name the current session model in the option label)
-  - `better-than-sonnet`: pass `opus` — for large or risky diffs when the session runs Sonnet
-  - `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the diff is routine
-  - `haiku`: pass `haiku` — not recommended; review depth (especially security) will suffer
-
-  In unsupervised mode: skip the question, use `session-model`.
+- **Model tier for the review agents** — the three reviewers are `model: inherit` agents; pass the choice as the per-invocation `model` parameter.
+  - In unsupervised mode: use `session-model` — do not ask.
+  - In supervised mode: ask now (before the CI wait, so the user can walk away). Ask (AskUserQuestion): "Which model quality for the code/security/architecture reviews?"
+    - `session-model` (recommended — name the current session model in the option label)
+    - `better-than-sonnet`: pass `opus` — for large or risky diffs when the session runs Sonnet
+    - `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the diff is routine
+    - `haiku`: pass `haiku` — not recommended; review depth (especially security) will suffer
 
 ### 2. Create Pull Request
 ```
@@ -93,9 +93,11 @@ If no checks exist (e.g., no CI workflow yet): note "No CI checks configured —
 
 Otherwise, run the CI gate loop (this loop is used again after every review that pushes fixes):
 
+Poll every 30 seconds with separate Bash calls — do **not** use `--watch` (it blocks in a single tool call and prevents the usage threshold hook from firing):
+```bash
+gh pr checks {pr_url}
 ```
-gh pr checks {pr_url} --watch
-```
+Repeat until all checks show `pass`, or at least one shows `fail`. Each poll is a separate tool call so the usage guard can check between polls.
 
 **HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
@@ -213,7 +215,11 @@ If no runs appear within 60 seconds (repo may not attach runs to merge SHAs), fa
 gh run list --branch {base} --limit 3
 ```
 
-**If runs are found:** wait for them to finish (`gh run watch {run_id}`).
+**If runs are found:** poll every 30 seconds with separate Bash calls until finished — do not use `gh run watch` (blocks in a single tool call):
+```bash
+gh run view {run_id} --json status,conclusion -q '[.status, .conclusion]'
+```
+Repeat until `status` is `completed`.
 
 **If a run fails:**
 1. Read the logs: `gh run view {run_id} --log-failed`
