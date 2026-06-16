@@ -40,7 +40,7 @@ Claude will:
   ✓ Never use AskUserQuestion
   ✓ Apply autonomous defaults (see below)
   ✓ Keep working: the Stop hook blocks premature stops while "## In Progress" exists
-  {✓ Pause in-session at {threshold}% of the 5h/7d limit and auto-resume below {threshold-10}%}
+  {✓ Pause at {threshold}% — loop sessions stop cleanly for restart; interactive sessions wait in-session until below {threshold-20}%}
   ✓ Write "## Blocked" to context.md if human input is genuinely required
   ✓ Clear "## In Progress" when complete
 
@@ -97,10 +97,9 @@ When `.claude/memory/settings.md` contains `unsupervised: true`:
 **Usage threshold pause** — when a hook message reports `USAGE THRESHOLD REACHED`:
 1. Finish or commit only the current atomic step (never leave the working tree broken)
 2. Update the checkpoint in `.claude/memory/context.md`
-3. Run `bash .claude/hooks/usage-guard.sh --wait` via Bash (set a 3-minute timeout per call) and repeat the call until it prints `RESUME_OK`
-4. Continue working from the checkpoint
-
-Each `--wait` call sleeps ~90s internally; repeating it keeps the session, console, and context alive while usage recovers.
+3. Check `.claude/memory/loop-mode.marker`:
+   - **Present** (session started by `claude-loop.sh`): **stop the session** — the loop restarts it with a fresh context window and resumes from the checkpoint automatically.
+   - **Absent** (interactive VS Code / terminal session): run `bash .claude/hooks/usage-guard.sh --wait` via Bash (3-minute timeout per call) repeatedly until it prints `RESUME_OK`, then continue working from the checkpoint.
 
 **For genuine blockers only** — write to `.claude/memory/context.md` ABOVE the `## In Progress` section:
 

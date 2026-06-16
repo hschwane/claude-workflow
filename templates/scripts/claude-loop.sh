@@ -35,7 +35,11 @@ MAX_SESSIONS=${2:-20}
 SESSION_TIMEOUT="2h"   # kill a session that hangs
 LOG_FILE=".claude/memory/unsupervised.log"
 AUTO_MARKER=".claude/memory/auto-start.marker"
+LOOP_MARKER=".claude/memory/loop-mode.marker"
 PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
+
+# Remove loop marker on exit so in-session --wait logic applies to manual sessions
+trap 'rm -f "$LOOP_MARKER"' EXIT
 
 # Determine branch-scoped context file (written by skills; falls back to legacy context.md)
 _branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
@@ -105,7 +109,10 @@ while [ $SESSION -lt $MAX_SESSIONS ]; do
   log "Session $SESSION / $MAX_SESSIONS starting..."
 
   # Signal to session-start.sh that this is an auto-started session → force /resume
+  # Loop marker stays for the session duration so the usage threshold handler knows to stop
+  # cleanly (instead of waiting in-session) — the loop will restart with a fresh context window.
   touch "$AUTO_MARKER"
+  touch "$LOOP_MARKER"
 
   # Headless run (-p): claude executes one autonomous session and exits.
   # Each session starts FRESH on purpose — all needed state lives in the

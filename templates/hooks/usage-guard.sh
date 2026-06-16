@@ -27,7 +27,7 @@ CACHE="$MEM/usage-cache.json"
 WAIT_MARKER="$MEM/usage-wait.active"
 OFFER_MARKER="$MEM/usage-supervised-offered.active"
 CRED="${CLAUDE_CREDENTIALS:-$HOME/.claude/.credentials.json}"
-RESUME_MARGIN=10   # resume when usage <= threshold - margin (hysteresis)
+RESUME_MARGIN=20   # resume when usage <= threshold - margin (hysteresis)
 MODE="${1:-hook}"
 
 now() { date +%s; }

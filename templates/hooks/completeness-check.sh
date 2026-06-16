@@ -37,6 +37,13 @@ if grep -q "^## Blocked" "$CONTEXT_FILE" 2>/dev/null; then
   exit 0
 fi
 
+# Usage threshold reached while running under claude-loop.sh → allow stop.
+# The loop will restart a fresh session (empty context window) and resume from checkpoint.
+# Both markers must be present: loop-mode (set by claude-loop.sh) + usage-wait (set by usage-guard hook).
+if [ -f "$MEM/loop-mode.marker" ] && [ -f "$MEM/usage-wait.active" ]; then
+  exit 0
+fi
+
 # Collect remaining unchecked tasks (for display and block reason)
 UNCHECKED=$(grep "^- \[ \]" "$CONTEXT_FILE" 2>/dev/null || true)
 UNCHECKED_COUNT=$(echo "$UNCHECKED" | grep -c "." 2>/dev/null || echo "0")
@@ -60,7 +67,7 @@ if [ "$UNSUPERVISED" = "true" ] && [ "$STOP_ACTIVE" != "true" ]; then
   else
     REMAINING_MSG="Check the checkpoint for next_step."
   fi
-  echo "{\"decision\": \"block\", \"reason\": \"Unsupervised mode is active and the branch context file still contains an In Progress section. $REMAINING_MSG Continue working through the task list in order. If the usage threshold was reached, run bash .claude/hooks/usage-guard.sh --wait repeatedly until it prints RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if all work is complete, clear the In Progress section.\"}"
+  echo "{\"decision\": \"block\", \"reason\": \"Unsupervised mode is active and the branch context file still contains an In Progress section. $REMAINING_MSG Continue working through the task list in order. If the usage threshold was reached: check whether .claude/memory/loop-mode.marker exists — if yes, stop cleanly (claude-loop.sh will restart); if no, run bash .claude/hooks/usage-guard.sh --wait repeatedly until RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if all work is complete, clear the In Progress section.\"}"
   exit 0
 fi
 
