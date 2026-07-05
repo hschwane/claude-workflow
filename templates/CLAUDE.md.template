@@ -19,6 +19,7 @@
 | `/workflow-update` | Update claude-workflow plugin to latest version |
 | `/resume` | Resume in-progress work after token limit or interruption |
 | `/unsupervised on\|off` | Toggle unsupervised mode (no questions, loop-safe) |
+| `/workflow-decisions [setting]` | View/change a tunable workflow setting; syncs the skill + `docs/workflow/decisions.md` |
 
 ## Architecture
 
@@ -28,6 +29,7 @@ Tech stack: {{TECH_STACK}}
 
 Details (read on demand, not auto-loaded):
 - `docs/workflow/README.md` — workflow overview
+- `docs/workflow/decisions.md` — record of every tunable workflow setting (change via `/workflow-decisions`)
 - `docs/dev/architecture.md` — architecture details
 
 ## Agents — delegate proactively

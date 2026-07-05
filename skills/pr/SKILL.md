@@ -29,9 +29,10 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
   - In unsupervised mode: use `session-model` — do not ask.
   - In supervised mode: ask now (before the CI wait, so the user can walk away). Ask (AskUserQuestion): "Which model quality for the code/security/architecture reviews?"
     - `session-model` (recommended — name the current session model in the option label)
-    - `better-than-sonnet`: pass `opus` — for large or risky diffs when the session runs Sonnet
+    - `opus`: pass `opus` — strongest reasoning; for large or risky diffs when the session runs Sonnet
+    - `fable`: pass `fable` — top-tier alternative to Opus; for large or risky diffs
     - `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the diff is routine
-    - `haiku`: pass `haiku` — not recommended; review depth (especially security) will suffer
+    - (`haiku` is still selectable via "Other" but not recommended — review depth, especially security, will suffer)
 
 ### 2. Create Pull Request
 ```

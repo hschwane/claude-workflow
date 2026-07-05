@@ -1,7 +1,7 @@
 ---
 name: refine
-description: Turn a raw backlog draft into a ready-to-implement spec via iterative Requirements Engineer + Tech Planner loop
-argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
+description: Turn a raw backlog draft into a ready-to-implement spec via iterative Requirements Engineer + Tech Planner loop. Accepts multiple IDs — batches all questions up front so you can go AFK.
+argument-hint: "FEAT-001 | BUG-042 | <github-issue-number> | FEAT-001 FEAT-003 …"
 ---
 
 # Refine
@@ -12,8 +12,57 @@ Turns a raw draft into a ready-to-implement spec through an iterative Requiremen
 ```
 /refine FEAT-001
 /refine BUG-042
-/refine 42          (GitHub issue number)
+/refine 42                     (GitHub issue number)
+/refine FEAT-001 FEAT-003 BUG-007   (multiple — questions batched up front, then AFK)
 ```
+
+## Multi-Ticket Mode (2+ IDs)
+
+When more than one ID is given, refine them as a batch with a **single interactive
+touchpoint at the start**: collect every clarifying question across all tickets, ask them
+once, then complete every ticket autonomously so the user can walk away.
+
+Run the branch check (step 0) once, then:
+
+**Phase A — Gather questions (all tickets, no user interaction).** For each ticket in order,
+run setup + triage (steps 0.1–0.2) and the analysis that surfaces user questions — the RE
+phase (step 2), plus a Tech-Planner pass (step 3) for medium/large tickets. **Defer every
+`AskUserQuestion`:** instead of asking, collect each `[USER]` question, tagged with its
+ticket ID, and save the intermediate agent outputs in that ticket's checkpoint. small tickets
+(fast-track, no questions) need nothing here. Respect each ticket's size-based question budget
+from §0.2 when deciding which questions are worth surfacing.
+
+**Phase B — Ask once.** Present all collected questions across all tickets in a single
+`AskUserQuestion` flow, grouped by ticket (one question per distinct decision; batch related
+ones). This is the only interactive step — tell the user they can go AFK after answering.
+If **no** questions were collected (e.g. all small/medium with no blockers), skip straight to
+Phase C without prompting.
+
+**Phase C — Complete (all tickets, autonomous).** For each ticket, resume from its checkpoint
+with the user's answers and finish steps 3–5b (TP iteration, assemble spec, draft out-of-scope
+follow-ups). Then:
+- **auto-accept** tickets (small/medium) → move to `ready` immediately (step 7).
+- **manual-approval** tickets (large) → refine fully but **hold in backlog**, queued for the
+  end-of-run review.
+- If a **new** `[USER]` question surfaces here that Phase B didn't cover, do **not** block —
+  resolve it with a reasonable assumption and record it under `## Assumptions` in the spec
+  (the user is AFK). Only a genuine hard blocker (per the unsupervised blocker list) stops that
+  one ticket; continue the others.
+
+**Phase D — Report + batched approval.** When all tickets are done:
+- If any **manual-approval** tickets are held: present them together (step 6) so the user
+  approves/adjusts them in one pass when they return.
+- Report every ticket as in step 8 (a one-line status per ID).
+
+**Checkpoint (resumability).** Write the batch state to `.claude/memory/context-{branch}.md`:
+the full list of IDs, the current phase (`gathering` / `awaiting-answers` / `completing`), and
+per-ticket status (`pending` / `questions-collected` / `answered` / `ready` / `held-for-approval`
+/ `blocked`) plus each ticket's collected questions and answers. Update it after each ticket in
+Phase A, after Phase B (record answers), and after each ticket completes in Phase C — so a crash
+resumes at the right phase without re-asking answered questions.
+
+For a **single** ID, ignore this section and follow the numbered steps below as normal
+(questions are asked as they arise, scaled to the ticket's size).
 
 ## Instructions
 
@@ -44,20 +93,19 @@ Assess the draft's complexity. This is a judgment call — there are **no hard l
 
 **When uncertain between two tiers, pick the higher one.** The tier scales the whole process: how many agents run, how many iteration rounds are allowed, and how many clarifying questions the user gets.
 
-Show your assessment and ask (AskUserQuestion):
-> "I assess {id} as **{tier}** — {one-line reason}. Proceed?"
-- For small: [Fast-track it / Treat as medium / Treat as large]
-- For medium/large: [Proceed with defaults / Customize / Change tier]
+The tier also fixes the three process settings — autonomy, approval, and planning-agent model — via this table. **Apply them automatically; do not ask.**
 
-Defaults are: `fully-autonomous`, `auto-accept`, `session-model`. If the user picks **Customize**, ask the detailed questions:
+| Tier | Autonomy | Approval | Planning model |
+|------|----------|----------|----------------|
+| **small** | `fully-autonomous` — no questions | `auto-accept` | `sonnet` |
+| **medium** | `key-questions-only` — 1–3 critical questions max | `auto-accept` | `session-model` |
+| **large** | `many-questions` — interview mode | `manual-approval` | `opus` (or `fable`) |
 
-**Autonomy level:** `fully-autonomous` (agents work until DoR is met, only asking when truly stuck) / `key-questions-only` (1-3 critical questions max) / `many-questions` (interview mode)
+The planning model is passed as the per-invocation `model` parameter to the `requirements-engineer` + `tech-planner` subagents (both `model: inherit`); pinned agents like `code-explorer` are unaffected.
 
-**Approval:** `auto-accept` (move to ready when both agents sign off) / `manual-approval` (show final spec, wait for OK)
+State your assessment in one line so the user sees it, then **proceed without asking** — e.g. *"Assessed {id} as **medium** — new interface on the existing parser. Refining with key-questions / auto-accept / session model."* Do not ask the user to confirm the tier or the settings. Offer a tier change **only** if the user has explicitly asked to be consulted on sizing; in that case ask via AskUserQuestion: [Proceed as {tier} / Treat as {lower tier} / Treat as {higher tier}].
 
-**Model tier for the planning agents** (requirements-engineer + tech-planner are `model: inherit` — pass the choice as the per-invocation `model` parameter; pinned agents like code-explorer are unaffected): `session-model` (recommended) / `opus` (tricky or high-stakes specs when the session runs Sonnet) / `sonnet` (saves budget when the session runs Opus/Fable) / `haiku` (only for trivial specs, planning quality will suffer)
-
-In unsupervised mode: skip all questions, trust the triage (bias toward the higher tier when uncertain), use the defaults.
+In unsupervised mode: state the assessment, ask **no** questions at all (even at the large tier, where `many-questions` collapses to fully-autonomous), and self-approve the finished spec (`auto-accept` regardless of tier).
 
 Update spec status to `refining`.
 
@@ -80,7 +128,7 @@ saved_at: {timestamp}
 For **small** specs, skip steps 2–4 entirely:
 
 1. **Codebase context**: if the affected files are already obvious from the current session, assemble a short summary yourself; otherwise invoke `code-explorer` as described in step 3.
-2. Invoke the `tech-planner` subagent ONCE in fast-track mode with:
+2. Invoke the `tech-planner` subagent ONCE in fast-track mode (apply `model: sonnet` per the §0.2 tier table) with:
    ```
    DRAFT: {full spec file content}
    VISION: {docs/VISION.md content}
@@ -93,7 +141,7 @@ For **small** specs, skip steps 2–4 entirely:
 
 ### 2. Requirements Engineering Phase
 
-Invoke the `requirements-engineer` subagent (isolated context; apply the model tier from Question 3 as the invocation's `model` parameter) with:
+Invoke the `requirements-engineer` subagent (isolated context; apply the planning model from the §0.2 tier table as the invocation's `model` parameter) with:
 ```
 DRAFT: {full spec file content}
 VISION: {docs/VISION.md content}
@@ -101,14 +149,14 @@ CONTEXT: {root CLAUDE.md first 80 lines}
 ```
 
 Read the RE output. Check:
-- Does it have `[USER]` open questions? → Ask user via AskUserQuestion (batch multiple questions)
+- Does it have `[USER]` open questions? → Ask user via AskUserQuestion (batch multiple questions). **In multi-ticket Phase A: do not ask — collect these tagged with the ticket ID and continue (see Multi-Ticket Mode).**
 - If user answers provided: note them
 
 Update checkpoint.
 
 ### 3. Tech Planning Phase
 
-Invoke the `tech-planner` subagent (isolated context; apply the model tier from Question 3) with:
+Invoke the `tech-planner` subagent (isolated context; apply the planning model from the §0.2 tier table) with:
 ```
 RE_OUTPUT: {requirements engineer's output}
 CODEBASE_SUMMARY: {result of reading: tree structure + key src/ files}
@@ -137,6 +185,7 @@ If `[USER]` questions remain from either agent — scale to the tier:
 - **medium**: ask only questions that genuinely block the plan (max 3, single AskUserQuestion call); answer the rest with reasonable assumptions and record each assumption in the spec under a `## Assumptions` note
 - **large**: collect all questions and ask in a single AskUserQuestion call
 - Pass answers to the next iteration
+- **Multi-ticket mode:** in Phase A, collect these (tagged with the ticket ID) instead of asking; in Phase C the user is AFK, so resolve any newly-surfaced question with a recorded `## Assumptions` note rather than asking.
 
 Continue iterating until:
 - No open questions from either agent

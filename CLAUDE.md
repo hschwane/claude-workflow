@@ -56,6 +56,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
 | `/resume` | Resume interrupted work from checkpoint |
 | `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
+| `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
 | `/workflow-update` | Update plugin files to a newer version |
 
 ## Agents

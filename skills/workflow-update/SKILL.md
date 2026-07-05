@@ -69,13 +69,24 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 **Never touch** (project-specific files):
 - `CLAUDE.md`
 - `CONTRIBUTING.md`
-- `docs/`
+- `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
 - `.claude/memory/`
 - `.claude/workflow-source.json` (updated separately in step 6)
 - Any other keys in `.claude/settings.json` (permissions, env, etc.)
 - Any project source files
 
 For the hooks merge: read the `hooks` key of the current `.claude/settings.json`, read the new `templates/hooks/hooks.json`, add any new hook entries that don't exist yet. Do not remove entries the project added.
+
+### 5b. Re-apply Workflow Decisions (reconcile after overwrite)
+
+Overwriting `.claude/skills/` in step 5 replaced every skill with the plugin defaults — including any settings the user tuned via `/workflow-decisions` (refine sizing, review models, auto-merge, …), whose live values are stored **inside** those skills. `docs/workflow/decisions.md` is a preserved project file and is the record of the chosen values, so replay it back into the fresh skills:
+
+1. Read `docs/workflow/decisions.md`. If it doesn't exist, skip this step (older project — offer to create it from the template).
+2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-decisions` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.
+3. If the update **added new settings** to the template, append those new entries (with their defaults) to `docs/workflow/decisions.md` so the record stays complete. If it **changed a setting's format**, note the change for the user.
+4. Bump `Last updated:` in `docs/workflow/decisions.md` to today.
+
+Report how many tuned settings were re-applied so the user can confirm nothing was lost.
 
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
@@ -86,7 +97,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 
@@ -96,6 +107,7 @@ Print:
 Updated claude-workflow: {old_version} → {new_version}
 Updated: agents/, skills/, hooks/ (merged)
 Preserved: CLAUDE.md, docs/, memory/
+Decisions: {N} tuned setting(s) re-applied from docs/workflow/decisions.md{, M new setting(s) added}
 
 {If breaking changes: "Review migration notes above and update your project files as needed."}
 ```

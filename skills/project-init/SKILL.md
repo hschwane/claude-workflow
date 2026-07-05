@@ -39,11 +39,12 @@ Explain and ask (AskUserQuestion):
 
 Options:
 - **Session model** (recommended — proceed as-is; good if already on Opus/Sonnet)
-- **Switch to Opus / Fable** — strongest reasoning; ideal for complex domains or tricky architecture decisions
+- **Switch to Opus** — strongest reasoning; ideal for complex domains or tricky architecture decisions
+- **Switch to Fable** — top-tier Claude 5; strong alternative to Opus for complex domains
 - **Switch to Sonnet** — balanced cost/quality; good default
-- **Switch to Haiku** — cheapest; fine when requirements are already clear and straightforward
+- (**Haiku** is still selectable via "Other" — cheapest; fine when requirements are already clear and straightforward)
 
-If the user chooses a specific model: tell them to run `/model opus`, `/model sonnet`, or `/model haiku` now, then confirm when ready. Wait for confirmation before proceeding.
+If the user chooses a specific model: tell them to run `/model opus`, `/model fable`, `/model sonnet`, or `/model haiku` now, then confirm when ready. Wait for confirmation before proceeding.
 
 ### 0.5 Design Document Review (Optional)
 
@@ -195,6 +196,22 @@ memory), and the initial git commit. Full instructions are in your agent definit
 Wait for the agent to complete and review its report before proceeding.
 
 Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
+
+### 8b. Workflow Decisions Review (Supervised Mode Only)
+
+Skip this step in unsupervised mode.
+
+The scaffolder created `docs/workflow/decisions.md` — the record of every tunable workflow
+setting (refine sizing defaults, testing scope, review models, branching, auto-merge, …).
+It ships with sensible defaults. Show the user the **Refinement → Sizing defaults** table
+from that file and note the other settings it lists.
+
+Ask (AskUserQuestion): "Want to tune any workflow defaults now, or keep them? [Keep defaults / Adjust refine sizing / Adjust something else]"
+
+- **Keep defaults**: continue.
+- **Adjust refine sizing / something else**: run the `/workflow-decisions` procedure now for the
+  chosen setting — it edits the live value in `.claude/skills/…` **and** updates
+  `docs/workflow/decisions.md` together. Everything is also changeable later via `/workflow-decisions`.
 
 ### 9. Initial Backlog — Four-Phase Structure
 

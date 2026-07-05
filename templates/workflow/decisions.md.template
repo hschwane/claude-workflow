@@ -1,0 +1,132 @@
+# Workflow Decisions
+
+This file is the **record** of every workflow decision this project has made — a
+single human-readable index of the tunable settings you chose and where each value lives.
+(Not to be confused with `.claude/memory/decisions.md`, which records *architecture*
+decisions about the code itself.)
+
+> **How this works.** For speed, each setting's *live* value is written directly
+> into the skill that uses it — **skills do not read this file at runtime.** This
+> file mirrors those values and records the exact location of each one. The two are
+> kept in sync by the `/workflow-decisions` skill:
+>
+> - **To change a setting:** run `/workflow-decisions` (optionally naming the setting,
+>   e.g. `/workflow-decisions refine sizing`). It edits the live value in the skill(s)
+>   *and* updates the matching entry here, in one commit — so they never drift.
+> - **To change it by hand:** edit the skill at the listed **Live in** location,
+>   then update the **Current** value in the matching entry here to match.
+>
+> Each entry lists **Live in** (the file that actually drives behavior), the
+> **Current** value, and the allowed **Options**.
+
+Last updated: {{TODAY}}
+
+---
+
+## Refinement
+
+### Sizing defaults
+How `/refine` scales autonomy, approval, and planning-agent model by assessed ticket size.
+- **Live in:** `.claude/skills/refine/SKILL.md` — §0.2 tier table
+- **Current:**
+
+  | Tier | Autonomy | Approval | Planning model |
+  |------|----------|----------|----------------|
+  | small | fully-autonomous — no questions | auto-accept | sonnet |
+  | medium | key-questions-only — 1–3 questions | auto-accept | session-model |
+  | large | many-questions — interview mode | manual-approval | opus |
+
+- **Options:** autonomy ∈ {fully-autonomous, key-questions-only, many-questions} · approval ∈ {auto-accept, manual-approval} · model ∈ {session-model, sonnet, opus, haiku, fable}
+- **Note:** the tier is assessed automatically and applied without asking; you are only consulted on sizing if you explicitly ask to be. In unsupervised mode no questions are asked at any tier and specs are self-approved.
+
+### Iteration rounds
+Max Requirements-Engineer ⇄ Tech-Planner iteration rounds before remaining open questions are handed to the user.
+- **Live in:** `.claude/skills/refine/SKILL.md` — §4 Iteration Loop
+- **Current:** small = single fast-track pass · medium = 1 round · large = 3 rounds
+- **Options:** any non-negative integer per tier.
+
+---
+
+## Implementation & Testing
+
+### Testing scope
+Which test levels `/implement` writes and expects.
+- **Live in:** `docs/workflow/quality.md` — "Konfigurierter Scope" line (read by `.claude/skills/implement/SKILL.md`)
+- **Current:** {{TESTING_SCOPE}}
+- **Options:** `Unit only` · `Unit + Integration` · `Unit + Integration + E2E`
+
+### Definition of Ready / Definition of Done
+The checklists that gate refinement→implementation and implementation→merge.
+- **Live in:** `docs/workflow/quality.md` — "Definition of Ready" / "Definition of Done" sections
+- **Current:** project defaults (edit the doc directly to adjust criteria)
+
+---
+
+## Pull Requests & Review
+
+### Review model tier
+Model the code / security / architecture reviewers run on.
+- **Live in:** `.claude/skills/pr/SKILL.md` — §1 Pre-flight
+- **Current:** session-model (asked per-PR in supervised mode; forced to session-model in unsupervised mode)
+- **Options:** session-model · opus · sonnet · haiku · fable
+
+### Review scope triage
+Threshold below which a small, non-security diff gets code review only (no separate security/architect pass).
+- **Live in:** `.claude/skills/pr/SKILL.md` — §4b Review Scope Triage
+- **Current:** light review under ~200 changed lines AND no security-sensitive files; full review otherwise
+- **Options:** adjust the line threshold; security-sensitive files always force a full review.
+
+### Merge strategy & auto-merge
+How a green, reviewed PR is merged.
+- **Live in:** `.claude/skills/pr/SKILL.md` — §9
+- **Current:** squash + auto-merge (`gh pr merge --squash --auto`), falling back to direct squash merge if auto-merge is disabled on the repo
+- **Options:** merge method (squash / merge / rebase) · auto vs. manual · the ask-before-merge conditions (currently: merge conflicts, major/breaking version, protected branch requiring human approval)
+
+---
+
+## Release
+
+### Branching model
+How feature branches and releases flow.
+- **Live in:** `docs/workflow/release.md` — "Branching Model" section
+- **Current:** {{BRANCHING_MODEL}}
+- **Options:** `main-only` (features merge into main, releases tagged on main) · `git-flow` (features merge into `develop`; `/release` merges `develop → master` and tags)
+
+### Version source of truth
+The file whose version field `/release` bumps.
+- **Live in:** `docs/workflow/release.md` — "Version Source of Truth" section
+- **Current:** see `docs/workflow/release.md` (set during project setup for your language)
+
+---
+
+## Integrations
+
+### GitHub integration
+Whether skills create/update GitHub issues, labels, and PRs.
+- **Live in:** `.claude/memory/decisions.md` — "GitHub integration" line
+- **Current:** {{GITHUB_INTEGRATION}}
+- **Options:** `yes` (issues, labels, PRs) · `no` (fully local — skills skip all `gh` calls)
+
+---
+
+## Unsupervised Mode
+
+### Default usage threshold
+Rate-limit percentage at which unsupervised work pauses to keep headroom for interactive use.
+- **Live in:** `.claude/memory/settings.md` (runtime; set via `/unsupervised on [threshold]`)
+- **Current:** none unless set per-session
+- **Options:** integer 10–99, or none.
+
+### Autonomous defaults
+The choices Claude makes for each skill when unsupervised mode is on.
+- **Live in:** `.claude/skills/unsupervised/SKILL.md` — "Autonomous defaults" block
+- **Current:** documented in that skill (refine → autonomous/auto-accept; pr → auto-merge; prioritize → accept recommended slate; commit → auto-fix + commit; model → session model throughout)
+
+---
+
+## Agent Model Routing
+
+Which model each subagent runs on (mechanical agents on haiku, executing agents on sonnet, judgment-heavy agents follow the session via `inherit`).
+- **Live in:** each agent file's `model:` frontmatter under `.claude/agents/`
+- **Current:** see the "Model routing" table in the project README / CLAUDE.md
+- **Options:** haiku · sonnet · opus · fable · inherit (per agent)

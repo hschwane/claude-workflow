@@ -85,7 +85,8 @@ docs/workflow/
 ├── README.md         ← templates/workflow/README.md.template
 ├── lifecycle.md      ← templates/workflow/lifecycle.md.template
 ├── conventions.md    ← templates/workflow/conventions.md.template
-└── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
+├── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
+└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2). The record of all tunable workflow settings; changeable later via `/workflow-decisions`.
 docs/dev/
 ├── setup.md          ← templates/dev/setup.md.template
 └── style-guide.md    ← templates/dev/style-guide.md.template

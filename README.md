@@ -61,13 +61,14 @@ The development lifecycle:
 | `/draft feature\|bug "title"` | Capture a raw idea as a minimal spec in `docs/specs/backlog/` (+ GitHub issue). Deliberately no planning — capturing must be cheap |
 | `/brainstorm` | The `product-owner` agent analyzes project state vs. vision and proposes ideas; you accept/modify/skip interactively, accepted ideas become drafts |
 | `/prioritize` | The `product-owner` agent ranks the backlog against the vision and recommends the slate for the next version |
-| `/refine FEAT-001` | Depth scales with a complexity triage: **small** specs get one combined `tech-planner` fast-track pass (escalates itself if it finds hidden complexity); **medium/large** specs run the full `requirements-engineer` + `tech-planner` iteration (max 1 / 3 rounds) until the spec meets the Definition of Ready |
+| `/refine FEAT-001` | Depth scales with a complexity triage: **small** specs get one combined `tech-planner` fast-track pass (escalates itself if it finds hidden complexity); **medium/large** specs run the full `requirements-engineer` + `tech-planner` iteration (max 1 / 3 rounds) until the spec meets the Definition of Ready. Pass **multiple IDs** (`/refine FEAT-001 FEAT-003`) to batch: every question is asked up front, then all tickets complete autonomously so you can go AFK |
 | `/implement FEAT-001` | Phase 1: `test-writer` writes failing tests from the spec alone (never sees implementation code). Phase 2: implement subtask by subtask, one commit + push each. Then full verification via `test-runner` and docs via `documentation-writer` |
 | `/commit` | Quality-gated conventional commit: format + lint + type-check first, then a generated `type(scope): description` message |
 | `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all findings → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
 | `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context.md` |
 | `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
+| `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review models, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
 
 ## Agents
 

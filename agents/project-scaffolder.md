@@ -102,6 +102,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 - `workflow/lifecycle.md.template` → `{TARGET_DIR}/docs/workflow/lifecycle.md`
 - `workflow/conventions.md.template` → `{TARGET_DIR}/docs/workflow/conventions.md`
 - `workflow/quality.md.template` → `{TARGET_DIR}/docs/workflow/quality.md` (also fill `{{TESTING_SCOPE}}` → TESTING_SCOPE)
+- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}` → TODAY, `{{TESTING_SCOPE}}` → TESTING_SCOPE, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`)
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/style-guide.md.template` → `{TARGET_DIR}/docs/dev/style-guide.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`

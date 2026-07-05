@@ -82,14 +82,20 @@ next_step: "Refine FEAT-001"
 
 In supervised mode: ask the user to run `/compact` to clear accumulated planning context before starting refinements; wait for confirmation. In unsupervised mode: proceed directly.
 
-### 3. Refine (each item, sequential)
+### 3. Refine (batched — questions up front, then AFK)
 
-For each selected item in order:
-1. Invoke `/refine {id}`
-2. Verify the spec is now in `docs/specs/ready/`
-3. Tick off `- [ ] Refine {id}` → `- [x]`; update `next_step`
+Invoke `/refine` **once** with all selected IDs as arguments (e.g. `/refine FEAT-001 FEAT-003`).
+This triggers refine's multi-ticket mode: it gathers every clarifying question across all
+tickets and asks them in a single batch at the start, then completes every ticket
+autonomously — so the user answers once and can walk away for the rest of refinement.
 
-If `/refine` reports a blocker: in supervised mode, ask how to proceed; in unsupervised mode, write `## Blocked: /refine {id} failed` and stop.
+After it returns:
+1. Verify each selected spec is in `docs/specs/ready/` (large tickets in supervised mode may be
+   held for the batched approval that `/refine` runs at the end — approve as prompted).
+2. Tick off each `- [ ] Refine {id}` → `- [x]`; update `next_step`.
+
+If `/refine` reports a blocker on a ticket: in supervised mode, ask how to proceed; in
+unsupervised mode, write `## Blocked: /refine {id} failed` and stop.
 
 ### 4. Implement (each item, sequential)
 
