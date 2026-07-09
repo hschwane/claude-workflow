@@ -25,15 +25,16 @@ After onboarding, the plugin files are copied into the project's `.claude/` dire
 skills/                      ← one directory per skill, each with SKILL.md
 agents/                      ← subagent definitions (each runs in an isolated context)
 templates/                   ← files copied into projects by project-init / project-onboard
-  CLAUDE.md.template
-  README.md.template
-  CONTRIBUTING.md.template
-  spec.md.template
-  vision.md.template
+  CLAUDE.md.template, README.md.template, CONTRIBUTING.md.template
+  CHANGELOG.md.template, spec.md.template, vision.md.template
+  src-claude.md.template, tests-claude.md.template
   workflow/                  ← workflow doc templates
+  dev/                       ← developer doc templates (setup, style guide, ADR, …)
   configs/                   ← standard language configs (tsconfig, eslint, etc.)
   github/                    ← GitHub Actions CI/release templates
+  gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
+  memory/                    ← .gitignore for runtime memory files
   scripts/                   ← claude-loop.sh (unsupervised mode supervisor)
 ```
 

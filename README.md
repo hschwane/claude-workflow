@@ -66,7 +66,8 @@ The development lifecycle:
 | `/commit` | Quality-gated conventional commit: format + lint + type-check first, then a generated `type(scope): description` message |
 | `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all findings → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
-| `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context.md` |
+| `/ship [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release |
+| `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` |
 | `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 | `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review models, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
 
@@ -101,7 +102,7 @@ Each agent pins the cheapest model that reliably does its job (`model` frontmatt
 | `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner`, `project-scaffolder` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
 | `inherit` (your session model) | `requirements-engineer`, `tech-planner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` | Planning and reviews are where model quality pays off most. You control the tier with `/model` — run Opus for a tricky refinement, Sonnet for routine work |
 
-**Interactive tier choice**: `/refine` and `/pr` ask once per run (supervised mode only) which tier their `inherit`-agents should use — **session model** (recommended) / **better than Sonnet** (Opus, Fable, … lumped together; passed as `opus`) / **Sonnet** / **Haiku**. The answer is passed as the per-invocation `model` parameter (resolution order: `CLAUDE_CODE_SUBAGENT_MODEL` env var > per-invocation parameter > agent frontmatter > session model), so your session model itself never changes. Pinned agents (haiku/sonnet tiers above) are unaffected. In unsupervised mode the question is skipped and the session model applies.
+**Interactive tier choice**: `/pr` asks once per run (supervised mode only) which tier its `inherit`-reviewers should use — **session model** (recommended) / **Opus** / **Fable** / **Sonnet** (Haiku selectable via "Other"). `/refine` doesn't ask: its complexity triage fixes the planning model per tier (small → Sonnet, medium → session model, large → Opus/Fable). The answer is passed as the per-invocation `model` parameter (resolution order: `CLAUDE_CODE_SUBAGENT_MODEL` env var > per-invocation parameter > agent frontmatter > session model), so your session model itself never changes. Pinned agents (haiku/sonnet tiers above) are unaffected. In unsupervised mode the question is skipped and the session model applies.
 
 **`opusplan` suggestion** (session model, distinct from the agent-tier choice above): `/implement` prints a one-time, non-blocking tip suggesting `/model opusplan` — Opus for planning/reasoning, Sonnet for routine execution — because it alternates planning with code-writing, and that split gives strong planning at lower usage-limit consumption than running the whole session on Opus. The same tip appears when you enable unsupervised mode (`/unsupervised on`), since unsupervised runs skip the tier question and apply your session model throughout — that's the moment to set it before walking away. (`/refine` deliberately does **not** suggest it: its planning runs in the `requirements-engineer`/`tech-planner` subagents, which don't benefit from a main-loop plan/execute split.) It's only ever a suggestion; the workflow never changes your model (only you can, via `/model`).
 
@@ -213,18 +214,19 @@ Inside a project that uses this workflow:
 
 ```
 .claude-plugin/plugin.json    ← plugin manifest (metadata only; components are auto-discovered)
-skills/                       ← 13 skills ({name}/SKILL.md per skill)
-agents/                       ← 11 agent definitions
+skills/                       ← one directory per skill ({name}/SKILL.md)
+agents/                       ← subagent definitions
 templates/
-├── CLAUDE.md.template
-├── README.md.template
-├── CONTRIBUTING.md.template
-├── spec.md.template
-├── vision.md.template
+├── CLAUDE.md.template, README.md.template, CONTRIBUTING.md.template
+├── CHANGELOG.md.template, spec.md.template, vision.md.template
+├── src-claude.md.template, tests-claude.md.template
 ├── workflow/                 ← workflow doc templates
-├── configs/                  ← tsconfig.strict, eslint, pyproject, CMakeLists, etc.
+├── dev/                      ← developer doc templates (setup, style guide, ADR, …)
+├── configs/                  ← tsconfig, eslint, pyproject, CMakeLists, etc.
 ├── github/                   ← CI/release/dependabot workflow templates
+├── gitignore/                ← per-language .gitignore templates
 ├── hooks/                    ← hooks.json (→ project .claude/settings.json) + hook scripts
+├── memory/                   ← .gitignore for runtime memory files
 └── scripts/                  ← claude-loop.sh (unsupervised mode supervisor)
 ```
 
