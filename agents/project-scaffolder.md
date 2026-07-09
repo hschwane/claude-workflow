@@ -97,7 +97,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 ## Step D: Docs Templates
 
-From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL throughout.
+From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
 
 - `workflow/README.md.template` → `{TARGET_DIR}/docs/workflow/README.md`
 - `workflow/lifecycle.md.template` → `{TARGET_DIR}/docs/workflow/lifecycle.md`
