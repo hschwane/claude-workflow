@@ -97,7 +97,7 @@ Ask (AskUserQuestion):
 4. "List 3-5 key goals (what success looks like)."
 5. "What is explicitly OUT of scope? (what will you NOT build?)"
 
-Write `docs/VISION.md` from the template, filled with the user's answers.
+Write `docs/VISION.md` from `templates/vision.md.template`, filled with the user's answers.
 
 ### 3. Architecture Decision
 Based on project type and language, present an opinionated recommendation. **Consider any architectural ideas or technology preferences from the design document when making the recommendation.**
@@ -130,7 +130,7 @@ Based on project type and language, present an opinionated recommendation. **Con
 Show the recommendation. Ask: "Use this architecture? [yes / customize / different approach]"
 If customize/different: ask what they want to change.
 
-Create `docs/dev/architecture.md` and `docs/dev/adr/ADR-001-architecture.md` documenting the decision.
+Create `docs/dev/architecture.md` (from `templates/dev/architecture.md.template`) and `docs/dev/adr/ADR-001-architecture.md` (from `templates/dev/adr/ADR-001.md.template`) documenting the decision.
 
 ### 4. Tech Stack Finalization
 Based on language and architecture, ask:
@@ -145,10 +145,10 @@ Ask (AskUserQuestion) — **pre-select values inferred from the design document 
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
 
 Create:
-- `docs/workflow/release.md` from template, filled with their answers
-- `docs/workflow/deploy.md` from template (if deploy is not "no deploy")
+- `docs/workflow/release.md` from `templates/workflow/release.md.template`, filled with their answers
+- `docs/workflow/deploy.md` from `templates/workflow/deploy.md.template` (if deploy is not "no deploy")
 
-Select the matching release CI template (`templates/github/release-{type}.yml`).
+Select the matching release CI template: npm → `release-npm`, PyPI → `release-pypi`, GitHub Release → `release-github`; Docker image and Internal only have no release CI template — use `none`.
 
 ### 5b. Hand Off to Scaffolder
 
@@ -197,7 +197,7 @@ Wait for the agent to complete and review its report before proceeding.
 
 Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
 
-### 8b. Workflow Decisions Review (Supervised Mode Only)
+### 6. Workflow Decisions Review (Supervised Mode Only)
 
 Skip this step in unsupervised mode.
 
@@ -213,7 +213,7 @@ Ask (AskUserQuestion): "Want to tune any workflow defaults now, or keep them? [K
   chosen setting — it edits the live value in `.claude/skills/…` **and** updates
   `docs/workflow/decisions.md` together. Everything is also changeable later via `/workflow-decisions`.
 
-### 9. Initial Backlog — Four-Phase Structure
+### 7. Initial Backlog — Four-Phase Structure
 
 > **Supervised mode:** Scaffolding is complete. If you switched to a different model at step 0.1 and want to switch back for this creative phase, run `/model {model}` now.
 
@@ -269,7 +269,7 @@ If GitHub remote exists: create GitHub issues for all accepted items (`gh issue 
 
 After all milestones: print a summary — version string, item count, and ID range for each.
 
-### 10. GitHub Repository Creation (if requested)
+### 8. GitHub Repository Creation (if requested)
 ```
 gh repo create {project-name} --{public|private} --source=. --remote=origin
 git push -u origin main
@@ -289,6 +289,8 @@ gh label create medium --force --color d4c5f9 --description "Medium effort"
 gh label create large --force --color e99695 --description "Large effort"
 ```
 
+Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created, then commit (`docs: fill CI badge repo`). (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
+
 **If the user chose Git Flow** (step 5 branching model):
 ```
 git checkout -b develop
@@ -299,7 +301,7 @@ For local-only repos: create `develop` branch locally but skip the push/default-
 
 Update `docs/workflow/release.md` noting feature branches target `develop` and the `/release` flow.
 
-### 15. Report
+### 9. Report
 ```
 Project initialized ✓
 {project-name}

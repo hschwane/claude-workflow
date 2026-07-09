@@ -228,7 +228,7 @@ If BRANCHING_MODEL is `git-flow`:
 ```bash
 git checkout -b develop
 ```
-(The main session handles pushing and setting the GitHub default branch after the repo is created in step 10.)
+(The main session handles pushing and setting the GitHub default branch after the repo is created in /project-init step 8.)
 
 ## Output
 
