@@ -15,6 +15,5 @@ IncludeBlocks: Regroup
 SortIncludes: CaseSensitive
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
-SpacesInParentheses: false
-Standard: c++23
+Standard: Latest
 ...
