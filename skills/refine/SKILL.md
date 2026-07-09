@@ -39,8 +39,9 @@ If **no** questions were collected (e.g. all small/medium with no blockers), ski
 Phase C without prompting.
 
 **Phase C — Complete (all tickets, autonomous).** For each ticket, resume from its checkpoint
-with the user's answers and finish steps 3–5b (TP iteration, assemble spec, draft out-of-scope
-follow-ups). Then:
+with the user's answers and finish the remaining steps — small tickets run the fast-track path
+(step 1b) then steps 5–5b; medium/large tickets finish steps 3–5b (TP iteration, assemble spec,
+draft out-of-scope follow-ups). Then:
 - **auto-accept** tickets (small/medium) → move to `ready` immediately (step 7).
 - **manual-approval** tickets (large) → refine fully but **hold in backlog**, queued for the
   end-of-run review.
@@ -171,8 +172,8 @@ SCOPE: {affected areas if known}
 Its briefing (relevant files, key interfaces, patterns, pitfalls) becomes `CODEBASE_SUMMARY`. This keeps the file reading out of both the main context and the tech-planner's context.
 
 Read the TP output. Check:
-- Does it have `[TECH]` open questions (for RE)?
-- Does it have any questions needing user input?
+- Does its "Open Questions for RE" section contain anything?
+- Does it have any `[USER]` questions needing user input?
 
 ### 4. Iteration Loop
 
@@ -203,7 +204,8 @@ Merge the RE output and TP output into the spec file:
 id: {original id}
 type: {type}
 status: ready
-size: {small|medium|large — determined by TP based on subtask count}
+size: {small|medium|large — the §0.2 triage tier, re-tiered if the fast-track escalated}
+version: {original value — preserve the milestone assigned by /draft or /project-init}
 created: {original date}
 updated: {today}
 github_issue: {original value}
