@@ -2,10 +2,7 @@
 name: security-reviewer
 description: Reviews code changes for security vulnerabilities, insecure patterns, and OWASP Top 10 risks. Use during /pr and whenever changes touch authentication, user input handling, secrets, or external interfaces. Read-only — reports findings, never edits files.
 model: inherit
-disallowedTools:
-  - Write
-  - Edit
-  - NotebookEdit
+tools: Read, Grep, Glob
 ---
 
 # Security Reviewer

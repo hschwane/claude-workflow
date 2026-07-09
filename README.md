@@ -72,7 +72,7 @@ The development lifecycle:
 
 ## Agents
 
-Agents are isolated subagents: each runs in its own context window, so heavy file reading and noisy output never pollute the main conversation. Reviewers and analysts are read-only (`disallowedTools: Write, Edit`). Claude delegates to them automatically based on their descriptions.
+Agents are isolated subagents: each runs in its own context window, so heavy file reading and noisy output never pollute the main conversation. The three reviewers are hard read-only (`tools: Read, Grep, Glob` — no Bash, no write tools); the other analysts are read-only by instruction plus `disallowedTools: Write, Edit, NotebookEdit`. Claude delegates to them automatically based on their descriptions.
 
 | Agent | Role | Used by |
 |-------|------|---------|
@@ -117,7 +117,7 @@ Overrides, from broadest to narrowest:
 - **Token-efficient**: Only load what's needed. Subdirectory CLAUDE.md files, on-demand agents, CI does the mechanical work.
 - **Self-contained after init**: Projects get copies of all workflow files. No permanent `--plugin-dir` needed.
 - **CI before AI**: GitHub Actions handles lint/typecheck/test/security. Claude only reviews after CI passes.
-- **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are read-only (`disallowedTools: Write, Edit`).
+- **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are hard read-only (`tools: Read, Grep, Glob`).
 - **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits.
 - **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
 

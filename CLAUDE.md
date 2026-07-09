@@ -61,7 +61,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 ## Agents
 
-All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via `disallowedTools`.
+All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via a `tools: Read, Grep, Glob` allowlist.
 
 Model routing (`model` frontmatter): mechanical agents run on `haiku` (test-runner, workflow-coach), executing agents on `sonnet` (code-explorer, test-writer, documentation-writer, product-owner, project-scaffolder), judgment-heavy agents on `inherit` — they follow the session model (RE, tech-planner, all three reviewers). See README "Model routing".
 
