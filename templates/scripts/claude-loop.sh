@@ -74,6 +74,15 @@ if ! command -v claude &>/dev/null; then
   exit 1
 fi
 
+# timeout(1) is GNU coreutils — absent on stock macOS. Without this check every
+# session would instantly exit 127 and the loop would spin uselessly for hours.
+if command -v timeout &>/dev/null; then
+  run_session() { timeout "$SESSION_TIMEOUT" claude -p "$RESUME_PROMPT" $PERMISSION_FLAGS; }
+else
+  echo "Warning: 'timeout' not found — sessions run without the ${SESSION_TIMEOUT} hang killer." >&2
+  run_session() { claude -p "$RESUME_PROMPT" $PERMISSION_FLAGS; }
+fi
+
 if [ ! -f "$CONTEXT_FILE" ]; then
   echo "Error: $CONTEXT_FILE not found. Run /unsupervised on and start a task first." >&2
   exit 1
@@ -120,8 +129,7 @@ while [ $SESSION -lt $MAX_SESSIONS ]; do
   # injects. Fresh sessions are deterministic, work on the first run, and
   # don't re-load a huge prior conversation right after a rate limit.
   EXIT=0
-  timeout "$SESSION_TIMEOUT" claude -p "$RESUME_PROMPT" \
-    $PERMISSION_FLAGS 2>&1 | tee -a "$LOG_FILE" || EXIT=$?
+  run_session 2>&1 | tee -a "$LOG_FILE" || EXIT=$?
 
   # ── Evaluate outcome ────────────────────────────────────────────────────────
 
