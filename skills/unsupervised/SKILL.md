@@ -40,7 +40,7 @@ Claude will:
   ✓ Never use AskUserQuestion
   ✓ Apply autonomous defaults (see below)
   ✓ Keep working: the Stop hook blocks premature stops while "## In Progress" exists
-  {✓ Pause at {threshold}% — loop sessions stop cleanly for restart; interactive sessions wait in-session until below {threshold-20}%}
+  {✓ Pause at {threshold}% — loop sessions stop cleanly for restart; cloud/remote sessions schedule a wakeup and go idle; interactive terminal/VS Code sessions wait in-session until below {threshold-20}%}
   ✓ Write "## Blocked" to context.md if human input is genuinely required
   ✓ Clear "## In Progress" when complete
 
@@ -97,9 +97,14 @@ When `.claude/memory/settings.md` contains `unsupervised: true`:
 **Usage threshold pause** — when a hook message reports `USAGE THRESHOLD REACHED`:
 1. Finish or commit only the current atomic step (never leave the working tree broken)
 2. Update the checkpoint in `.claude/memory/context.md`
-3. Check `.claude/memory/loop-mode.marker`:
-   - **Present** (session started by `claude-loop.sh`): **stop the session** — the loop restarts it with a fresh context window and resumes from the checkpoint automatically.
-   - **Absent** (interactive VS Code / terminal session): run `bash .claude/hooks/usage-guard.sh --wait` via Bash (3-minute timeout per call) repeatedly until it prints `RESUME_OK`, then continue working from the checkpoint.
+3. Determine which of these three applies, in order:
+   - **`.claude/memory/loop-mode.marker` present** (session started by `claude-loop.sh`): **stop the session** — the loop restarts it with a fresh context window and resumes from the checkpoint automatically.
+   - **A schedule-a-future-message tool is available** (e.g. `send_later` from the Claude Code Remote MCP server, or `ScheduleWakeup` if this session was started by `/loop`) — this is a cloud/remote session (Claude Code on the web, or any managed session without an attached interactive terminal): **do not poll with a Bash sleep loop.** Instead:
+     1. Run `bash .claude/hooks/usage-guard.sh --check` once (no retry).
+     2. If it prints `RESUME_OK`, continue working immediately.
+     3. Otherwise schedule a wakeup 20–30 minutes out with a message like "Resume checkpointed unsupervised work — recheck usage threshold" (`send_later`/`ScheduleWakeup`), then end the turn so the session goes idle. When the wakeup fires, repeat from step 3.1.
+     - Never call `usage-guard.sh --wait` here — its internal retry/sleep loop is built for a locally-attached terminal and will burn turns or run into session limits in a cloud session instead of actually waiting.
+   - **Neither applies** (interactive VS Code / terminal session with no scheduling tool): run `bash .claude/hooks/usage-guard.sh --wait` via Bash (3-minute timeout per call) repeatedly until it prints `RESUME_OK`, then continue working from the checkpoint.
 
 **For genuine blockers only** — write to `.claude/memory/context.md` ABOVE the `## In Progress` section:
 

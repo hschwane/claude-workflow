@@ -17,7 +17,12 @@
 #                     (stderr instructs Claude to pause via the wait loop)
 #   --wait            Single wait cycle (~100s max): prints RESUME_OK when usage
 #                     dropped below threshold-margin, else WAITING status.
-#                     Claude calls this repeatedly until RESUME_OK.
+#                     For local interactive sessions: Claude calls this repeatedly
+#                     until RESUME_OK.
+#   --check           One-shot, no internal sleep: prints RESUME_OK or WAITING
+#                     immediately. For cloud/remote sessions that pause between
+#                     checks with a scheduled wakeup instead of blocking on a
+#                     Bash sleep loop — see /unsupervised skill.
 #   --status          Print current usage and threshold (for /unsupervised status)
 set -uo pipefail
 
@@ -178,6 +183,26 @@ case "$MODE" in
     exit 0
     ;;
 
+  --check)
+    # One-shot version of --wait: no internal sleep, no retry. Meant to be
+    # called once per scheduled wakeup in a cloud/remote session instead of
+    # blocking the session on a Bash sleep loop.
+    if [ "$UNSUPERVISED" != "true" ] || [ -z "$THRESHOLD" ]; then
+      echo "RESUME_OK (no usage threshold configured)"; rm -f "$WAIT_MARKER"; exit 0
+    fi
+    RESUME_AT=$(( THRESHOLD - RESUME_MARGIN )); [ "$RESUME_AT" -lt 5 ] && RESUME_AT=5
+    if ! get_usage; then
+      echo "RESUME_OK (usage unknown — failing open)"; rm -f "$WAIT_MARKER"; exit 0
+    fi
+    if [ "$(max_pct)" -le "$RESUME_AT" ]; then
+      echo "RESUME_OK — $(usage_line)"; rm -f "$WAIT_MARKER"; exit 0
+    fi
+    touch "$WAIT_MARKER"
+    echo "WAITING — usage above resume level (${RESUME_AT}%). $(usage_line)"
+    echo "Schedule another wakeup and check again later — do not loop on this command."
+    exit 0
+    ;;
+
   *)  # hook mode (PostToolUse)
     cat > /dev/null 2>&1 || true   # drain stdin
 
@@ -195,7 +220,8 @@ case "$MODE" in
         {
           echo "USAGE THRESHOLD REACHED (${THRESHOLD}%): $(usage_line)"
           echo "Pause now: 1) finish/commit only the current atomic step, 2) update the checkpoint in .claude/memory/context.md,"
-          echo "3) then run: bash .claude/hooks/usage-guard.sh --wait   repeatedly until it prints RESUME_OK, then continue working."
+          echo "3) then follow the CLAUDE.md 'Session Behavior' pause procedure for this session type:"
+          echo "   loop-mode.marker present -> stop the session; a schedule-a-future-message tool available (cloud/remote session) -> usage-guard.sh --check once, then schedule a wakeup instead of polling; otherwise -> usage-guard.sh --wait repeatedly until RESUME_OK."
           echo "Do not start new subtasks before RESUME_OK."
         } >&2
         exit 2

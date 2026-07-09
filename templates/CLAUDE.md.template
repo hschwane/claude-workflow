@@ -122,9 +122,10 @@ If a hook reports `SUPERVISED_USAGE_ALERT`: use `AskUserQuestion` to ask the use
 
 If `.claude/memory/settings.md` contains `unsupervised: true`:
 - **Never** use `AskUserQuestion` — apply autonomous defaults from the `/unsupervised` skill
-- If a hook reports `USAGE THRESHOLD REACHED`: commit the current atomic step, update the checkpoint, then check `.claude/memory/loop-mode.marker`:
-  - **Marker present** (running under `claude-loop.sh`): stop the session — the loop will restart it with a fresh context window and resume from the checkpoint automatically.
-  - **Marker absent** (interactive VS Code / terminal session): run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working.
+- If a hook reports `USAGE THRESHOLD REACHED`: commit the current atomic step, update the checkpoint, then pick one:
+  - **`.claude/memory/loop-mode.marker` present** (running under `claude-loop.sh`): stop the session — the loop will restart it with a fresh context window and resume from the checkpoint automatically.
+  - **A schedule-a-future-message tool is available** (e.g. `send_later`, `ScheduleWakeup` — cloud/remote session, no attached terminal): run `bash .claude/hooks/usage-guard.sh --check` once; if not `RESUME_OK`, schedule a wakeup 20–30 minutes out and end the turn instead of polling with Bash sleeps — repeat on each wakeup until `RESUME_OK`. Do not use `--wait` here.
+  - **Neither applies** (interactive VS Code / terminal session): run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working.
 - If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to `.claude/memory/context.md` and stop — do not wait for input
 - When all work is complete, clear `## In Progress` from `.claude/memory/context.md` and stop
 
