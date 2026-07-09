@@ -114,7 +114,7 @@ In supervised mode: after all implementations are done, ask the user to run `/co
 
 For each feature branch in implementation order:
 1. Check out the branch: `git checkout {feature_branch}`
-2. Rebase onto the base branch to incorporate any earlier merges:
+2. Merge the base branch into the feature branch to incorporate any earlier merges:
    ```bash
    git fetch origin {base}
    git merge origin/{base} --no-edit
