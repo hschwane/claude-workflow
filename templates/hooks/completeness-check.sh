@@ -9,13 +9,14 @@ set -euo pipefail
 
 INPUT=$(cat)
 
-MEM=".claude/memory"
+# Hooks run in the session cwd, which is not necessarily the project root
+MEM="${CLAUDE_PROJECT_DIR:-.}/.claude/memory"
 SETTINGS_FILE="$MEM/settings.md"
 
 # Determine branch-scoped context file, with fallback to legacy context.md
 branch_context() {
   local branch
-  branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
+  branch=$(git -C "${CLAUDE_PROJECT_DIR:-.}" branch --show-current 2>/dev/null | sed 's|/|-|g')
   if [ -n "$branch" ] && [ -f "$MEM/context-${branch}.md" ]; then
     echo "$MEM/context-${branch}.md"
   elif [ -f "$MEM/context.md" ]; then

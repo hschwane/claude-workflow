@@ -6,7 +6,8 @@
 set -uo pipefail
 
 INPUT=$(cat)
-MEM=".claude/memory"
+# Runs in the session cwd, which is not necessarily the project root
+MEM="${CLAUDE_PROJECT_DIR:-.}/.claude/memory"
 CACHE="$MEM/usage-cache.json"
 
 json_obj() { grep -o "\"$1\"[[:space:]]*:[[:space:]]*{[^}]*}" | head -1; }

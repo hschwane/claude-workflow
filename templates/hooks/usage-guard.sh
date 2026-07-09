@@ -26,7 +26,8 @@
 #   --status          Print current usage and threshold (for /unsupervised status)
 set -uo pipefail
 
-MEM=".claude/memory"
+# Hooks run in the session cwd, which is not necessarily the project root
+MEM="${CLAUDE_PROJECT_DIR:-.}/.claude/memory"
 SETTINGS="$MEM/settings.md"
 CACHE="$MEM/usage-cache.json"
 WAIT_MARKER="$MEM/usage-wait.active"
