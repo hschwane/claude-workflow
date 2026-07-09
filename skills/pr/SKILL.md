@@ -100,6 +100,8 @@ gh pr checks {pr_url}
 ```
 Repeat until all checks show `pass`, or at least one shows `fail`. Each poll is a separate tool call so the usage guard can check between polls.
 
+> **Polling in cloud/remote sessions** — applies to EVERY polling loop in this skill (this CI gate, the merge wait in step 9, the post-merge CI check in step 10b): if a schedule-a-future-message tool is available (e.g. `send_later` from the Claude Code Remote MCP server, or `ScheduleWakeup`), this is a managed session without an attached terminal — do **not** sleep between polls. Instead: check once; if the result is still pending, schedule a wakeup a few minutes out (e.g. "Continue /pr for {pr_url}: re-check CI / merge state") and end the turn. Repeat the check on each wakeup. Bash sleep loops in such sessions burn turns and can hit session limits before CI even finishes.
+
 **HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
 **If CI fails:**
@@ -203,7 +205,7 @@ Once CI is confirmed green:
 ```bash
 gh pr view {pr_url} --json state -q .state
 ```
-Check every 30 seconds. If not merged after 10 minutes: report to the user and stop.
+Check every 30 seconds (cloud/remote sessions: use the scheduled-wakeup pattern from step 4 instead of sleeping). If not merged after 10 minutes: report to the user and stop.
 
 ### 10. Post-Merge Cleanup
 After successful merge:
@@ -229,7 +231,7 @@ If no runs appear within 60 seconds (repo may not attach runs to merge SHAs), fa
 gh run list --branch {base} --limit 3
 ```
 
-**If runs are found:** poll every 30 seconds with separate Bash calls until finished — do not use `gh run watch` (blocks in a single tool call):
+**If runs are found:** poll every 30 seconds with separate Bash calls until finished — do not use `gh run watch` (blocks in a single tool call); cloud/remote sessions: use the scheduled-wakeup pattern from step 4 instead of sleeping:
 ```bash
 gh run view {run_id} --json status,conclusion -q '[.status, .conclusion]'
 ```

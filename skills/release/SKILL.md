@@ -134,6 +134,8 @@ If GitHub remote exists: monitor CI pipeline:
 ```
 gh run list --workflow=release.yml --limit=1
 ```
+If the run is still in progress, poll every 30 seconds with separate Bash calls (no `gh run watch` — it blocks in a single tool call). In a cloud/remote session (a schedule-a-future-message tool like `send_later`/`ScheduleWakeup` is available): check once, then schedule a wakeup a few minutes out instead of sleeping between polls, and re-check when it fires.
+
 Print the URL and report status. If it fails: report and stop.
 
 ### 9. Deploy (optional)

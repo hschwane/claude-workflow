@@ -64,7 +64,7 @@ The development lifecycle:
 | `/refine FEAT-001` | Depth scales with a complexity triage: **small** specs get one combined `tech-planner` fast-track pass (escalates itself if it finds hidden complexity); **medium/large** specs run the full `requirements-engineer` + `tech-planner` iteration (max 1 / 3 rounds) until the spec meets the Definition of Ready. Pass **multiple IDs** (`/refine FEAT-001 FEAT-003`) to batch: every question is asked up front, then all tickets complete autonomously so you can go AFK |
 | `/implement FEAT-001` | Phase 1: `test-writer` writes failing tests from the spec alone (never sees implementation code). Phase 2: implement subtask by subtask, one commit + push each. Then full verification via `test-runner` and docs via `documentation-writer` |
 | `/commit` | Quality-gated conventional commit: format + lint + type-check first, then a generated `type(scope): description` message |
-| `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all findings → squash-merge → move spec to `completed/` |
+| `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all blocking findings (small diffs: suggestions auto-fixed too; otherwise suggestions are listed in the final report) → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
 | `/ship [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release |
 | `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` |
@@ -181,6 +181,8 @@ work ──► usage-guard trips at threshold (e.g. 80%)
               ▼  prints RESUME_OK once usage ≤ threshold−10  (5h window slides)
          continue working ──► … ──► done: "## In Progress" cleared, Stop allowed
 ```
+
+**Cloud/remote sessions** (Claude Code on the web, or any managed session without an attached terminal — detectable by the presence of a schedule-a-future-message tool like `send_later` or `ScheduleWakeup`): the `--wait` sleep loop would burn turns and can hit session limits, so Claude instead runs the one-shot `usage-guard.sh --check`, and if usage is still above the resume level, schedules a wakeup 20–30 minutes out and goes idle. Each wakeup re-checks until `RESUME_OK`, then work continues from the checkpoint. The same scheduled-wakeup pattern replaces the CI/merge polling sleeps in `/pr` and `/release`.
 
 **Token-budget guard (`usage_threshold`)**: pausing at e.g. 80% keeps 20% headroom for your own interactive use and avoids ever hitting the hard limit mid-task. Usage data comes from the official statusline `rate_limits` field (cached locally) with the community-established OAuth usage endpoint as fallback; if neither is available the guard fails open. Hysteresis (resume at threshold−10) prevents flapping.
 
