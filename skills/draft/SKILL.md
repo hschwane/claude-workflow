@@ -2,6 +2,7 @@
 name: draft
 description: Add a raw feature idea or bug report as a minimal backlog entry in docs/specs/backlog/. Use when the user wants to capture an idea or bug without planning it yet, or when /brainstorm accepts an idea.
 argument-hint: "feature|bug \"title\" [\"description\"]"
+model: haiku
 ---
 
 # Draft
@@ -28,7 +29,7 @@ Extract from the user's message:
 
 ### 2. Determine Next ID
 - List files in `docs/specs/backlog/`, `docs/specs/ready/`, `docs/specs/completed/`
-- Find the highest existing `FEAT-NNN` or `BUG-NNN` number for the given type
+- Find the highest existing number across all `FEAT-NNN` and `BUG-NNN` files (IDs share one sequence across both types — same rule as `/refine` step 5b)
 - Increment by 1, zero-pad to 3 digits (e.g., `FEAT-007`)
 - If no specs exist: start at `001`
 
