@@ -38,8 +38,10 @@ AUTO_MARKER=".claude/memory/auto-start.marker"
 LOOP_MARKER=".claude/memory/loop-mode.marker"
 PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
 
-# Remove loop marker on exit so in-session --wait logic applies to manual sessions
-trap 'rm -f "$LOOP_MARKER"' EXIT
+# Remove markers on exit: the loop marker so in-session --wait logic applies to
+# manual sessions, and the auto-start marker so an interrupted loop doesn't make
+# the next manual session force an unrequested /resume
+trap 'rm -f "$LOOP_MARKER" "$AUTO_MARKER"' EXIT
 
 # Determine branch-scoped context file (written by skills; falls back to legacy context.md)
 _branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
