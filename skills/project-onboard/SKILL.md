@@ -82,10 +82,11 @@ Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh` and make it
 **b) Create workflow documentation** (from plugin templates/):
 ```
 docs/workflow/
-├── README.md         ← templates/workflow/README.md.template
-├── lifecycle.md      ← templates/workflow/lifecycle.md.template
+├── README.md         ← templates/workflow/README.md.template (fill `{{WORKFLOW_REPO}}` from this plugin's plugin.json `repository`)
+├── lifecycle.md      ← templates/workflow/lifecycle.md.template (fill `{{BRANCHING_MODEL}}` — main-only unless git-flow detected)
 ├── conventions.md    ← templates/workflow/conventions.md.template
 ├── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
+├── release.md        ← templates/workflow/release.md.template (fill `{{BRANCHING_MODEL}}`; /release and decisions.md reference this file)
 └── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2). The record of all tunable workflow settings; changeable later via `/workflow-decisions`.
 docs/dev/
 ├── setup.md          ← templates/dev/setup.md.template
@@ -140,7 +141,7 @@ Create `src/CLAUDE.md` with brief code convention note (user can expand).
 Create `tests/CLAUDE.md` with testing pattern note.
 
 **g) CONTRIBUTING.md (if not present):**
-Create from `templates/CONTRIBUTING.md.template`.
+Create from `templates/CONTRIBUTING.md.template` (fill `{{WORKFLOW_REPO}}` and `{{PROJECT_NAME}}`).
 
 **g2) README.md (if not present):**
 Create root `README.md` from `templates/README.md.template`, filled with the detected project name, description, and tech stack from the analysis. **Never overwrite an existing README** — if one exists, only offer to append a short "Development" section linking to `docs/workflow/README.md`.
