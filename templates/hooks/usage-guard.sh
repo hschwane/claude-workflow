@@ -59,6 +59,9 @@ get_setting() { # $1=key → value or empty
 
 UNSUPERVISED=$(get_setting "unsupervised")
 THRESHOLD=$(get_setting "usage_threshold")
+# A malformed threshold (e.g. "80%") would abort the arithmetic below with a
+# fatal error — treat anything non-numeric as "not set" (fail open)
+case "${THRESHOLD:-}" in ''|*[!0-9]*) THRESHOLD="" ;; esac
 
 # ── usage acquisition ─────────────────────────────────────────────────────────
 # Normalized cache: {"ts":epoch,"five_hour":{"pct":N,"resets_at":epoch},
