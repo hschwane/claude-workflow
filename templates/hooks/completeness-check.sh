@@ -67,7 +67,15 @@ if [ "$UNSUPERVISED" = "true" ] && [ "$STOP_ACTIVE" != "true" ]; then
   else
     REMAINING_MSG="Check the checkpoint for next_step."
   fi
-  echo "{\"decision\": \"block\", \"reason\": \"Unsupervised mode is active and the branch context file still contains an In Progress section. $REMAINING_MSG Continue working through the task list in order. If the usage threshold was reached: check whether .claude/memory/loop-mode.marker exists — if yes, stop cleanly (claude-loop.sh will restart); if no, run bash .claude/hooks/usage-guard.sh --wait repeatedly until RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if all work is complete, clear the In Progress section.\"}"
+  REASON="Unsupervised mode is active and the branch context file still contains an In Progress section. $REMAINING_MSG Continue working through the task list in order. If the usage threshold was reached: check whether .claude/memory/loop-mode.marker exists — if yes, stop cleanly (claude-loop.sh will restart); if no, run bash .claude/hooks/usage-guard.sh --wait repeatedly until RESUME_OK, then continue. If you are genuinely blocked, write a Blocked section to the context file; if all work is complete, clear the In Progress section."
+  if command -v jq &>/dev/null; then
+    # jq handles JSON escaping (task text may contain quotes/backslashes)
+    jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
+  else
+    # No jq: strip characters that would break the hand-built JSON string
+    REASON=$(printf '%s' "$REASON" | tr -d '"\\' | tr '\n' ' ')
+    echo "{\"decision\": \"block\", \"reason\": \"$REASON\"}"
+  fi
   exit 0
 fi
 
