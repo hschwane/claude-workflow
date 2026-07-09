@@ -46,7 +46,7 @@ fi
 
 # Collect remaining unchecked tasks (for display and block reason)
 UNCHECKED=$(grep "^- \[ \]" "$CONTEXT_FILE" 2>/dev/null || true)
-UNCHECKED_COUNT=$(echo "$UNCHECKED" | grep -c "." 2>/dev/null || echo "0")
+UNCHECKED_COUNT=$(echo "$UNCHECKED" | grep -c "." || true)   # grep -c already prints 0 on no match
 
 # Loop guard: if this stop was already caused by a Stop hook, don't block again
 if command -v jq &>/dev/null; then
