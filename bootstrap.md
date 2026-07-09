@@ -84,7 +84,9 @@ Ask the user (AskUserQuestion):
 
 ## Step 3: Clone the Plugin to a Temporary Location
 
-Run this Bash command:
+If `/tmp/claude-workflow-bootstrap` already exists (the README's one-prompt install clones it before you read this file), skip the clone and continue with Step 4.
+
+Otherwise run this Bash command:
 
 ```bash
 git clone https://github.com/hschwane/claude-workflow /tmp/claude-workflow-bootstrap 2>&1 || echo "CLONE_FAILED"
@@ -122,7 +124,7 @@ When the skill instructions reference paths inside the plugin, resolve them as f
 | `templates/` | `/tmp/claude-workflow-bootstrap/templates/` |
 | `.claude-plugin/plugin.json` | `/tmp/claude-workflow-bootstrap/.claude-plugin/plugin.json` |
 
-All files the skill copies into `.claude/` go into the **target project's** `.claude/` directory (from Step 1).
+All files the skill copies into `.claude/` go into the **target project's** `.claude/` directory (from Step 2).
 
 ### Making skills and agents available mid-session
 
