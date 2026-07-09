@@ -28,6 +28,7 @@ nav:
       - Conventions: workflow/conventions.md
       - Quality: workflow/quality.md
       - Release: workflow/release.md
+      - Decisions: workflow/decisions.md
   - Developer:
       - Architecture: dev/architecture.md
       - Setup: dev/setup.md

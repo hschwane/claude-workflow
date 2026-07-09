@@ -213,7 +213,7 @@ pip install mkdocs-material
 mkdocs new .
 ```
 
-Read `{PLUGIN_SOURCE_DIR}/templates/configs/mkdocs.yml.template`, fill in PROJECT_NAME, write to `{TARGET_DIR}/mkdocs.yml`.
+Read `{PLUGIN_SOURCE_DIR}/templates/configs/mkdocs.yml.template`, fill in PROJECT_NAME and PROJECT_DESCRIPTION, write to `{TARGET_DIR}/mkdocs.yml`.
 Add a note in `{TARGET_DIR}/docs/dev/setup.md`: "Run `mkdocs serve` to preview the documentation site locally."
 
 ## Step J: Initial Git Commit
