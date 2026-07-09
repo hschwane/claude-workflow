@@ -137,6 +137,8 @@ Read the agent's report. For each `[MUST FIX]` finding:
 - Fix the issue in the code
 - Run: `git add -A && git commit -m "fix(review): {short description}" && git push`
 
+Carry forward every `[SUGGESTION]` finding (file, line, description) into the deferred-findings list for the final report (step 11) — do not fix these, do not drop them.
+
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
 ### 6. Security Review (skipped on the light-review path — see 4b)
@@ -146,6 +148,8 @@ Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flig
 For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
 - Fix the issue
 - Commit and push: `git add -A && git commit -m "fix(security): {short description}" && git push`
+
+Carry forward every `[INFO]` finding (file, line, description) into the deferred-findings list for the final report (step 11) — do not fix these, do not drop them.
 
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the architect review or merge until CI is green.
 
@@ -162,6 +166,8 @@ Invoke the `architect-reviewer` subagent (apply the model tier chosen in pre-fli
 
 For each `[MUST FIX]` finding:
 - Fix and push: `git add -A && git commit -m "fix(arch): {short description}" && git push`
+
+Carry forward every `[CONCERN]` and `[ADR NEEDED]` finding (file/area, description) into the deferred-findings list for the final report (step 11) — do not fix these, do not drop them.
 
 If any commits were pushed, run the CI gate loop from step 4 before proceeding to merge. Do not merge until CI is green.
 
@@ -249,4 +255,11 @@ Merged via: squash merge
 Post-merge CI: {pass ✓ | no CI detected | fixed after {N} iteration(s) ✓}
 
 Branch cleaned up. On {base}.
+
+{If the deferred-findings list is non-empty:}
+Deferred findings (not blocking, not fixed — consider /draft for any worth tracking):
+- [SUGGESTION] {file}:{line} — {description}
+- [INFO] {file}:{line} — {description}
+- [CONCERN] {area} — {description}
+- [ADR NEEDED] {area} — {description}
 ```
