@@ -91,7 +91,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
 - If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`
-- `{PLUGIN_SOURCE_DIR}/templates/github/dependabot.yml` → `{TARGET_DIR}/.github/dependabot.yml`
+- `{PLUGIN_SOURCE_DIR}/templates/github/dependabot.yml` → `{TARGET_DIR}/.github/dependabot.yml`, then uncomment the package ecosystem matching CI_LANGUAGE_TEMPLATE (typescript → npm, python → pip, rust → cargo; cpp has no ecosystem — leave only github-actions active)
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
