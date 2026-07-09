@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Unsupervised Mode
 
-Enables or disables unsupervised mode. In unsupervised mode Claude never asks interactive questions, uses autonomous defaults for every decision, keeps working until the task is done (the Stop hook blocks premature stops), and writes a `## Blocked` section to `.claude/memory/context.md` if it hits a genuine blocker.
+Enables or disables unsupervised mode. In unsupervised mode Claude never asks interactive questions, uses autonomous defaults for every decision, keeps working until the task is done (the Stop hook blocks premature stops), and writes a `## Blocked` section to the branch context file (`.claude/memory/context-{branch}.md`) if it hits a genuine blocker.
 
 Optionally, a **usage threshold** caps how much of the rate limit unsupervised work may consume: when the session (5h) or weekly (7d) usage reaches the threshold, Claude pauses **inside the same session** and automatically continues once usage drops below the threshold again (the 5h window slides). This keeps headroom for your own interactive use and works in the terminal and the VS Code extension alike — no external scripts, no lost context, same console.
 
@@ -41,7 +41,7 @@ Claude will:
   ✓ Apply autonomous defaults (see below)
   ✓ Keep working: the Stop hook blocks premature stops while "## In Progress" exists
   {✓ Pause at {threshold}% — loop sessions stop cleanly for restart; cloud/remote sessions schedule a wakeup and go idle; interactive terminal/VS Code sessions wait in-session until below {threshold-20}%}
-  ✓ Write "## Blocked" to context.md if human input is genuinely required
+  ✓ Write "## Blocked" to the branch context file if human input is genuinely required
   ✓ Clear "## In Progress" when complete
 
 Autonomous defaults:
@@ -96,7 +96,7 @@ When `.claude/memory/settings.md` contains `unsupervised: true`:
 
 **Usage threshold pause** — when a hook message reports `USAGE THRESHOLD REACHED`:
 1. Finish or commit only the current atomic step (never leave the working tree broken)
-2. Update the checkpoint in `.claude/memory/context.md`
+2. Update the checkpoint in the branch context file (`.claude/memory/context-{branch}.md`)
 3. Determine which of these three applies, in order:
    - **`.claude/memory/loop-mode.marker` present** (session started by `claude-loop.sh`): **stop the session** — the loop restarts it with a fresh context window and resumes from the checkpoint automatically.
    - **A schedule-a-future-message tool is available** (e.g. `send_later` from the Claude Code Remote MCP server, or `ScheduleWakeup` if this session was started by `/loop`) — this is a cloud/remote session (Claude Code on the web, or any managed session without an attached interactive terminal): **do not poll with a Bash sleep loop.** Instead:
@@ -106,7 +106,7 @@ When `.claude/memory/settings.md` contains `unsupervised: true`:
      - Never call `usage-guard.sh --wait` here — its internal retry/sleep loop is built for a locally-attached terminal and will burn turns or run into session limits in a cloud session instead of actually waiting.
    - **Neither applies** (interactive VS Code / terminal session with no scheduling tool): run `bash .claude/hooks/usage-guard.sh --wait` via Bash (3-minute timeout per call) repeatedly until it prints `RESUME_OK`, then continue working from the checkpoint.
 
-**For genuine blockers only** — write to `.claude/memory/context.md` ABOVE the `## In Progress` section:
+**For genuine blockers only** — write to the branch context file (`.claude/memory/context-{branch}.md`) ABOVE the `## In Progress` section:
 
 ```markdown
 ## Blocked
@@ -117,4 +117,4 @@ saved_at: 2026-06-10T15:00:00Z
 
 Then stop. Do not clear `## In Progress`.
 
-**When all work is complete** — clear the `## In Progress` section from `.claude/memory/context.md` and stop.
+**When all work is complete** — clear the `## In Progress` section from the branch context file and stop.

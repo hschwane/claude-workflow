@@ -126,8 +126,8 @@ If `.claude/memory/settings.md` contains `unsupervised: true`:
   - **`.claude/memory/loop-mode.marker` present** (running under `claude-loop.sh`): stop the session — the loop will restart it with a fresh context window and resume from the checkpoint automatically.
   - **A schedule-a-future-message tool is available** (e.g. `send_later`, `ScheduleWakeup` — cloud/remote session, no attached terminal): run `bash .claude/hooks/usage-guard.sh --check` once; if not `RESUME_OK`, schedule a wakeup 20–30 minutes out and end the turn instead of polling with Bash sleeps — repeat on each wakeup until `RESUME_OK`. Do not use `--wait` here.
   - **Neither applies** (interactive VS Code / terminal session): run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working.
-- If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to `.claude/memory/context.md` and stop — do not wait for input
-- When all work is complete, clear `## In Progress` from `.claude/memory/context.md` and stop
+- If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to the branch context file (`.claude/memory/context-{branch}.md`) and stop — do not wait for input
+- When all work is complete, clear `## In Progress` from the branch context file and stop
 
 ## Memory
 
@@ -147,12 +147,12 @@ Compress the conversation proactively to avoid token exhaustion mid-task. Long s
 
 **Before every compact, ensure all state is on disk:**
 1. All in-progress changes are committed and pushed
-2. `.claude/memory/context.md` reflects the current task ID, branch, and next step
+2. The branch context file (`.claude/memory/context-{branch}.md`) reflects the current task ID, branch, and next step
 3. Spec checkboxes match actual progress (they are the subtask source of truth)
 
 **How to compact:** run `/compact` in Claude Code. The harness summarizes the conversation; the summary plus the memory files give full orientation for the next burst of work.
 
-**After compacting:** read `.claude/memory/context.md` before continuing so you pick up exactly where the work left off.
+**After compacting:** read the branch context file (`.claude/memory/context-{branch}.md`) before continuing so you pick up exactly where the work left off.
 
 **Safe vs. unsafe compact windows:**
 - **Safe**: immediately after a successful commit + checkpoint update — everything is persisted
