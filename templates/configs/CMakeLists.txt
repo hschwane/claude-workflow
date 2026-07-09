@@ -30,16 +30,17 @@ configure_file(
 )
 include_directories("${CMAKE_BINARY_DIR}/generated")
 
-# CMake presets (see CMakePresets.json)
 include(CMakePackageConfigHelpers)
 
 # Dependencies via FetchContent or vcpkg
 # include(FetchContent)
 # FetchContent_Declare(...)
 
-# Source
-add_subdirectory(src)
+# Source — uncomment once src/CMakeLists.txt exists (a fresh project has
+# only empty src/ and tests/ dirs; cmake fails on add_subdirectory without
+# a CMakeLists.txt inside)
+# add_subdirectory(src)
 
-# Tests
+# Tests — uncomment once tests/CMakeLists.txt exists
 enable_testing()
-add_subdirectory(tests)
+# add_subdirectory(tests)
