@@ -22,7 +22,7 @@ Read `.claude/workflow-source.json`:
 ```json
 { "repo": "https://github.com/...", "version": "1.2.0", "installed": "2026-01-01" }
 ```
-If this file doesn't exist: print an error explaining this project wasn't set up with `/project-init` and offer to create it manually.
+If this file doesn't exist: print an error explaining this project wasn't set up with `/project-init` or `/project-onboard` and offer to create it manually.
 
 ### 2. Fetch Latest Version
 Clone the workflow repo into a temp directory. Pick the temp path for the shell you are actually using — detect it, don't assume:
@@ -41,11 +41,15 @@ git -C {UPDATE_DIR} tag --sort=-version:refname | head -1
 If a target version was specified as an argument: use that instead of latest.
 
 ### 3. Show What Changed
-- Read `{UPDATE_DIR}/CHANGELOG.md`
-- Extract entries between current version and target version
-- Display them to the user
+- If `{UPDATE_DIR}/CHANGELOG.md` exists: read it and extract the entries between current version and target version.
+- Otherwise (the plugin repo ships no changelog): derive the changes from git history. The clone from step 2 is shallow, so fetch history and tags first:
+  ```
+  git -C {UPDATE_DIR} fetch --unshallow --tags 2>/dev/null || git -C {UPDATE_DIR} fetch --tags
+  git -C {UPDATE_DIR} log v{current}..{target} --oneline
+  ```
+- Display the changes to the user
 
-Check for breaking changes: if the changelog contains `BREAKING` or `[BREAKING]`, highlight them prominently.
+Check for breaking changes: if the changelog or commit list contains `BREAKING`, `[BREAKING]`, or a conventional-commit `!` marker (e.g. `feat!:`), highlight them prominently.
 
 ### 4. Confirm
 Ask the user (via AskUserQuestion):
