@@ -82,6 +82,12 @@ How a green, reviewed PR is merged.
 - **Current:** squash + auto-merge (`gh pr merge --squash --auto`), falling back to direct squash merge if auto-merge is disabled on the repo
 - **Options:** merge method (squash / merge / rebase) · auto vs. manual · the ask-before-merge conditions (currently: merge conflicts, major/breaking version, protected branch requiring human approval)
 
+### Deferred-findings policy
+Whether non-blocking review findings (`[SUGGESTION]`, `[INFO]`, `[CONCERN]`, `[ADR NEEDED]`) get auto-fixed or only reported.
+- **Live in:** `.claude/skills/pr/SKILL.md` — §4b Review Scope Triage ("Deferred-findings policy")
+- **Current:** light-review path (small, single-feature diff) auto-fixes `[SUGGESTION]` too; full-review path reports `[SUGGESTION]`/`[INFO]` only; `[CONCERN]`/`[ADR NEEDED]` are always report-only
+- **Options:** `light-autofixes-suggestions` (default, above) · `always-report-only` (never auto-fix beyond MUST FIX/CRITICAL/HIGH/MODERATE, regardless of diff size) · `always-autofix-suggestions` (fix `[SUGGESTION]`/`[INFO]` on every PR, not just the light-review path)
+
 ---
 
 ## Release

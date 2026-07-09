@@ -127,6 +127,11 @@ Check the file list for **security-sensitive paths**: authentication/session/cry
 - **Light review** — fewer than ~200 changed lines AND no security-sensitive files: run ONLY step 5 (code review). Skip steps 6 and 7.
 - **Full review** — everything else: run steps 5, 6, and 7 (architect review still conditional per its own criteria). A diff touching security-sensitive files gets the dedicated security review **regardless of size**.
 
+**Deferred-findings policy** (governs steps 5–7 below; tunable via `/workflow-decisions` — see `docs/workflow/decisions.md`):
+- **Light-review path** (small, single-feature diff): also fix `[SUGGESTION]` findings immediately, same as `[MUST FIX]` — the diff is small enough that fixing them costs little and there's no later full review to catch them if deferred.
+- **Full-review path** (larger or bundled diff): `[SUGGESTION]` / `[INFO]` findings are report-only — list them in the final report (step 11), do not fix.
+- `[CONCERN]` and `[ADR NEEDED]` from the architect review are **always** report-only regardless of path — they call for a human architectural judgment, not a mechanical fix.
+
 ### 5. Code Review
 Invoke the `code-reviewer` subagent (apply the model tier chosen in pre-flight) with:
 - Input: `git diff origin/{base}...HEAD` (full diff)
@@ -137,7 +142,9 @@ Read the agent's report. For each `[MUST FIX]` finding:
 - Fix the issue in the code
 - Run: `git add -A && git commit -m "fix(review): {short description}" && git push`
 
-Carry forward every `[SUGGESTION]` finding (file, line, description) into the deferred-findings list for the final report (step 11) — do not fix these, do not drop them.
+Apply the deferred-findings policy from step 4b to each `[SUGGESTION]` finding:
+- **Light-review path:** fix it too, in the same commit(s) as the MUST FIX fixes.
+- **Full-review path:** carry it forward (file, line, description) into the deferred-findings list for the final report (step 11) — do not fix it, do not drop it.
 
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
@@ -250,7 +257,7 @@ PR merged ✓
 {pr_url}
 
 Reviews: {code review ✓, security review ✓{, architect review ✓} | light review ✓ (small, low-risk diff)}
-Findings fixed: {N} code{, M security}{, K architect}
+Findings fixed: {N} code{, M security}{, K architect}{, P suggestions auto-fixed — light-review path}
 Merged via: squash merge
 Post-merge CI: {pass ✓ | no CI detected | fixed after {N} iteration(s) ✓}
 
