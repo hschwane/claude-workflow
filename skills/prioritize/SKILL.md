@@ -28,7 +28,7 @@ If the user wants to switch: stop.
 
 ### 1. Assemble Inputs (read each file once)
 - Read `docs/VISION.md`
-- Read `docs/specs/backlog/` — for each file, read frontmatter + `## User Story` section (stop before `## Acceptance Criteria`). Build a combined BACKLOG string: one entry per item with its id, title, type, size, and user story.
+- Read `docs/specs/backlog/` — for each file, read frontmatter + `## User Story` section (stop before `## Acceptance Criteria`). Build a combined BACKLOG string: one entry per item with its id, title, type, version (milestone, if set), and user story.
 - List `docs/specs/ready/` filenames only (already refined — pass as context, exclude from ranking)
 - List `docs/specs/completed/` titles + read `CHANGELOG.md` (project history for the agent)
 - If the backlog is empty: suggest `/brainstorm` or `/draft` and stop.
