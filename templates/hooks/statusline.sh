@@ -30,7 +30,17 @@ else
   R7=$(echo "$S7" | json_num resets_at)
 fi
 
-# Cache normalized usage for usage-guard.sh (only when data is present)
+# Cache normalized usage for usage-guard.sh (only when data is present).
+# resets_at may arrive as an ISO-8601 string — the cache format requires epoch
+# seconds (values are embedded unquoted), so convert or drop non-numeric values.
+to_epoch() {
+  case "${1:-}" in
+    ''|*[!0-9]*) date -d "${1:-}" +%s 2>/dev/null || echo 0 ;;
+    *) echo "$1" ;;
+  esac
+}
+R5=$(to_epoch "${R5:-0}")
+R7=$(to_epoch "${R7:-0}")
 if [ -n "${P5:-}" ] || [ -n "${P7:-}" ]; then
   mkdir -p "$MEM"
   printf '{"ts": %s, "five_hour": {"pct": %s, "resets_at": %s}, "seven_day": {"pct": %s, "resets_at": %s}}\n' \
