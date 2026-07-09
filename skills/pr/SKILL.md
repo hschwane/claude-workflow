@@ -90,7 +90,7 @@ First check whether the repository has any checks configured:
 ```bash
 gh pr checks {pr_url}
 ```
-If no checks exist (e.g., no CI workflow yet): note "No CI checks configured — skipping CI wait" and continue to step 5.
+If no checks exist (e.g., no CI workflow yet): note "No CI checks configured — skipping CI wait" and continue to step 4b (the review scope triage still applies — repos without CI need the reviews most).
 
 Otherwise, run the CI gate loop (this loop is used again after every review that pushes fixes):
 
@@ -207,9 +207,9 @@ Check every 30 seconds. If not merged after 10 minutes: report to the user and s
 
 ### 10. Post-Merge Cleanup
 After successful merge:
-- Delete local branch: `git branch -d {branch}`
 - Check out base branch: `git checkout {base}`
 - Pull latest: `git pull`
+- Delete local branch: `git branch -D {branch}` (`-D` is required: after a squash merge the branch is not an ancestor of {base}, so `-d` refuses)
 - If a spec file is linked:
   - Check `docs/specs/ready/{id}-*.md` — if it still exists there (not yet moved by `/implement`): update frontmatter `status` → `done`, `git mv` to `docs/specs/completed/`, commit `docs(specs): complete {id}`
   - If it is already in `docs/specs/completed/` (moved by `/implement`): nothing to do
