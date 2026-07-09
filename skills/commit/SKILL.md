@@ -81,7 +81,7 @@ git commit -m "{generated-message}"
 ```
 
 ### 5. Push (feature branches)
-If on a feature/fix/chore branch: push it (`git push -u origin {branch}`). Pushing work branches after every commit is allowed and encouraged (backup, visibility) — the quality gate applies when merging via `/pr`. Never push directly to `develop`, `main`, or `master` — **exceptions**: `/release` performs the release merge, and the spec-only fast path (step 1b) allows pushing spec-only commits to any branch.
+If on a feature/fix/chore branch: push it (`git push -u origin {branch}`). Pushing work branches after every commit is allowed and encouraged (backup, visibility) — the quality gate applies when merging via `/pr`. Never push directly to `develop`, `main`, or `master` — **exceptions**: `/release` performs the release merge, the spec-only fast path (step 1b) allows pushing spec-only commits to any branch, and `/pr` step 10b allows committing a trivial post-merge CI hotfix directly to the base branch.
 
 ### 6. Report
 Print the commit hash and message. Suggest next step if obvious (e.g., "Next: /pr to create a pull request").
