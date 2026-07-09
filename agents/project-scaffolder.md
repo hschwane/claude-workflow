@@ -65,6 +65,7 @@ Note: `docs/VISION.md`, `docs/dev/architecture.md`, and `docs/dev/adr/ADR-001-ar
 Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `{{PROJECT_NAME}}` with `PROJECT_NAME` everywhere.
 
 **TypeScript:**
+- `tsconfig.json` → `tsconfig.json` (entry point; extends the strict profile)
 - `tsconfig.strict.json` → `tsconfig.strict.json`
 - `tsconfig.base.json` → `tsconfig.base.json`
 - `eslint.config.js` → `eslint.config.js`

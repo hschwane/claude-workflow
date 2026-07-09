@@ -1,0 +1,5 @@
+{
+  // Entry-point config used by tsc, eslint (projectService) and editors.
+  // Points at the strict profile; switch to ./tsconfig.base.json to relax.
+  "extends": "./tsconfig.strict.json"
+}
