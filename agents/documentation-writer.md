@@ -41,7 +41,7 @@ If the implementation introduces a new module, service, pattern, or significant 
 - Changed deployment steps: update deploy.md
 
 ### Never: move the spec file
-- Do NOT move or modify the spec file in `docs/specs/` — it moves to `completed/` after the PR merges (handled by /pr)
+- Do NOT move or modify the spec file in `docs/specs/` — it moves to `completed/` at the end of /implement (step 7), or by /pr post-merge as a fallback
 
 ## Writing Guidelines
 - **Developer docs**: precise, technical, assume expertise. Explain the WHY of design decisions.

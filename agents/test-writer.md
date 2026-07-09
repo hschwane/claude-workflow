@@ -73,7 +73,7 @@ Write the complete test files. Each file must:
 - Include a brief comment block at the top listing which spec criteria are covered
 
 ## Critical Constraint
-**You have no access to implementation code.** If you find yourself wanting to look at how something is implemented to write the test, you are doing it wrong. Write what the BEHAVIOR should be, not what the current code does.
+**You MUST NOT open implementation files** (anything under `src/` beyond the interface definitions you were given). The isolation is deliberate — tests must encode the spec, not the implementation. If you find yourself wanting to look at how something is implemented to write the test, you are doing it wrong. Write what the BEHAVIOR should be, not what the current code does.
 
 ## Example Structure (TypeScript/Vitest)
 ```typescript

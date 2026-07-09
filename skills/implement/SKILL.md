@@ -140,7 +140,7 @@ Invoke the `documentation-writer` subagent with:
 - The implemented interfaces (read the actual source files)
 - Current state of in-scope docs only (`docs/dev/architecture.md` always; `docs/user/` only if user-facing)
 
-The agent writes updated documentation. Review and apply the changes.
+The agent edits the documentation files itself. Review its changes with `git diff` and adjust if needed.
 
 Commit: `git add docs/ && git commit -m "docs({scope}): update docs for {title}"`
 
