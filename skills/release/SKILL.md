@@ -19,7 +19,7 @@ Bumps the version, updates the changelog, creates a git tag, and pushes to trigg
 ## Instructions
 
 ### 1. Pre-flight Checks
-- Read `docs/workflow/release.md` to understand the project's release configuration, especially the **branching model**.
+- Read `docs/workflow/release.md` to understand the project's release configuration, especially the **branching model**. If the file doesn't exist (project onboarded with an older plugin version): continue without it and offer to create it from `templates/workflow/release.md.template` afterwards.
 - Determine the branching model:
   - **git flow** if release.md says so, or if a `develop` branch exists
   - **main-only** otherwise
