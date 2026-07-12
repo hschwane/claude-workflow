@@ -141,7 +141,12 @@ Based on language and architecture, ask:
 ### 5. Release & Deploy Setup
 Ask (AskUserQuestion) — **pre-select values inferred from the design document (step 0.5) and ask user to confirm or change**:
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
-2. **Deploy**: No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
+2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
+
+   Railway is the preferred deploy target. When chosen, record these defaults in `docs/workflow/deploy.md` (deviate only if the project can't tolerate them):
+   - **Scale to zero** enabled — the app sleeps when idle, so it must tolerate cold starts
+   - **European region** (e.g. `europe-west4`)
+   - **Service URL prefixed with the project name** — choose the subdomain when generating the domain, e.g. `<project-name>.up.railway.app`
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
 
 Create:
@@ -175,7 +180,7 @@ TESTING_SCOPE: {Unit only | Unit + Integration | Unit + Integration + E2E}
 DOCS_TYPE: {Markdown | MkDocs HTML}
 MONOREPO: {No | Yes}
 RELEASE_TYPE: {npm | pypi | github | docker | internal}
-DEPLOY: {none | manual | vercel | aws | other | self-hosted}
+DEPLOY: {railway | none | manual | vercel | aws | other | self-hosted}
 BRANCHING_MODEL: {main-only | git-flow}
 GITHUB_REPO: {yes-public | yes-private | no}
 PLUGIN_SOURCE_DIR: {absolute path determined above}

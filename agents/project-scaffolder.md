@@ -24,7 +24,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `DOCS_TYPE` | Markdown / MkDocs HTML |
 | `MONOREPO` | No / Yes |
 | `RELEASE_TYPE` | npm / pypi / github / docker / internal |
-| `DEPLOY` | none / manual / vercel / aws / other / self-hosted |
+| `DEPLOY` | railway / none / manual / vercel / aws / other / self-hosted |
 | `BRANCHING_MODEL` | main-only / git-flow |
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
@@ -103,7 +103,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 - `workflow/lifecycle.md.template` → `{TARGET_DIR}/docs/workflow/lifecycle.md`
 - `workflow/conventions.md.template` → `{TARGET_DIR}/docs/workflow/conventions.md`
 - `workflow/quality.md.template` → `{TARGET_DIR}/docs/workflow/quality.md` (also fill `{{TESTING_SCOPE}}` → TESTING_SCOPE)
-- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}` → TODAY, `{{TESTING_SCOPE}}` → TESTING_SCOPE, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`)
+- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}` → TODAY, `{{TESTING_SCOPE}}` → TESTING_SCOPE, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`, `{{DEPLOY_TARGET}}` → DEPLOY)
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/style-guide.md.template` → `{TARGET_DIR}/docs/dev/style-guide.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`

@@ -103,6 +103,12 @@ The file whose version field `/release` bumps.
 - **Live in:** `docs/workflow/release.md` — "Version Source of Truth" section
 - **Current:** see `docs/workflow/release.md` (set during project setup for your language)
 
+### Deploy target
+Where the app is deployed and with which platform settings.
+- **Live in:** `docs/workflow/deploy.md` — "Target Environment" / "Platform Settings" sections
+- **Current:** {{DEPLOY_TARGET}}
+- **Options:** `railway` (preferred — scale-to-zero enabled, European region e.g. `europe-west4`, service URL prefixed with the project name) · `vercel` · `aws` · `other` · `self-hosted` · `manual` · `none`
+
 ---
 
 ## Integrations

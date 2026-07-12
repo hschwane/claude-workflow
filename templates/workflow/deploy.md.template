@@ -2,7 +2,18 @@
 
 ## Target Environment
 {{DEPLOY_TARGET}}
-<!-- Examples: Vercel, AWS EC2, Kubernetes, Fly.io, VPS via SSH -->
+<!-- Examples: Railway, Vercel, AWS EC2, Kubernetes, Fly.io, VPS via SSH -->
+<!-- Preferred default: Railway, configured with
+     - scale-to-zero enabled (app sleeps when idle — must tolerate cold starts)
+     - a European region (e.g. europe-west4)
+     - the service URL prefixed with the project name (e.g. <project-name>.up.railway.app —
+       choose the subdomain when generating the domain)
+-->
+
+## Platform Settings
+{{PLATFORM_SETTINGS}}
+<!-- Record region, scaling (scale-to-zero?), domain/URL, and other platform config here -->
+
 
 ## Trigger
 {{DEPLOY_TRIGGER}}
