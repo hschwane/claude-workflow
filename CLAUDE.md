@@ -64,7 +64,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via a `tools: Read, Grep, Glob` allowlist.
 
-Model routing (`model` frontmatter): mechanical/fact-gathering agents run on `haiku` (code-explorer, test-runner, workflow-coach), executing agents on `sonnet` (test-writer, documentation-writer, product-owner, project-scaffolder), judgment-heavy agents on `inherit` — they follow the session model (RE, tech-planner, all three reviewers). See README "Model routing".
+Model routing (`model` frontmatter): mechanical/fact-gathering agents run on `haiku` (code-explorer, test-runner, workflow-coach), executing agents on `sonnet` (test-writer, documentation-writer, product-owner, project-scaffolder), judgment-heavy agents on `inherit` — they follow the session model (RE, tech-planner, all three reviewers). Effort routing (`effort` frontmatter): the four purely mechanical agents (code-explorer, test-runner, workflow-coach, project-scaffolder) pin `effort: low` since the default is `high`; judgment agents stay unpinned so effort scales with the session. See README "Model & effort routing".
 
 | Agent | When used |
 |-------|-----------|

@@ -2,6 +2,7 @@
 name: test-runner
 description: Runs the project's test suite (and optionally linter/type-check) and reports a condensed result — failing tests, error excerpts, likely causes — without fixing anything. Use PROACTIVELY whenever a full test or lint run is needed and the raw output would clutter the main context (e.g. /implement final verification, /release pre-flight).
 model: haiku
+effort: low
 tools:
   - Bash
   - Read
