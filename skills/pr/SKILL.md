@@ -100,7 +100,15 @@ gh pr checks {pr_url}
 ```
 Repeat until all checks show `pass`, or at least one shows `fail`. Each poll is a separate tool call so the usage guard can check between polls.
 
-> **Polling in cloud/remote sessions** — applies to EVERY polling loop in this skill (this CI gate, the merge wait in step 9, the post-merge CI check in step 10b): if a schedule-a-future-message tool is available (e.g. `send_later` from the Claude Code Remote MCP server, or `ScheduleWakeup`), this is a managed session without an attached terminal — do **not** sleep between polls. Instead: check once; if the result is still pending, schedule a wakeup a few minutes out (e.g. "Continue /pr for {pr_url}: re-check CI / merge state") and end the turn. Repeat the check on each wakeup. Bash sleep loops in such sessions burn turns and can hit session limits before CI even finishes.
+> **Polling in cloud/remote sessions** — applies to EVERY polling loop in this skill (this CI gate, the merge wait in step 9, the post-merge CI check in step 10b). If a schedule-a-future-message tool is available (e.g. `send_later` from the Claude Code Remote MCP server, or `ScheduleWakeup`), this is a managed session without an attached terminal. Do **not** sleep between polls and do **not** use `--watch`/`gh run watch` — a Bash sleep loop burns turns and can hit the session limit before CI even finishes.
+>
+> **Arm TWO independent wake signals so a single missed wake never strands the session** (the known failure mode: the session ends the turn but never wakes back up):
+> 1. **Event-driven (primary):** the first time you reach this gate, call `subscribe_pr_activity` for `{pr_url}` (idempotent — safe to call once). CI **failures** and review comments then arrive as `<github-webhook-activity>` messages that wake the session on their own.
+> 2. **Scheduled fallback (always, in addition):** webhooks do **not** deliver CI *success*, new pushes, or merge-conflict transitions — so you must also schedule a self-check-in a few minutes out (e.g. "Continue /pr for `{pr_url}`: re-check CI / merge state") every time you end a waiting turn.
+>
+> Then **end the turn** — never end a waiting turn without at least the scheduled fallback armed. On each wake (from either signal): re-check `gh pr checks {pr_url}`; act on the result; if still pending, re-arm the scheduled fallback and end the turn again. Repeat until the gate's terminal condition (CI green, or the merge/post-merge check completes). Because two independent mechanisms are armed, a dropped webhook OR a missed scheduled wakeup still leaves the other to resume the work.
+>
+> If NO schedule-a-future-message tool is available (local session with an attached terminal), fall back to polling every 30 seconds with separate Bash calls (still never `--watch`).
 
 **HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
@@ -252,6 +260,8 @@ Repeat until `status` is `completed`.
 **If no runs are found after 60 seconds:** note "no post-merge CI detected" and continue.
 
 Record the final post-merge CI status for the report.
+
+**Clean up the wait subscription:** if you called `subscribe_pr_activity` during the CI gate (step 4), call `unsubscribe_pr_activity` for `{pr_url}` now — the PR is merged, so no more activity needs to wake this session. (Skip this if the user separately asked you to keep watching the PR.)
 
 ### 11. Report
 ```

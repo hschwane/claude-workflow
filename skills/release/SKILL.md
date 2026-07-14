@@ -134,7 +134,9 @@ If GitHub remote exists: monitor CI pipeline:
 ```
 gh run list --workflow=release.yml --limit=1
 ```
-If the run is still in progress, poll every 30 seconds with separate Bash calls (no `gh run watch` — it blocks in a single tool call). In a cloud/remote session (a schedule-a-future-message tool like `send_later`/`ScheduleWakeup` is available): check once, then schedule a wakeup a few minutes out instead of sleeping between polls, and re-check when it fires.
+If the run is still in progress, wait for it to finish:
+- **Cloud/remote session** (a schedule-a-future-message tool like `send_later`/`ScheduleWakeup` is available — a managed session with no attached terminal): do **not** sleep and do **not** use `gh run watch` (both block a turn and can hit the session limit before the release CI finishes). Instead, check once; if still in progress, **schedule a self-check-in a few minutes out** (e.g. "Continue /release: re-check release CI `gh run list --workflow=release.yml --limit=1`") and **end the turn**. Never end a waiting turn without an armed wakeup — that is the known failure mode where the session goes idle and never resumes. On each wake, re-check; if still running, re-arm the wakeup and end the turn again; repeat until the run concludes. (Unlike `/pr` there is no PR here, so `subscribe_pr_activity` does not apply — the scheduled self-check-in is the only wake signal, so it must be armed every time.)
+- **Local session** (no such tool — attached terminal): poll every 30 seconds with separate Bash calls (still never `gh run watch`).
 
 Print the URL and report status. If it fails: report and stop.
 
