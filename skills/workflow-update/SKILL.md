@@ -67,7 +67,9 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 
 # Smart merge (hook configuration — add new entries, never remove existing ones):
 .claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json;
-                           add "statusLine" only if the project has none
+                           add "statusLine" only if the project has none;
+                           union "permissions.allow" — add the template's mcp__Claude_Code_Remote__*
+                           wake-tool entries if absent, never remove existing allow entries
 ```
 
 **Never touch** (project-specific files):
@@ -76,7 +78,7 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 - `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
 - `.claude/memory/`
 - `.claude/workflow-source.json` (updated separately in step 6)
-- Any other keys in `.claude/settings.json` (permissions, env, etc.)
+- Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** the template's `mcp__Claude_Code_Remote__*` wake-tool entries to `permissions.allow` if they're missing (union, never remove)
 - Any project source files
 
 For the hooks merge: read the `hooks` key of the current `.claude/settings.json`, read the new `templates/hooks/hooks.json`, add any new hook entries that don't exist yet. Do not remove entries the project added.

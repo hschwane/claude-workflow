@@ -145,7 +145,7 @@ Write to `{TARGET_DIR}/README.md`.
 
 **Copy hooks:** `{PLUGIN_SOURCE_DIR}/templates/hooks/*.sh` → `{TARGET_DIR}/.claude/hooks/`
 
-**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge only the `hooks` and `statusLine` keys — preserve any existing `statusLine`.
+**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge the `hooks`, `statusLine`, and `permissions` keys — preserve any existing `statusLine`, and for `permissions.allow` union the template's entries with the project's existing ones (add the `mcp__Claude_Code_Remote__*` wake-tool entries if absent; never remove existing allow entries). The `permissions.allow` block pre-approves the scheduled-wakeup / PR-subscription tools that `/pr` and `/release` rely on in cloud sessions.
 
 **workflow-source.json:**
 ```json
