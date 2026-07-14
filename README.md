@@ -77,7 +77,7 @@ Agents are isolated subagents: each runs in its own context window, so heavy fil
 
 | Agent | Role | Used by |
 |-------|------|---------|
-| `code-explorer` | Reads many files, returns a condensed briefing (relevant files, interfaces, patterns, pitfalls) with `file:line` refs | `/refine`, `/project-onboard`, ad-hoc codebase questions |
+| `code-explorer` | Project-aware Haiku scout: orients via the project's own docs, then reads many files and returns a condensed briefing (relevant files, interfaces, patterns, pitfalls) with `file:line` refs | `/refine`, `/project-onboard`, ad-hoc codebase questions |
 | `requirements-engineer` | Turns a draft into user story, testable acceptance criteria, out-of-scope list, open questions | `/refine` |
 | `tech-planner` | Turns requirements into interface definitions (the test-writer's contract), technical approach, ordered subtasks | `/refine` |
 | `product-owner` | Judges ideas/backlog against `docs/VISION.md`, scores relevance, recommends next-version slate | `/brainstorm`, `/prioritize` |
@@ -98,15 +98,15 @@ Each agent pins the cheapest model that reliably does its job (`model` frontmatt
 
 | Tier | Agents | Rationale |
 |------|--------|-----------|
-| `haiku` (cheapest, ~⅓ of Sonnet) | `test-runner`, `workflow-coach` | Mechanical: run commands and condense output; answer questions from structured docs. No deep reasoning needed |
-| `sonnet` (workhorse) | `code-explorer`, `test-writer`, `documentation-writer`, `product-owner`, `project-scaffolder` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
+| `haiku` (cheapest, ~⅓ of Sonnet) | `code-explorer`, `test-runner`, `workflow-coach` | Mechanical: gather facts and condense them. `code-explorer` scouts the codebase and reports a map — judgment/planning stays with the caller (a stronger model with full task context). `test-runner`/`workflow-coach` run commands and answer from structured docs. No deep reasoning needed |
+| `sonnet` (workhorse) | `test-writer`, `documentation-writer`, `product-owner`, `project-scaffolder` | Solid code understanding and writing, but the hard thinking already happened upstream (specs, vision). Pinning saves significantly when your session runs Opus/Fable |
 | `inherit` (your session model) | `requirements-engineer`, `tech-planner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` | Planning and reviews are where model quality pays off most. You control the tier with `/model` — run Opus for a tricky refinement, Sonnet for routine work |
 
 **Interactive tier choice**: `/pr` asks once per run (supervised mode only) which tier its `inherit`-reviewers should use — **session model** (recommended) / **Opus** / **Fable** / **Sonnet** (Haiku selectable via "Other"). `/refine` doesn't ask: its complexity triage fixes the planning model per tier (small → Sonnet, medium → session model, large → Opus/Fable). The answer is passed as the per-invocation `model` parameter (resolution order: `CLAUDE_CODE_SUBAGENT_MODEL` env var > per-invocation parameter > agent frontmatter > session model), so your session model itself never changes. Pinned agents (haiku/sonnet tiers above) are unaffected. In unsupervised mode the question is skipped and the session model applies.
 
 **`opusplan` suggestion** (session model, distinct from the agent-tier choice above): `/implement` prints a one-time, non-blocking tip suggesting `/model opusplan` — Opus for planning/reasoning, Sonnet for routine execution — because it alternates planning with code-writing, and that split gives strong planning at lower usage-limit consumption than running the whole session on Opus. The same tip appears when you enable unsupervised mode (`/unsupervised on`), since unsupervised runs skip the tier question and apply your session model throughout — that's the moment to set it before walking away. (`/refine` deliberately does **not** suggest it: its planning runs in the `requirements-engineer`/`tech-planner` subagents, which don't benefit from a main-loop plan/execute split.) It's only ever a suggestion; the workflow never changes your model (only you can, via `/model`).
 
-**Pure discovery vs. understanding**: for "where is X?" questions Claude Code's **built-in Explore agent** (Haiku, read-only) is the right tool — the plugin deliberately ships no duplicate. `code-explorer` (Sonnet) is for briefings that need judgment: patterns, pitfalls, interface summaries.
+**Why a project-aware `code-explorer` instead of the built-in Explore agent**: Claude Code ships a generic built-in Explore agent (Haiku, read-only), but it knows nothing about how *your* project is laid out — where the docs live, what the conventions are. `code-explorer` runs on the same cheap Haiku tier but orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`), so its briefings land on the right code faster and cite the project's own conventions. It reports facts (files, interfaces, patterns, call sites); the judgment and planning stay with the caller — the main session or the `tech-planner`, both of which run your session model with full task context. Prefer it over the built-in Explore for any work in this project.
 
 Overrides, from broadest to narrowest:
 - `CLAUDE_CODE_SUBAGENT_MODEL` env var forces one model for **all** subagents (beats everything)

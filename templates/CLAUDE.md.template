@@ -38,7 +38,7 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 
 | Agent | Use when |
 |-------|----------|
-| `code-explorer` | Any codebase question that needs reading more than 3-4 files; before implementing in unfamiliar code |
+| `code-explorer` | Any codebase question that needs reading more than 3-4 files, or "where is X?" discovery; before implementing in unfamiliar code. Project-aware — it reads this project's docs to orient itself |
 | `test-runner` | Any full test/lint run — returns a condensed failure report instead of raw output |
 | `workflow-coach` | The user asks how the dev workflow works or which command to use |
 | `product-owner` | Judging ideas/backlog items against the vision (used by /brainstorm, /prioritize) |
@@ -47,9 +47,9 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 | `test-writer` | Spec-only test creation (used by /implement Phase 1) |
 | `documentation-writer` | Doc updates after implementation (used by /implement) |
 
-Model routing: agents pin their own model (`haiku` for mechanical work, `sonnet` for execution); planning/review agents inherit the session model. `/refine` and `/pr` ask once (supervised mode only) which tier their inherit-agents should use — session model / better-than-Sonnet (`opus`) / `sonnet` / `haiku` — and pass it as the per-invocation `model` parameter. Adjust defaults per agent in `.claude/agents/{name}.md`.
+Model routing: agents pin their own model (`haiku` for mechanical/fact-gathering work, `sonnet` for execution); planning/review agents inherit the session model. `/refine` and `/pr` ask once (supervised mode only) which tier their inherit-agents should use — session model / better-than-Sonnet (`opus`) / `sonnet` / `haiku` — and pass it as the per-invocation `model` parameter. Adjust defaults per agent in `.claude/agents/{name}.md`.
 
-For pure "where is X?" file/symbol discovery, use the **built-in Explore agent** (Haiku) — `code-explorer` is for briefings that need judgment (patterns, pitfalls, interfaces).
+For codebase questions — including "where is X?" discovery — prefer `code-explorer` (Haiku) over the generic built-in Explore agent: it reads this project's own docs to orient itself, so it knows where things live and what the conventions are. It reports facts; keep the judgment and planning in your main context, where the stronger model and full task context live.
 
 ## Skills — invoke proactively
 
