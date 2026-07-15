@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Orchestrate a complete development cycle end-to-end: brainstorm → prioritize → refine → implement → PR → release
+description: "Orchestrate a complete development cycle end-to-end: brainstorm → prioritize → refine → implement → PR → release"
 argument-hint: "[focus area] [patch|minor|major]"
 ---
 
