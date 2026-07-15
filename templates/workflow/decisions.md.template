@@ -26,24 +26,19 @@ Last updated: {{TODAY}}
 ## Refinement
 
 ### Sizing defaults
-How `/refine` scales autonomy, approval, and planning-agent model by assessed ticket size.
+How `/refine` scales autonomy, approval, and the refinement tier (model+effort for planning agents and per-ticket review) by assessed ticket size.
 - **Live in:** `.claude/skills/refine/SKILL.md` — §0.2 tier table
 - **Current:**
 
-  | Tier | Autonomy | Approval | Planning model |
-  |------|----------|----------|----------------|
-  | small | fully-autonomous — no questions | auto-accept | sonnet |
-  | medium | key-questions-only — 1–3 questions | auto-accept | session-model |
-  | large | many-questions — interview mode | manual-approval | opus |
+  | Tier | Autonomy | Approval | Rounds | Refinement tier |
+  |------|----------|----------|--------|-----------------|
+  | trivial | fully-autonomous — no questions | auto-accept | fast-track (1 TP pass) | sonnet-high |
+  | small | fully-autonomous — no questions | auto-accept | 1 | opus-high |
+  | medium | key-questions-only — 1–3 questions | auto-accept | 1 | opus-high |
+  | large | many-questions — interview mode | manual-approval | 3 | best-high |
 
-- **Options:** autonomy ∈ {fully-autonomous, key-questions-only, many-questions} · approval ∈ {auto-accept, manual-approval} · model ∈ {session-model, sonnet, opus, haiku, fable}
+- **Options:** autonomy ∈ {fully-autonomous, key-questions-only, many-questions} · approval ∈ {auto-accept, manual-approval} · rounds ∈ non-negative integer · tier ∈ {sonnet-medium, sonnet-high, opus-medium, opus-high, best-medium, best-high}
 - **Note:** the tier is assessed automatically and applied without asking; you are only consulted on sizing if you explicitly ask to be. In unsupervised mode no questions are asked at any tier and specs are self-approved.
-
-### Iteration rounds
-Max Requirements-Engineer ⇄ Tech-Planner iteration rounds before remaining open questions are handed to the user.
-- **Live in:** `.claude/skills/refine/SKILL.md` — §4 Iteration Loop
-- **Current:** small = single fast-track pass · medium = 1 round · large = 3 rounds
-- **Options:** any non-negative integer per tier.
 
 ---
 
@@ -64,11 +59,11 @@ The checklists that gate refinement→implementation and implementation→merge.
 
 ## Pull Requests & Review
 
-### Review model tier
-Model the code / security / architecture reviewers run on.
+### Review tier rule
+Which model/effort tier the code / security / architecture reviewers run on.
 - **Live in:** `.claude/skills/pr/SKILL.md` — §1 Pre-flight
-- **Current:** session-model (asked per-PR in supervised mode; forced to session-model in unsupervised mode)
-- **Options:** session-model · opus · sonnet · haiku · fable
+- **Current:** single ticket = the ticket's `routing.refinement` tier · multi-ticket or release PR = opus-medium (security-reviewer bumped to opus-high on security-sensitive paths) · no spec = sonnet-high/opus-high by diff size
+- **Options:** any tier ∈ {sonnet-medium, sonnet-high, opus-medium, opus-high, best-medium, best-high} per case
 
 ### Review scope triage
 Threshold below which a small, non-security diff gets code review only (no separate security/architect pass).
@@ -132,13 +127,25 @@ Rate-limit percentage at which unsupervised work pauses to keep headroom for int
 ### Autonomous defaults
 The choices Claude makes for each skill when unsupervised mode is on.
 - **Live in:** `.claude/skills/unsupervised/SKILL.md` — "Autonomous defaults" block
-- **Current:** documented in that skill (refine → autonomous/auto-accept; pr → auto-merge; prioritize → accept recommended slate; commit → auto-fix + commit; model → session model throughout)
+- **Current:** documented in that skill (refine → autonomous/auto-accept; pr → auto-merge; prioritize → accept recommended slate; commit → auto-fix + commit; model/effort → per-ticket routing, re-armed from the checkpoint)
 
 ---
 
-## Agent Model Routing
+## Model & Effort Routing
 
-Which model each subagent runs on (mechanical agents on haiku, executing agents on sonnet, judgment-heavy agents follow the session via `inherit`).
-- **Live in:** each agent file's `model:` frontmatter under `.claude/agents/`
-- **Current:** see the "Model routing" table in the project README / CLAUDE.md
-- **Options:** haiku · sonnet · opus · fable · inherit (per agent)
+### Agent tier pins
+Which model/effort each subagent is pinned to (mechanical → haiku/medium; writers → sonnet/medium; product-owner → sonnet/high; RE/tech-planner → effort high, model per ticket; reviewers → per review tier).
+- **Live in:** each agent file's `model:`/`effort:` frontmatter under `.claude/agents/`
+- **Options:** model ∈ {haiku, sonnet, opus, fable, inherit} · effort ∈ {medium, high} per agent (low/xhigh deliberately unused here)
+
+### Top-tier mapping
+What the `best` tier (route-best-* skills, /consult) resolves to.
+- **Live in:** `.claude/skills/route-best-medium/SKILL.md` + `.claude/skills/route-best-high/SKILL.md` + `.claude/skills/consult/SKILL.md` frontmatter
+- **Current:** `fable` — best-medium = `model: best, effort: medium`; best-high = `model: best, effort: high` (`best` = Fable if available, else latest Opus)
+- **Options:** `fable` (as above) · `opus-compensated` — best-medium = `model: opus, effort: high`; best-high = `model: opus, effort: xhigh`. Switch when Fable access has ended.
+
+### Adaptive routing
+Whether Claude may deviate from planned tiers during execution (see the Adaptive Routing Policy in the project CLAUDE.md).
+- **Live in:** root `CLAUDE.md` — "Adaptive Routing Policy" + `.claude/skills/implement/SKILL.md` — "Adaptive routing during implementation"
+- **Current:** `on` — escalate at medium threshold (consult first), de-escalate at high threshold, gates never adaptive
+- **Options:** `on` · `escalate-only` · `off` (spec routing always applied verbatim)

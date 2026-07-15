@@ -18,6 +18,7 @@
 | `/ship [focus] [patch\|minor\|major]` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
 | `/workflow-update` | Update claude-workflow plugin to latest version |
 | `/resume` | Resume in-progress work after token limit or interruption |
+| `/consult "question"` | Ask the top-tier advisor a hard question (one elevated turn, full context) |
 | `/unsupervised on\|off` | Toggle unsupervised mode (no questions, loop-safe) |
 | `/workflow-decisions [setting]` | View/change a tunable workflow setting; syncs the skill + `docs/workflow/decisions.md` |
 
@@ -47,9 +48,22 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 | `test-writer` | Spec-only test creation (used by /implement Phase 1) |
 | `documentation-writer` | Doc updates after implementation (used by /implement) |
 
-Model routing: agents pin their own model (`haiku` for mechanical/fact-gathering work, `sonnet` for execution); planning/review agents inherit the session model. `/refine` and `/pr` ask once (supervised mode only) which tier their inherit-agents should use — session model / better-than-Sonnet (`opus`) / `sonnet` / `haiku` — and pass it as the per-invocation `model` parameter. Adjust defaults per agent in `.claude/agents/{name}.md`.
-
 For codebase questions — including "where is X?" discovery — prefer `code-explorer` (Haiku) over the generic built-in Explore agent: it reads this project's own docs to orient itself, so it knows where things live and what the conventions are. It reports facts; keep the judgment and planning in your main context, where the stronger model and full task context live.
+
+## Model & Effort Routing
+
+**Session default: Sonnet** (`/model sonnet`) — the workflow elevates itself where quality pays. Two dials, applied automatically:
+
+- **Agents pin their own tier** (frontmatter): mechanical agents run haiku/medium; writers sonnet/medium; RE/tech-planner effort high with the model passed per ticket; reviewers get the review tier per invocation.
+- **The main session's tier is set by `route-*` skills** (`route-sonnet-medium` … `route-best-high`) — each pins model+effort for the rest of the current turn, then reverts. Workflow skills invoke them from the spec's `routing:` block; the checkpoint's `tier:` line re-arms after every wake (see `/resume`).
+
+**Adaptive Routing Policy** (applies to workflow AND ad-hoc work; planned routing is the starting point, this adjusts it):
+
+- **Escalate — medium threshold.** On clear signals only (same failure twice, plan doesn't fit reality, unexpected architecture/security relevance) — not first friction, not gut feeling. **Consult first** (`/consult` — one elevated advisor turn, then back down); re-route one notch up only if the remaining execution itself needs it (ceiling `best-medium` for implementation).
+- **De-escalate — high threshold.** Only at a subtask boundary, only when the remainder is clearly mechanical; one notch, floor `sonnet-medium`.
+- **Gates are never adaptive**: refinement and review tiers come from the spec/policy — never self-downgrade a quality gate.
+- Switch only at phase boundaries (switches invalidate the prompt cache), announce every switch in one line with its reason, at most ~2 unplanned switches per turn.
+- **Always prefer the cheaper worker for a subtask**: delegate mechanical work to haiku agents, use sonnet tiers for routine execution, and reach for `/consult` when stuck or unsure instead of grinding on a too-small model or camping on an expensive one.
 
 ## Skills — invoke proactively
 
@@ -71,6 +85,7 @@ Map plain-language requests to skills:
 | "release", "ship a new version", "bump the version", "publish" | `/release` |
 | "ship a version", "build the next release", "run the full dev cycle", "develop and release everything" | `/ship` |
 | "resume", "continue where we left off", "I was interrupted", "pick up the task" | `/resume` |
+| "I'm stuck", "which approach is better?", a hard architecture/security call | `/consult` |
 | "update the workflow", "upgrade claude-workflow", "get the latest workflow" | `/workflow-update` |
 
 **When in doubt whether a skill applies:** invoke the `workflow-coach` agent with the user's request before doing anything. It reads the workflow docs and skill definitions and will identify the right skill — or confirm none applies. Only invent a custom process after `workflow-coach` confirms no skill covers the situation.
@@ -137,23 +152,10 @@ If `.claude/memory/settings.md` contains `unsupervised: true`:
 
 ## Context Management
 
-Compress the conversation proactively to avoid token exhaustion mid-task. Long sessions accumulate context fast — a single `/implement` run for a non-trivial feature can approach the limit.
+Long sessions accumulate context fast — a single `/implement` run can approach the limit. Claude cannot invoke `/compact` itself (see Multi-Task §3); the levers that ARE yours:
 
-**Compact after every natural boundary:**
-- After each subtask's commit during `/implement` (right before starting the next subtask)
-- After a `/pr` review-and-fix cycle completes
-- After `/refine` finishes and the spec is ready
-- Whenever the conversation exceeds ~40 messages or starts feeling sluggish
+**Keep compaction safe at every natural boundary** (after each subtask commit, after a review cycle, after a refine completes): all changes committed and pushed, checkpoint (`.claude/memory/context-{branch}.md`) current, spec checkboxes matching reality. Then automatic compaction — or a user-triggered `/compact` — can never lose state. Unsafe window: mid-subtask with uncommitted edits; finish the atomic unit first.
 
-**Before every compact, ensure all state is on disk:**
-1. All in-progress changes are committed and pushed
-2. The branch context file (`.claude/memory/context-{branch}.md`) reflects the current task ID, branch, and next step
-3. Spec checkboxes match actual progress (they are the subtask source of truth)
+**Don't bloat the context in the first place:** delegate bulky reading and full test/lint runs to subagents (`code-explorer`, `test-runner`); never dump raw logs or large files into the main context; don't re-read files you already processed — the checkpoint and spec carry the state.
 
-**How to compact:** run `/compact` in Claude Code. The harness summarizes the conversation; the summary plus the memory files give full orientation for the next burst of work.
-
-**After compacting:** read the branch context file (`.claude/memory/context-{branch}.md`) before continuing so you pick up exactly where the work left off.
-
-**Safe vs. unsafe compact windows:**
-- **Safe**: immediately after a successful commit + checkpoint update — everything is persisted
-- **Unsafe**: mid-subtask with uncommitted edits, or while waiting for a tool result — finish the atomic unit first
+**In supervised mode**, at a phase boundary with heavy accumulated context, ask the user to run `/compact` (after securing state as above). **After any compaction:** read the branch context file before continuing.

@@ -55,7 +55,9 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/pr` | CI-first PR with AI review + auto-merge |
 | `/release` | Semver bump + changelog + tag + CI publish |
 | `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
-| `/resume` | Resume interrupted work from checkpoint |
+| `/resume` | Resume interrupted work from checkpoint (re-arms the routing tier) |
+| `/consult` | Top-tier advisor: one elevated turn with full context, then step-down |
+| `/route-{sonnet\|opus\|best}-{medium\|high}` | Internal: pin model+effort for the rest of the turn (6 skills; used by refine/implement/pr per the spec routing block) |
 | `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
 | `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
 | `/workflow-update` | Update plugin files to a newer version |
@@ -64,7 +66,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via a `tools: Read, Grep, Glob` allowlist.
 
-Model routing (`model` frontmatter): mechanical/fact-gathering agents run on `haiku` (code-explorer, test-runner, workflow-coach), executing agents on `sonnet` (test-writer, documentation-writer, product-owner, project-scaffolder), judgment-heavy agents on `inherit` — they follow the session model (RE, tech-planner, all three reviewers). Effort routing (`effort` frontmatter): the four purely mechanical agents (code-explorer, test-runner, workflow-coach, project-scaffolder) pin `effort: low` since the default is `high`; judgment agents stay unpinned so effort scales with the session. See README "Model & effort routing".
+Model & effort routing: mechanical agents pin haiku/medium (code-explorer, test-runner, workflow-coach, project-scaffolder), writers sonnet/medium (test-writer, documentation-writer), product-owner sonnet/high; RE/tech-planner pin `effort: high` and get their model per ticket from the refinement tier; reviewers get the review tier per invocation from `/pr`. The main session's tier is set turn-scoped by the six `route-*` skills, driven by each spec's `routing:` block (written during `/refine`) and re-armed from the checkpoint's `tier:` line. See README "Model & effort routing".
 
 | Agent | When used |
 |-------|-----------|
