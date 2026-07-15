@@ -64,6 +64,8 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 .claude/agents/          ← copy all from temp clone (agents/)
 .claude/skills/          ← copy all from temp clone (skills/, preserving {name}/SKILL.md structure)
 .claude/hooks/*.sh       ← copy all from temp clone (templates/hooks/*.sh)
+.claude/memory/.gitignore ← copy from temp clone (templates/memory/.gitignore) — the ONLY file
+                            touched under memory/; it's a fixed plugin-owned runtime-pattern list
 
 # Smart merge (hook configuration — add new entries, never remove existing ones):
 .claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json;
@@ -78,7 +80,7 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 - `CLAUDE.md` — **except** the plugin-owned workflow sections, refreshed in step 5c; the title, description, `## Architecture`, and any project-authored sections are never modified
 - `CONTRIBUTING.md`
 - `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
-- `.claude/memory/`
+- `.claude/memory/` — **except** `.claude/memory/.gitignore` (plugin-owned runtime-pattern list, refreshed in step 5); the state files themselves (decisions.md, context-*, settings.md, …) are never touched
 - `.claude/workflow-source.json` (updated separately in step 6)
 - Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** any of the template's `permissions.allow` entries that the project is missing (union, never remove)
 - Any project source files
@@ -120,7 +122,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md CLAUDE.md
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md CLAUDE.md
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 

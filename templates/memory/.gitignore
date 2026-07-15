@@ -11,10 +11,8 @@ settings.md
 context.md
 context-*.md
 
-# Headless auto-start marker (written by claude-loop.sh before each headless session)
-auto-start.marker
-
-# Usage guard runtime markers
+# Runtime markers (auto-start.marker, loop-mode.marker — written by claude-loop.sh; usage-guard *.active)
+*.marker
 *.active
 
 # Cached API rate-limit data (refreshed each session)
