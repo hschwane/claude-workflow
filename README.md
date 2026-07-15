@@ -70,7 +70,7 @@ The development lifecycle:
 | `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` (re-arms the ticket's model/effort tier first) |
 | `/consult "question"` | Ask the top-tier advisor: one elevated turn (best/medium) with full session context, records the decision in `.claude/memory/decisions.md`, steps back down |
 | `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
-| `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review models, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
+| `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review tier, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
 
 ## Agents
 

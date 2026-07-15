@@ -1,6 +1,6 @@
 ---
 name: route-best-medium
-description: Set the working tier to the top-tier model at medium effort for the rest of the current turn — for the hardest implementation work and advisor-grade judgment. Invoke when a spec routing block, a workflow skill, or the Adaptive Routing Policy (project CLAUDE.md) directs it. Reverts automatically on the next user prompt.
+description: Set the working tier to the top-tier model at medium effort for the rest of this turn — hardest implementation work and advisor-grade judgment. Invoke per routing block, workflow skill, or Adaptive Routing Policy.
 model: best
 effort: medium
 ---

@@ -1,6 +1,6 @@
 ---
 name: route-best-high
-description: Set the working tier to the top-tier model at high effort for the rest of the current turn — reserved for refining and reviewing large tickets. Never used for implementation or test writing. Invoke when a spec routing block or a workflow skill directs it. Reverts automatically on the next user prompt.
+description: Set the working tier to the top-tier model at high effort for the rest of this turn — reserved for refining/reviewing large tickets, never implementation. Invoke per routing block or workflow skill.
 model: best
 effort: high
 ---

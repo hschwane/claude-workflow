@@ -85,7 +85,7 @@ For the hooks merge: read the `hooks` key of the current `.claude/settings.json`
 
 ### 5b. Re-apply Workflow Decisions (reconcile after overwrite)
 
-Overwriting `.claude/skills/` in step 5 replaced every skill with the plugin defaults — including any settings the user tuned via `/workflow-decisions` (refine sizing, review models, auto-merge, …), whose live values are stored **inside** those skills. `docs/workflow/decisions.md` is a preserved project file and is the record of the chosen values, so replay it back into the fresh skills:
+Overwriting `.claude/skills/` in step 5 replaced every skill with the plugin defaults — including any settings the user tuned via `/workflow-decisions` (refine sizing, review tier, auto-merge, …), whose live values are stored **inside** those skills. `docs/workflow/decisions.md` is a preserved project file and is the record of the chosen values, so replay it back into the fresh skills:
 
 1. Read `docs/workflow/decisions.md`. If it doesn't exist, skip this step (older project — offer to create it from the template).
 2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-decisions` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.

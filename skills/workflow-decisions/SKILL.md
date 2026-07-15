@@ -1,6 +1,6 @@
 ---
 name: workflow-decisions
-description: View or change a workflow decision (refine sizing, testing scope, review models, branching, auto-merge, …) — edits the live value in the skill and keeps docs/workflow/decisions.md in sync
+description: View or change a workflow decision (refine sizing, testing scope, review tier, branching, auto-merge, …) — edits the live value in the skill and keeps docs/workflow/decisions.md in sync
 argument-hint: "[setting | natural-language change] — e.g. \"refine sizing\" | \"make large tickets use fable\""
 disable-model-invocation: true
 ---
@@ -43,7 +43,7 @@ projects. If the user declines, stop.
 - **No argument** — present the settings from `decisions.md` grouped by area and ask
   (AskUserQuestion) which one to change. Then ask for the new value, offering the documented
   **Options** as choices.
-- **A setting name** (`refine sizing`, `testing scope`, `branching`, `review model`, …) —
+- **A setting name** (`refine sizing`, `testing scope`, `branching`, `review tier`, …) —
   show its current value and ask for the new one (offer the **Options**).
 - **A natural-language change** — map it to one or more concrete setting edits yourself.
   State your interpretation as *"You want: {setting} → {new value}"* and, unless in

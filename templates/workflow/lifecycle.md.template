@@ -11,7 +11,7 @@ A raw idea or bug report added with `/draft`. No planning required.
 Spec file created in `docs/specs/backlog/`. Minimal content — just enough to capture the idea.
 
 ### Refine
-Refinement depth scales with a complexity triage (small / medium / large — judged by scope, novelty, risk, and ambiguity, no hard limits). Small specs are fast-tracked through a single combined planning pass that escalates itself if it finds hidden complexity; medium and large specs go through the full Requirements Engineer + Tech Planner iteration until the spec meets the **Definition of Ready**. Larger and more critical specs get more iteration rounds and more clarifying questions.
+Refinement depth scales with a complexity triage (trivial / small / medium / large — judged by scope, novelty, risk, and ambiguity, no hard limits). Trivial specs are fast-tracked through a single combined planning pass that escalates itself if it finds hidden complexity; small, medium, and large specs go through the full Requirements Engineer + Tech Planner iteration until the spec meets the **Definition of Ready**. Larger and more critical specs get more iteration rounds, more clarifying questions, and a higher model/effort tier (see `decisions.md` → Sizing defaults); the tech-planner also decides each ticket's implementation/test tier, recorded in the spec's `routing:` block.
 Triggered with `/refine {id}`. Spec moves to `docs/specs/ready/` when DoR is satisfied.
 
 ### Implement

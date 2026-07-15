@@ -33,7 +33,7 @@ Skip this step in unsupervised mode.
 Explain and ask (AskUserQuestion):
 
 > "The **design phase** (vision workshop, architecture decisions) benefits from high-quality reasoning.  
-> The **scaffolding phase** (file creation, template copying, git setup) will automatically run on a Sonnet subagent to save tokens — your session model does not affect it.  
+> The **scaffolding phase** (file creation, template copying, git setup) will automatically run on a Haiku subagent to save tokens — your session model does not affect it.  
 >  
 > Which model tier do you want for the design phase?"
 
@@ -207,7 +207,7 @@ Run `/reload-skills` so Claude Code picks up the newly installed skills and agen
 Skip this step in unsupervised mode.
 
 The scaffolder created `docs/workflow/decisions.md` — the record of every tunable workflow
-setting (refine sizing defaults, testing scope, review models, branching, auto-merge, …).
+setting (refine sizing defaults, testing scope, review tier, branching, auto-merge, …).
 It ships with sensible defaults. Show the user the **Refinement → Sizing defaults** table
 from that file and note the other settings it lists.
 

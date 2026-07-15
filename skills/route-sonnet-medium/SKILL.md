@@ -1,6 +1,6 @@
 ---
 name: route-sonnet-medium
-description: Set the working tier to sonnet/medium for the rest of the current turn. Invoke when a spec routing block, a workflow skill, or the Adaptive Routing Policy (project CLAUDE.md) directs it. Applies model and effort together; reverts automatically on the next user prompt.
+description: Set the working tier to sonnet/medium for the rest of this turn (reverts on next prompt). Invoke per a spec routing block, a workflow skill, or the Adaptive Routing Policy.
 model: sonnet
 effort: medium
 ---

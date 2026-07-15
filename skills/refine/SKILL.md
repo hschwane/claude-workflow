@@ -108,7 +108,7 @@ The refinement tier's **model** is passed as the per-invocation `model` paramete
 
 **large only:** additionally invoke the `route-best-high` skill now, so the orchestrating judgment of this refine run (iteration decisions, spec assembly) also runs top-tier for the rest of the turn.
 
-State your assessment in one line so the user sees it, then **proceed without asking** — e.g. *"Assessed {id} as **medium** — new interface on the existing parser. Refining with key-questions / auto-accept / session model."* Do not ask the user to confirm the tier or the settings. Offer a tier change **only** if the user has explicitly asked to be consulted on sizing; in that case ask via AskUserQuestion: [Proceed as {tier} / Treat as {lower tier} / Treat as {higher tier}].
+State your assessment in one line so the user sees it, then **proceed without asking** — e.g. *"Assessed {id} as **medium** — new interface on the existing parser. Refining with key-questions / auto-accept / opus-high."* Do not ask the user to confirm the tier or the settings. Offer a tier change **only** if the user has explicitly asked to be consulted on sizing; in that case ask via AskUserQuestion: [Proceed as {tier} / Treat as {lower tier} / Treat as {higher tier}].
 
 In unsupervised mode: state the assessment, ask **no** questions at all (even at the large tier, where `many-questions` collapses to fully-autonomous), and self-approve the finished spec (`auto-accept` regardless of tier).
 
