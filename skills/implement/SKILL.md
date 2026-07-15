@@ -168,6 +168,8 @@ Move the spec to completed:
 
 Clear `## In Progress` from the branch context file (`.claude/memory/context-{branch}.md`).
 
+Invoke `route-sonnet-medium` — implementation is done; whatever follows in this turn (opening the PR, waiting on CI, orchestration) must not keep running on the implementation tier.
+
 Report:
 ```
 Implementation complete ✓

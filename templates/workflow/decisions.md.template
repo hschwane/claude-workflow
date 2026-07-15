@@ -136,6 +136,7 @@ The choices Claude makes for each skill when unsupervised mode is on.
 ### Agent tier pins
 Which model/effort each subagent is pinned to (mechanical → haiku/medium; writers → sonnet/medium; product-owner → sonnet/high; RE/tech-planner → effort high, model per ticket; reviewers → per review tier).
 - **Live in:** each agent file's `model:`/`effort:` frontmatter under `.claude/agents/`
+- **Current:** plugin defaults, exactly as listed in the description above
 - **Options:** model ∈ {haiku, sonnet, opus, fable, inherit} · effort ∈ {medium, high} per agent (low/xhigh deliberately unused here)
 
 ### Top-tier mapping

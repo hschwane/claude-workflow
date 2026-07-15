@@ -154,7 +154,7 @@ Run `/reload-skills` so Claude Code picks up the newly installed skills and agen
 
 ### 4. GitHub Setup (if applicable)
 Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
-- Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, small, medium, large — `--force` because defaults like `bug` already exist)
+- Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, trivial, small, medium, large — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 
 ### 5. Commit

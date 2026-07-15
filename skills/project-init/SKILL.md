@@ -26,25 +26,13 @@ Creates a new software project from scratch with the full claude-workflow infras
   - These are only relevant for the project's chosen language. If the stack is Rust/C++/other and neither runtime is present, that's fine — just note it. If the runtime for the chosen language is missing, print a clear warning (e.g. "⚠ node not found — JS/TS lint/type-check gates in /commit will be skipped until it's installed") and continue.
 - Ask (AskUserQuestion): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
 
-### 0.1 Model Tier for Design Phase (Supervised Mode Only)
+### 0.1 Design-Phase Model Note (Supervised Mode Only)
 
-Skip this step in unsupervised mode.
+Skip this step in unsupervised mode. Print once, non-blocking — do not ask:
 
-Explain and ask (AskUserQuestion):
+> 💡 The design phase (vision, architecture) is interactive across many turns, so the workflow's turn-scoped route skills can't hold a tier here — the session model is what thinks. Sonnet is fine for straightforward projects; for a complex or novel domain, consider `/model opus` (or `best`) for the design phase and switch back to `sonnet` afterwards. The scaffolding phase runs on a Haiku subagent either way.
 
-> "The **design phase** (vision workshop, architecture decisions) benefits from high-quality reasoning.  
-> The **scaffolding phase** (file creation, template copying, git setup) will automatically run on a Haiku subagent to save tokens — your session model does not affect it.  
->  
-> Which model tier do you want for the design phase?"
-
-Options:
-- **Session model** (recommended — proceed as-is; good if already on Opus/Sonnet)
-- **Switch to Opus** — strongest reasoning; ideal for complex domains or tricky architecture decisions
-- **Switch to Fable** — top-tier Claude 5; strong alternative to Opus for complex domains
-- **Switch to Sonnet** — balanced cost/quality; good default
-- (**Haiku** is still selectable via "Other" — cheapest; fine when requirements are already clear and straightforward)
-
-If the user chooses a specific model: tell them to run `/model opus`, `/model fable`, `/model sonnet`, or `/model haiku` now, then confirm when ready. Wait for confirmation before proceeding.
+Continue immediately on the current model unless the user switches.
 
 ### 0.5 Design Document Review (Optional)
 
@@ -289,6 +277,7 @@ gh label create refining --force --color 0075ca --description "Being refined"
 gh label create ready --force --color 0e8a16 --description "Ready to implement"
 gh label create "in-progress" --force --color fbca04 --description "Being implemented"
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
+gh label create trivial --force --color e4f2bf --description "Trivial effort"
 gh label create small --force --color bfd4f2 --description "Small effort"
 gh label create medium --force --color d4c5f9 --description "Medium effort"
 gh label create large --force --color e99695 --description "Large effort"

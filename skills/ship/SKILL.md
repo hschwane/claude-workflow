@@ -99,7 +99,7 @@ unsupervised mode, write `## Blocked: /refine {id} failed` and stop.
 
 ### 4. Implement + PR (pipelined — CI waits are work time)
 
-Process the tickets in priority order with **one open PR at a time**, overlapping each PR's CI/merge waits with work on the next ticket:
+`{base}` below = the integration branch from step 0 (`develop` if it exists, else `main`/`master`). Process the tickets in priority order with **one open PR at a time**, overlapping each PR's CI/merge waits with work on the next ticket:
 
 1. **Implement** the next unimplemented ticket: invoke `/implement {id}` (it branches from the integration branch and leaves you on the feature branch).
 2. **Open its PR**: merge the base in first (`git fetch origin {base} && git merge origin/{base} --no-edit`; conflicts → supervised: ask, unsupervised: `## Blocked` and stop), then invoke `/pr`.

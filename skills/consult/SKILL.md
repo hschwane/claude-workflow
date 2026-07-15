@@ -8,6 +8,10 @@ effort: medium
 
 # Consult (Advisor)
 
+<!-- top-tier mapping: fable (current). Tunable via /workflow-decisions "Top-tier mapping":
+     fable            → model: best, effort: medium  (best = Fable if available, else latest Opus)
+     opus-compensated → model: opus, effort: high    (use when Fable access has ended) -->
+
 You are now on the top tier for the rest of this turn, with the full session context. This is a consultation, not a work session — no implementation on this tier.
 
 1. **Ground yourself.** Read `.claude/memory/decisions.md` and, if the question is architectural, `docs/dev/architecture.md` plus any relevant ADR in `docs/dev/adr/`.

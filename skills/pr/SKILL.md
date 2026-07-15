@@ -28,8 +28,8 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
 - **Determine the review tier** (no question — derived from the specs in the diff):
   - Collect the spec files touched by or linked to this branch (`docs/specs/**` in the diff, or the checkpoint's spec pointer) and read each spec's `routing.refinement`.
   - **Single ticket** → review tier = that ticket's `routing.refinement` (e.g. `opus-high`).
-  - **Multiple tickets, or a release-integration PR** (e.g. develop → master) → review tier = `opus-medium` (bulk reviews run cheaper; the per-ticket gates already ran at full tier). Exception: if the diff touches security-sensitive paths (see step 4b), pass `opus` at high to the **security-reviewer** only.
-  - No spec found (ad-hoc branch) → `sonnet-high` for small routine diffs, `opus-high` otherwise.
+  - **Multiple tickets, or a release-integration PR** (e.g. develop → master) → review tier = `opus-medium` (bulk reviews run cheaper; the per-ticket gates already ran at full tier). Exception for security-sensitive paths: see step 6.
+  - No spec found (ad-hoc branch), or the spec predates routing (no/empty `routing:` block) → `sonnet-high` for small routine diffs, `opus-high` otherwise.
   - State the chosen tier in one line. The tier's **model** is passed per-invocation to the three reviewers; its **effort** is applied by invoking the matching route skill immediately before the review phase (step 4b) — not now, so the CI wait stays on the cheap session model.
 
 ### 2. Create Pull Request
@@ -62,6 +62,7 @@ task: PR for {branch}
 phase: pr
 branch: {branch}
 pr_url: {pr_url}
+tier: {review tier from pre-flight — /resume re-arms it before the review phase}
 last_completed: "PR created (draft)"
 next_step: "Wait for CI, then run code review"
 saved_at: {timestamp}
@@ -110,7 +111,7 @@ Repeat until all checks show `pass`, or at least one shows `fail`. Each poll is 
 >
 > If NO schedule-a-future-message tool is available (local session with an attached terminal), fall back to polling every 30 seconds with separate Bash calls (still never `--watch`).
 
-**Use the wait productively (queued work only):** if this run has more tickets queued (multi-ticket `/ship` or an explicit work order) and CI is still pending, advance the **next ticket's refinement** instead of idling — planning only, never its implementation, and never code changes on this PR's branch while its CI runs. Mechanics: working tree must be clean → `git checkout {base}` → run the `/refine` flow for the next ticket (it commits only spec files and keeps its own checkpoint) → `git checkout {branch}` before re-checking CI or ending the turn. A CI failure always takes priority: switch back and fix first; the interrupted refinement resumes later from its checkpoint.
+**Use the wait productively (queued work only):** if this run has more tickets queued (multi-ticket `/ship` or an explicit work order) and CI is still pending, advance the **next ticket's work** instead of idling — its refinement if still missing, or (in a `/ship` pipeline) its implementation on its **own** feature branch. Never make code changes on this PR's branch while its CI runs. Mechanics: working tree must be clean → `git checkout {base}` → continue the next ticket per its skill (own branch, own checkpoint, own `tier:`) → return to `{branch}` before re-checking CI or ending the turn. A CI failure always takes priority: switch back and fix first; the interrupted work resumes later from its checkpoint.
 
 **HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
@@ -163,6 +164,8 @@ Apply the deferred-findings policy from step 4b to each `[SUGGESTION]` finding:
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
 ### 6. Security Review (skipped on the light-review path — see 4b)
+On a bulk PR (armed at `route-opus-medium`) whose diff touches security-sensitive paths: invoke `route-opus-high` before this review, and re-arm `route-opus-medium` afterwards if the architect review still runs — security findings deserve full depth even on bulk diffs.
+
 Invoke the `security-reviewer` subagent (pass the review tier's model per-invocation) with:
 - Input: `git diff origin/{base}...HEAD`
 

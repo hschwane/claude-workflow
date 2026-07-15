@@ -55,20 +55,13 @@ Two sessions both on `feature/feat-001-login` will race to write the same checkp
 
 ## Context Management
 
-Long sessions (especially `/implement` on a non-trivial feature) can approach the context limit. Compress proactively rather than reactively.
+Long sessions (especially `/implement` on a non-trivial feature) can approach the context limit. Claude cannot trigger `/compact` itself — the working rules are:
 
-**When to run `/compact`:**
-- After each subtask's commit — right before starting the next one
-- After a `/pr` review-and-fix cycle closes
-- After `/refine` finishes (before `/implement` begins)
-- Whenever the conversation exceeds ~40 messages
+**Keep compaction safe at every natural boundary** (after each subtask commit, after a review cycle, after a refine completes): commit and push all changes, keep the branch context file (`.claude/memory/context-{branch}.md`) current, and make spec checkboxes reflect actual progress. Then automatic compaction — or a user-run `/compact` at a phase boundary — never loses state.
 
-**Before every compact:**
-1. Commit and push all in-progress changes
-2. Update the branch context file (`.claude/memory/context-{branch}.md`) with task ID and next step
-3. Confirm spec checkboxes reflect actual progress
+**Avoid bloat**: bulky reading and full test runs go to subagents; raw logs and large files stay out of the main context.
 
-After compacting, read the branch context file to re-orient before continuing.
+After any compaction, Claude reads the branch context file to re-orient before continuing.
 
 ---
 

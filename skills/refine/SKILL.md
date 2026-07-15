@@ -58,7 +58,8 @@ with the user's answers and finish the remaining steps — trivial tickets run t
 **Checkpoint (resumability).** Write the batch state to `.claude/memory/context-{branch}.md`:
 the full list of IDs, the current phase (`gathering` / `awaiting-answers` / `completing`), and
 per-ticket status (`pending` / `questions-collected` / `answered` / `ready` / `held-for-approval`
-/ `blocked`) plus each ticket's collected questions and answers. Update it after each ticket in
+/ `blocked`) plus each ticket's collected questions, answers, and refinement tier (elevate/step
+down per ticket — a large ticket's `route-best-high` never spans other tickets). Update it after each ticket in
 Phase A, after Phase B (record answers), and after each ticket completes in Phase C — so a crash
 resumes at the right phase without re-asking answered questions.
 
@@ -106,7 +107,7 @@ The tier also fixes the process settings and the **refinement tier** (model+effo
 
 The refinement tier's **model** is passed as the per-invocation `model` parameter to the `requirements-engineer` + `tech-planner` subagents (trivial → `sonnet`, small/medium → `opus`, large → `fable`; if fable is unavailable it falls back automatically). Their **effort** is pinned `high` in their frontmatter. Pinned agents like `code-explorer` are unaffected.
 
-**large only:** additionally invoke the `route-best-high` skill now, so the orchestrating judgment of this refine run (iteration decisions, spec assembly) also runs top-tier for the rest of the turn.
+**large only:** additionally invoke the `route-best-high` skill now, so the orchestrating judgment of this refine run (iteration decisions, spec assembly) also runs top-tier. **Step down again** (invoke `route-sonnet-medium`) as soon as this ticket's spec is assembled (after step 5b) — the elevation must not leak into other tickets in a multi-ticket batch, a `/ship` run, or a `/pr` CI wait.
 
 State your assessment in one line so the user sees it, then **proceed without asking** — e.g. *"Assessed {id} as **medium** — new interface on the existing parser. Refining with key-questions / auto-accept / opus-high."* Do not ask the user to confirm the tier or the settings. Offer a tier change **only** if the user has explicitly asked to be consulted on sizing; in that case ask via AskUserQuestion: [Proceed as {tier} / Treat as {lower tier} / Treat as {higher tier}].
 
@@ -132,6 +133,7 @@ phase: refine
 spec_file: {spec_path}
 autonomy: {level}
 approval: {mode}
+tier: {refinement tier from §0.2 — /resume re-arms it (relevant for large tickets)}
 last_completed: "Started refinement"
 next_step: "Phase 1: Requirements Engineer analysis"
 saved_at: {timestamp}
