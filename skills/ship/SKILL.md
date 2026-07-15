@@ -97,34 +97,19 @@ After it returns:
 If `/refine` reports a blocker on a ticket: in supervised mode, ask how to proceed; in
 unsupervised mode, write `## Blocked: /refine {id} failed` and stop.
 
-### 4. Implement (each item, sequential)
+### 4. Implement + PR (pipelined — CI waits are work time)
 
-For each refined item in order:
-1. Invoke `/implement {id}`
-2. After completion, capture the feature branch name: `git branch --show-current`
-3. Tick off `- [ ] Implement {id}` → `- [x]`
-4. Update the `PR + merge` entries in the task list with the actual branch name
-5. Update `next_step`
+Process the tickets in priority order with **one open PR at a time**, overlapping each PR's CI/merge waits with work on the next ticket:
 
-Note: `/implement` leaves you on the feature branch. The next `/implement` automatically returns to the integration branch and creates a new branch — no manual switching needed.
+1. **Implement** the next unimplemented ticket: invoke `/implement {id}` (it branches from the integration branch and leaves you on the feature branch).
+2. **Open its PR**: merge the base in first (`git fetch origin {base} && git merge origin/{base} --no-edit`; conflicts → supervised: ask, unsupervised: `## Blocked` and stop), then invoke `/pr`.
+3. **Fill the waits**: whenever `/pr` arms a CI/merge wait, don't idle — if another ticket is queued, switch to it and continue its work (implementation, or refinement if still missing): tree must be clean (finish/commit the current subtask first), `git checkout {base}`, proceed; its checkpoint and `tier:` line track progress across switches.
+4. **PR events always win**: on a CI failure, review round, or merge-ready signal, finish/commit the in-flight subtask, switch back to the PR branch, handle it per `/pr`, then return to the interrupted ticket via its checkpoint (re-arm its tier).
+5. When the open PR is **merged + post-merge CI green**: tick off `- [ ] PR + merge: {branch}`, update `next_step`, and open the next ticket's PR as soon as its implementation completes (merge order = priority order; never two open PRs, never code changes on a PR branch except its own CI/review fixes).
 
-In supervised mode: after all implementations are done, ask the user to run `/compact` before the PR phase; wait for confirmation. In unsupervised mode: proceed directly.
+In supervised mode: between tickets, ask the user to run `/compact` when the session has accumulated heavy context; in unsupervised mode rely on checkpoints + automatic compaction (keep them current — see the context-hygiene rule in `/implement`).
 
-### 5. PR + Merge (each feature branch, sequential)
-
-For each feature branch in implementation order:
-1. Check out the branch: `git checkout {feature_branch}`
-2. Merge the base branch into the feature branch to incorporate any earlier merges:
-   ```bash
-   git fetch origin {base}
-   git merge origin/{base} --no-edit
-   ```
-   If merge conflicts: in supervised mode, ask the user to resolve them; in unsupervised mode, write `## Blocked: merge conflict on {feature_branch}` and stop.
-3. Invoke `/pr` (targets the integration branch)
-4. After the PR is merged and post-merge CI passes, tick off `- [ ] PR + merge: {branch}` → `- [x]`
-5. Update `next_step`
-
-### 6. Release
+### 5. Release
 
 Check out the integration branch: `git checkout {develop|main} && git pull`.
 
@@ -132,7 +117,7 @@ Invoke `/release {bump_type}`.
 
 After completion: tick off `- [ ] Release {bump_type}` → `- [x]`. Clear `## In Progress` from the context file.
 
-### 7. Report
+### 6. Report
 
 ```
 Ship complete ✓

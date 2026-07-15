@@ -55,7 +55,10 @@ Before continuing, read the relevant files:
 Verify the git state matches the checkpoint (correct branch, expected files). If the spec's checkboxes and the git log disagree, trust the git log and fix the checkboxes.
 
 ### 4. Continue Work
-Continue from the `Next step` in the checkpoint by invoking the appropriate skill behavior:
+
+**Re-arm the tier first:** if the checkpoint has a `tier:` line, invoke the matching route skill (e.g. `route-opus-high`) before doing anything else — model/effort routing reverts on every new turn and must be re-applied here.
+
+Then continue from the `Next step` in the checkpoint by invoking the appropriate skill behavior:
 - If `phase: implement` and `next_step` is a subtask → continue implementing that subtask
 - If `phase: refine` → continue the refinement loop
 - If `phase: pr` → check if CI is running, pick up from there
@@ -73,6 +76,7 @@ task: FEAT-001 - OAuth Login
 phase: implement
 branch: feature/feat-001-oauth-login
 spec_file: docs/specs/ready/FEAT-001-oauth-login.md
+tier: sonnet-medium
 last_completed: "Subtask #2: Implement GoogleOAuthProvider — committed abc1234"
 next_step: "Implement Subtask #3: GitHubOAuthProvider in src/auth/providers/github.ts"
 saved_at: 2026-06-10T14:32:00Z

@@ -25,14 +25,12 @@ Creates a pull request, waits for CI to pass, runs AI code reviews, applies all 
   - otherwise: `main` / `master`
 - Push the feature branch if not already pushed: `git push -u origin {branch}` (pushing feature branches is always allowed — the quality gate applies to the merge, not the push)
 - Check that the branch has commits not on the base: `git log origin/{base}..HEAD --oneline`
-- **Model tier for the review agents** — the three reviewers are `model: inherit` agents; pass the choice as the per-invocation `model` parameter.
-  - In unsupervised mode: use `session-model` — do not ask.
-  - In supervised mode: ask now (before the CI wait, so the user can walk away). Ask (AskUserQuestion): "Which model quality for the code/security/architecture reviews?"
-    - `session-model` (recommended — name the current session model in the option label)
-    - `opus`: pass `opus` — strongest reasoning; for large or risky diffs when the session runs Sonnet
-    - `fable`: pass `fable` — top-tier alternative to Opus; for large or risky diffs
-    - `sonnet`: pass `sonnet` — saves budget when the session runs Opus/Fable and the diff is routine
-    - (`haiku` is still selectable via "Other" but not recommended — review depth, especially security, will suffer)
+- **Determine the review tier** (no question — derived from the specs in the diff):
+  - Collect the spec files touched by or linked to this branch (`docs/specs/**` in the diff, or the checkpoint's spec pointer) and read each spec's `routing.refinement`.
+  - **Single ticket** → review tier = that ticket's `routing.refinement` (e.g. `opus-high`).
+  - **Multiple tickets, or a release-integration PR** (e.g. develop → master) → review tier = `opus-medium` (bulk reviews run cheaper; the per-ticket gates already ran at full tier). Exception: if the diff touches security-sensitive paths (see step 4b), pass `opus` at high to the **security-reviewer** only.
+  - No spec found (ad-hoc branch) → `sonnet-high` for small routine diffs, `opus-high` otherwise.
+  - State the chosen tier in one line. The tier's **model** is passed per-invocation to the three reviewers; its **effort** is applied by invoking the matching route skill immediately before the review phase (step 4b) — not now, so the CI wait stays on the cheap session model.
 
 ### 2. Create Pull Request
 ```
@@ -112,6 +110,8 @@ Repeat until all checks show `pass`, or at least one shows `fail`. Each poll is 
 >
 > If NO schedule-a-future-message tool is available (local session with an attached terminal), fall back to polling every 30 seconds with separate Bash calls (still never `--watch`).
 
+**Use the wait productively (queued work only):** if this run has more tickets queued (multi-ticket `/ship` or an explicit work order) and CI is still pending, advance the **next ticket's refinement** instead of idling — planning only, never its implementation, and never code changes on this PR's branch while its CI runs. Mechanics: working tree must be clean → `git checkout {base}` → run the `/refine` flow for the next ticket (it commits only spec files and keeps its own checkpoint) → `git checkout {branch}` before re-checking CI or ending the turn. A CI failure always takes priority: switch back and fix first; the interrupted refinement resumes later from its checkpoint.
+
 **HARD RULE: Do not proceed to the next step until all CI checks pass. This applies unconditionally — not even reviews run before CI is green.**
 
 **If CI fails:**
@@ -139,13 +139,15 @@ Check the file list for **security-sensitive paths**: authentication/session/cry
 - **Light review** — fewer than ~200 changed lines AND no security-sensitive files: run ONLY step 5 (code review). Skip steps 6 and 7.
 - **Full review** — everything else: run steps 5, 6, and 7 (architect review still conditional per its own criteria). A diff touching security-sensitive files gets the dedicated security review **regardless of size**.
 
+**Apply the review tier now:** invoke the route skill matching the tier determined in pre-flight (e.g. `route-opus-high`, or `route-opus-medium` for bulk PRs) — reviews and the judgment on their findings run on this tier. After the last review of this turn completes (before the merge-wait phases), invoke `route-sonnet-medium` to step back down.
+
 **Deferred-findings policy** (governs steps 5–7 below; tunable via `/workflow-decisions` — see `docs/workflow/decisions.md`):
 - **Light-review path** (small, single-feature diff): also fix `[SUGGESTION]` findings immediately, same as `[MUST FIX]` — the diff is small enough that fixing them costs little and there's no later full review to catch them if deferred.
 - **Full-review path** (larger or bundled diff): `[SUGGESTION]` / `[INFO]` findings are report-only — list them in the final report (step 11), do not fix.
 - `[CONCERN]` and `[ADR NEEDED]` from the architect review are **always** report-only regardless of path — they call for a human architectural judgment, not a mechanical fix.
 
 ### 5. Code Review
-Invoke the `code-reviewer` subagent (apply the model tier chosen in pre-flight) with:
+Invoke the `code-reviewer` subagent (pass the review tier's model per-invocation) with:
 - Input: `git diff origin/{base}...HEAD` (full diff)
 - Input: root `CLAUDE.md` and `docs/dev/` style guides
 - If step 4b chose the light path, add: *"You are the only reviewer for this small, low-risk diff — also check security basics (injection, secrets in code, unsafe input handling) and structural fit."*
@@ -161,7 +163,7 @@ Apply the deferred-findings policy from step 4b to each `[SUGGESTION]` finding:
 If any commits were pushed, run the CI gate loop from step 4 before proceeding. Do not start the security review until CI is green.
 
 ### 6. Security Review (skipped on the light-review path — see 4b)
-Invoke the `security-reviewer` subagent (apply the model tier chosen in pre-flight) with:
+Invoke the `security-reviewer` subagent (pass the review tier's model per-invocation) with:
 - Input: `git diff origin/{base}...HEAD`
 
 For each `[CRITICAL]`, `[HIGH]`, or `[MODERATE]` finding:
@@ -178,7 +180,7 @@ Only run if the diff includes:
 - Changes to module exports or public interfaces
 - Changes to `docs/dev/architecture.md` or ADRs
 
-Invoke the `architect-reviewer` subagent (apply the model tier chosen in pre-flight) with:
+Invoke the `architect-reviewer` subagent (pass the review tier's model per-invocation) with:
 - Input: `git diff origin/{base}...HEAD`
 - Input: `docs/dev/architecture.md`
 - Input: any ADRs in `docs/dev/adr/`

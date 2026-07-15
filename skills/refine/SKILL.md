@@ -28,8 +28,8 @@ Run the branch check (step 0) once, then:
 run setup + triage (steps 0.1–0.2) and the analysis that surfaces user questions — the RE
 phase (step 2), plus a Tech-Planner pass (step 3) for medium/large tickets. **Defer every
 `AskUserQuestion`:** instead of asking, collect each `[USER]` question, tagged with its
-ticket ID, and save the intermediate agent outputs in that ticket's checkpoint. small tickets
-(fast-track, no questions) need nothing here. Respect each ticket's size-based question budget
+ticket ID, and save the intermediate agent outputs in that ticket's checkpoint. trivial and
+small tickets (no questions) need nothing here. Respect each ticket's size-based question budget
 from §0.2 when deciding which questions are worth surfacing.
 
 **Phase B — Ask once.** Present all collected questions across all tickets in a single
@@ -39,10 +39,10 @@ If **no** questions were collected (e.g. all small/medium with no blockers), ski
 Phase C without prompting.
 
 **Phase C — Complete (all tickets, autonomous).** For each ticket, resume from its checkpoint
-with the user's answers and finish the remaining steps — small tickets run the fast-track path
-(step 1b) then steps 5–5b; medium/large tickets finish steps 3–5b (TP iteration, assemble spec,
-draft out-of-scope follow-ups). Then:
-- **auto-accept** tickets (small/medium) → move to `ready` immediately (step 7).
+with the user's answers and finish the remaining steps — trivial tickets run the fast-track path
+(step 1b) then steps 5–5b; small tickets run steps 2–5b; medium/large tickets finish steps 3–5b
+(TP iteration, assemble spec, draft out-of-scope follow-ups). Then:
+- **auto-accept** tickets (trivial/small/medium) → move to `ready` immediately (step 7).
 - **manual-approval** tickets (large) → refine fully but **hold in backlog**, queued for the
   end-of-run review.
 - If a **new** `[USER]` question surfaces here that Phase B didn't cover, do **not** block —
@@ -88,27 +88,40 @@ Read the spec file. Read `docs/VISION.md`. Read root `CLAUDE.md` for architectur
 
 Assess the draft's complexity. This is a judgment call — there are **no hard limits** (subtask counts etc.); weigh scope, novelty, risk, and ambiguity together:
 
+- **trivial** — mechanical or cosmetic change, fully unambiguous, no interface or security impact (typo-level fixes, config tweaks, copy changes)
 - **small** — isolated change in known territory: few components affected, no new public interfaces (or only trivial extensions of existing ones), no security relevance, scope is unambiguous
 - **medium** — moderate scope: new interfaces or several components affected, some ambiguity to resolve
 - **large** — new architecture or patterns, security-relevant, cross-cutting, breaking changes, or significant ambiguity
 
 **When uncertain between two tiers, pick the higher one.** The tier scales the whole process: how many agents run, how many iteration rounds are allowed, and how many clarifying questions the user gets.
 
-The tier also fixes the three process settings — autonomy, approval, and planning-agent model — via this table. **Apply them automatically; do not ask.**
+The tier also fixes the process settings and the **refinement tier** (model+effort for planning agents and, per project policy, the review of this ticket) via this table. **Apply them automatically; do not ask.**
 
-| Tier | Autonomy | Approval | Planning model |
-|------|----------|----------|----------------|
-| **small** | `fully-autonomous` — no questions | `auto-accept` | `sonnet` |
-| **medium** | `key-questions-only` — 1–3 critical questions max | `auto-accept` | `session-model` |
-| **large** | `many-questions` — interview mode | `manual-approval` | `opus` (or `fable`) |
+| Tier | Autonomy | Approval | Rounds | Refinement tier |
+|------|----------|----------|--------|-----------------|
+| **trivial** | `fully-autonomous` — no questions | `auto-accept` | fast-track (1 TP pass) | `sonnet-high` |
+| **small** | `fully-autonomous` — no questions | `auto-accept` | 1 | `opus-high` |
+| **medium** | `key-questions-only` — 1–3 critical questions max | `auto-accept` | 1 | `opus-high` |
+| **large** | `many-questions` — interview mode | `manual-approval` | 3 | `best-high` |
 
-The planning model is passed as the per-invocation `model` parameter to the `requirements-engineer` + `tech-planner` subagents (both `model: inherit`); pinned agents like `code-explorer` are unaffected.
+The refinement tier's **model** is passed as the per-invocation `model` parameter to the `requirements-engineer` + `tech-planner` subagents (trivial → `sonnet`, small/medium → `opus`, large → `fable`; if fable is unavailable it falls back automatically). Their **effort** is pinned `high` in their frontmatter. Pinned agents like `code-explorer` are unaffected.
+
+**large only:** additionally invoke the `route-best-high` skill now, so the orchestrating judgment of this refine run (iteration decisions, spec assembly) also runs top-tier for the rest of the turn.
 
 State your assessment in one line so the user sees it, then **proceed without asking** — e.g. *"Assessed {id} as **medium** — new interface on the existing parser. Refining with key-questions / auto-accept / session model."* Do not ask the user to confirm the tier or the settings. Offer a tier change **only** if the user has explicitly asked to be consulted on sizing; in that case ask via AskUserQuestion: [Proceed as {tier} / Treat as {lower tier} / Treat as {higher tier}].
 
 In unsupervised mode: state the assessment, ask **no** questions at all (even at the large tier, where `many-questions` collapses to fully-autonomous), and self-approve the finished spec (`auto-accept` regardless of tier).
 
 Update spec status to `refining`.
+
+### 0.3 Bug Evidence (type: bug only)
+
+Before planning a bug fix, try to ground it in real evidence — autonomously:
+
+1. **Application logs**: if the project is deployed (see `docs/workflow/deploy.md`), pull recent logs from the platform — e.g. via the Railway MCP tools (`get_logs` for the affected service/deployment) or the platform CLI. Filter around the reported symptom/timeframe.
+2. **Local evidence**: failing test output, stack traces in the report, `git log` of recently changed files in the affected area.
+
+Condense findings to a short `EVIDENCE:` block (≤15 lines: relevant log excerpts, error signatures, suspicious commits) and pass it to the RE/TP inputs below. If no logs are accessible, note that and continue — don't block on it.
 
 ### 1. Save Checkpoint
 Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md`:
@@ -124,9 +137,9 @@ next_step: "Phase 1: Requirements Engineer analysis"
 saved_at: {timestamp}
 ```
 
-### 1b. Fast-Track Path (small specs only)
+### 1b. Fast-Track Path (trivial specs only)
 
-For **small** specs, skip steps 2–4 entirely:
+For **trivial** specs, skip steps 2–4 entirely:
 
 1. **Codebase context**: if the affected files are already obvious from the current session, assemble a short summary yourself; otherwise invoke `code-explorer` as described in step 3.
 2. Invoke the `tech-planner` subagent ONCE in fast-track mode (apply `model: sonnet` per the §0.2 tier table) with:
@@ -137,16 +150,17 @@ For **small** specs, skip steps 2–4 entirely:
    ARCHITECTURE: {docs/dev/architecture.md content if exists}
    ```
    No `RE_OUTPUT` — in fast-track mode the tech-planner derives the user story and acceptance criteria itself before planning.
-3. **If its output starts with `ESCALATE:`** — the spec is more complex than assessed. Inform the user, re-tier to medium (or large if the reason warrants), and run the normal steps 2–4; the partial output is useful context for the RE.
+3. **If its output starts with `ESCALATE:`** — the spec is more complex than assessed. Inform the user, re-tier to small/medium (or large if the reason warrants), and run the normal steps 2–4; the partial output is useful context for the RE.
 4. Otherwise: continue at step 5, using the combined output for both the RE sections and the TP sections.
 
 ### 2. Requirements Engineering Phase
 
-Invoke the `requirements-engineer` subagent (isolated context; apply the planning model from the §0.2 tier table as the invocation's `model` parameter) with:
+Invoke the `requirements-engineer` subagent (isolated context; apply the refinement-tier model from the §0.2 table as the invocation's `model` parameter) with:
 ```
 DRAFT: {full spec file content}
 VISION: {docs/VISION.md content}
 CONTEXT: {root CLAUDE.md first 80 lines}
+EVIDENCE: {bug evidence block from §0.3, if any}
 ```
 
 Read the RE output. Check:
@@ -157,11 +171,12 @@ Update checkpoint.
 
 ### 3. Tech Planning Phase
 
-Invoke the `tech-planner` subagent (isolated context; apply the planning model from the §0.2 tier table) with:
+Invoke the `tech-planner` subagent (isolated context; apply the refinement-tier model from the §0.2 table) with:
 ```
 RE_OUTPUT: {requirements engineer's output}
 CODEBASE_SUMMARY: {result of reading: tree structure + key src/ files}
 ARCHITECTURE: {docs/dev/architecture.md content if exists}
+EVIDENCE: {bug evidence block from §0.3, if any}
 ```
 
 For the codebase summary, invoke the `code-explorer` subagent with:
@@ -191,7 +206,7 @@ If `[USER]` questions remain from either agent — scale to the tier:
 Continue iterating until:
 - No open questions from either agent
 - Both RE sign-off and TP sign-off present in their outputs
-- OR: maximum iteration rounds reached — **1 round for medium, 3 for large** (then ask the user to resolve remaining questions manually)
+- OR: maximum iteration rounds reached — **1 round for small/medium, 3 for large** (then ask the user to resolve remaining questions manually)
 
 Update checkpoint after each iteration.
 
@@ -204,7 +219,13 @@ Merge the RE output and TP output into the spec file:
 id: {original id}
 type: {type}
 status: ready
-size: {small|medium|large — the §0.2 triage tier, re-tiered if the fast-track escalated}
+size: {trivial|small|medium|large — the §0.2 triage tier, re-tiered if the fast-track escalated}
+routing:
+  refinement: {tier from the §0.2 table, e.g. opus-high}
+  implementation: {from the TP output's Routing Recommendation; default sonnet-medium.
+                   Allowed: sonnet-medium | sonnet-high | opus-medium | opus-high | best-medium (hardest only).
+                   Never best-high or haiku.}
+  test_writing: {model only, from TP: sonnet (default) | opus; never above the implementation model}
 version: {original value — preserve the milestone assigned by /draft or /project-init}
 created: {original date}
 updated: {today}
@@ -303,7 +324,8 @@ Spec ready ✓
 {id}: {title}
 Status: → ready
 Subtasks: {N}
-Size: {small|medium|large}
+Size: {trivial|small|medium|large}
+Routing: impl {tier} · tests {model}
 Iterations: {N}
 
 Next: /implement {id}   to start implementation

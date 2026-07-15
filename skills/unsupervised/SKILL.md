@@ -52,12 +52,14 @@ Autonomous defaults:
   /prioritize   — accept the product-owner's recommended slate (never archives specs)
   /release      — requires bump type as argument (/release patch|minor|major)
   /commit       — auto-fix linter issues, commit without confirmation
-  model tier    — never asked; your session model applies throughout
+  model/effort  — never asked; per-ticket routing from the spec applies
+                  automatically (route skills re-arm from the checkpoint's
+                  tier line on every wake — see /resume)
 
-💡 Before you walk away, consider: /model opusplan
-  Unsupervised mode skips the per-run model-tier question and applies your
-  session model to everything. opusplan (Opus plans, Sonnet executes) gives
-  strong planning at lower usage-limit consumption than running all on Opus.
+💡 Before you walk away: set the session to Sonnet (/model sonnet).
+  The workflow elevates itself per ticket via route skills (refinement and
+  reviews run on Opus or the top tier automatically); a pricier session
+  model only raises the cost of orchestration and CI waits, not quality.
 
 Blockers that will STOP the work (require human attention):
   - Merge conflict that cannot be auto-resolved

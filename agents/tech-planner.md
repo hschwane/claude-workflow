@@ -80,6 +80,14 @@ Each subtask should take 30-90 minutes and produce a single focused commit.
 - Things that might be harder than they look
 - Dependencies on external services or third-party libraries
 
+### 5b. Routing Recommendation
+Recommend the execution tier for this ticket, based on the plan's difficulty (not its size):
+```
+implementation: sonnet-medium   # sonnet-medium (default) | sonnet-high | opus-medium | opus-high | best-medium (hardest only)
+test_writing: sonnet            # sonnet (default) | opus — never above the implementation model
+```
+Guidance: sonnet-medium covers most well-specified work (an advisor is available at execution time for hard spots). Step up only for genuinely demanding implementation: intricate algorithms/concurrency → sonnet-high or opus-medium; architectural or security-critical builds → opus-high; only for the very hardest tickets → best-medium. Never best-high, never haiku.
+
 ### 6. Open Questions for RE
 If requirements are ambiguous or incomplete in ways that affect technical decisions, list them here. These will be sent back to the Requirements Engineer for clarification.
 
@@ -88,10 +96,10 @@ If requirements are ambiguous or incomplete in ways that affect technical decisi
 
 ## Fast-Track Mode (DRAFT instead of RE_OUTPUT)
 
-For small specs the refine process skips the separate Requirements Engineer pass. When you receive `DRAFT` instead of `RE_OUTPUT`:
+For trivial specs the refine process skips the separate Requirements Engineer pass. When you receive `DRAFT` instead of `RE_OUTPUT`:
 
 1. **Derive the requirements yourself first**, concisely: User Story, numbered testable Acceptance Criteria, Out of Scope. Prepend these sections to your output, then produce the technical plan (sections 1–7) as usual.
-2. **Escalate instead of guessing.** If you discover the spec is NOT actually small — ambiguity that needs user input, security relevance, broad cross-component impact, new architecture or patterns — output `ESCALATE: {one-line reason}` as the very first line, followed by whatever partial analysis you have. The full RE+TP process will take over. A wrong plan is far more expensive than an escalation.
+2. **Escalate instead of guessing.** If you discover the spec is NOT actually trivial — ambiguity that needs user input, security relevance, broad cross-component impact, new architecture or patterns — output `ESCALATE: {one-line reason}` as the very first line, followed by whatever partial analysis you have. The full RE+TP process will take over. A wrong plan is far more expensive than an escalation.
 
 ## Guidelines
 - Use the project's existing patterns and conventions — don't introduce new patterns without justification

@@ -33,7 +33,11 @@ Read the spec file. Verify the Definition of Ready checklist:
 
 If DoR is not met: list what's missing and stop. Suggest `/refine {id}`.
 
-> 💡 **Model mode:** Implementation alternates planning with code-writing. If you're not already using it, suggest `/model opusplan` — Opus for the planning/reasoning, Sonnet for the routine code and tool calls. It fits this workflow and consumes your usage limit slower than running the whole session on Opus. Print this once as a non-blocking suggestion (in unsupervised mode too — print it, don't ask); continue on the current model unless the user switches.
+### 0.5 Apply Routing
+
+Read the spec's `routing:` block and invoke the route skill named by `routing.implementation` (e.g. `route-sonnet-medium`) — it sets model + effort for the rest of this turn and records the tier in the checkpoint. If the block is missing or empty (older spec), invoke `route-sonnet-medium` and note it.
+
+**Re-arm rule:** the tier reverts on every new turn. At the start of ANY later turn that continues this ticket (scheduled wakeup, return from a CI wait, `/resume`), re-invoke the route skill from the checkpoint's `tier:` line before doing work.
 
 ### 1. Set Up Branch
 Check current branch. If not on a feature branch for this spec, branch from the integration branch (`develop` if it exists — git flow; otherwise `main`/`master`):
@@ -58,6 +62,7 @@ task: {SPEC_ID} - {title}
 phase: implement
 branch: {branch}
 spec_file: {spec_path}
+tier: {routing.implementation — kept current by the route skills; /resume re-arms from this line}
 last_completed: "Started implementation"
 next_step: "Phase 1: Write failing tests"
 saved_at: {timestamp}
@@ -65,7 +70,7 @@ saved_at: {timestamp}
 
 ### 3. PHASE 1 — Test Writer (isolated subagent)
 
-Invoke the `test-writer` subagent. Pass it ONLY:
+Invoke the `test-writer` subagent, passing the spec's `routing.test_writing` model as the per-invocation `model` parameter (its effort is pinned `medium`). Pass it ONLY:
 - The spec's **Acceptance Criteria** section
 - The spec's **Interface Definitions** section
 - The spec's **Subtasks** list (for the gap check in Step 3 of the test-writer)
@@ -115,6 +120,14 @@ Use `feat` for features, `fix` for bugs. Pushing the feature branch after every 
 2. Update only the changed lines in the branch context file (`.claude/memory/context-{branch}.md`): `last_completed`, `next_step`, `saved_at`
 
 This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
+
+**Adaptive routing during implementation** (see the Adaptive Routing Policy in the project CLAUDE.md):
+
+- **Escalate — medium threshold.** Not at first friction and never on gut feeling, but on clear signals: the same subtask failed twice with the same class of error, the TP plan demonstrably doesn't fit reality, or the work turns out architecture-/security-relevant beyond the spec. Then: **first invoke `/consult`** with the concrete question — the advisor usually unblocks on the top tier and steps back down. Only if the *remaining execution itself* needs more capability: invoke the route skill one notch up (sonnet-medium → sonnet-high → opus-medium → opus-high; ceiling `best-medium`) and record `actual: {tier} — escalated: {reason}` in the spec's routing block.
+- **De-escalate — high threshold.** Only at a subtask boundary, only when the remaining work is clearly mechanical (plan fully made, repetitive application), one notch down, floor `sonnet-medium`.
+- Announce every switch in one line with its reason. At most ~2 unplanned switches per turn, and only at phase boundaries — model switches invalidate the prompt cache.
+
+**Context hygiene:** delegate bulky reading and test runs to subagents (`code-explorer`, `test-runner`) instead of pulling raw output into this context; don't re-read large files already processed; keep the checkpoint and spec checkboxes current after every subtask so automatic context compaction never loses state.
 
 ### 5. Final Verification
 After all subtasks are complete:
