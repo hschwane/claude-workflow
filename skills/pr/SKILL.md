@@ -147,6 +147,8 @@ Check the file list for **security-sensitive paths**: authentication/session/cry
 - **Full-review path** (larger or bundled diff): `[SUGGESTION]` / `[INFO]` findings are report-only — list them in the final report (step 11), do not fix.
 - `[CONCERN]` and `[ADR NEEDED]` from the architect review are **always** report-only regardless of path — they call for a human architectural judgment, not a mechanical fix.
 
+**Crash-safe dispatch (steps 5–7).** Reviewers are read-only — their findings live only in context, so a crash mid-review loses them. Before invoking each reviewer, add it to the checkpoint's `subagents:` block (`agent: {reviewer}`, `status: dispatched`, no `output`); after you have read its report and applied/deferred its findings, flip that entry to `done`. If the turn is interrupted, `/resume` step 4a re-dispatches only the reviewer(s) still `dispatched`.
+
 ### 5. Code Review
 Invoke the `code-reviewer` subagent (pass the review tier's model per-invocation) with:
 - Input: `git diff origin/{base}...HEAD` (full diff)

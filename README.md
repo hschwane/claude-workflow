@@ -67,7 +67,7 @@ The development lifecycle:
 | `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all blocking findings (small diffs: suggestions auto-fixed too; otherwise suggestions are listed in the final report) → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
 | `/ship [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release |
-| `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` (re-arms the ticket's model/effort tier first) |
+| `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` (re-arms the ticket's model/effort tier, then recovers any subagents left in flight by the crash) |
 | `/consult "question"` | Ask the top-tier advisor: one elevated turn (best/medium) with full session context, records the decision in `.claude/memory/decisions.md`, steps back down |
 | `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 | `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review tier, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
@@ -124,7 +124,7 @@ Overrides, from broadest to narrowest:
 - **Self-contained after init**: Projects get copies of all workflow files. No permanent `--plugin-dir` needed.
 - **CI before AI**: GitHub Actions handles lint/typecheck/test/security. Claude only reviews after CI passes.
 - **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are hard read-only (`tools: Read, Grep, Glob`).
-- **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits.
+- **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits. Checkpoints also track in-flight subagents (`subagents:` block), so a session that crashed mid-dispatch re-runs only the subagents whose results were lost — verifying each one's output before deciding continue-vs-restart.
 - **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
 
 ## Parallel Sessions

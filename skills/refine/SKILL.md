@@ -155,6 +155,8 @@ For **trivial** specs, skip steps 2–4 entirely:
 3. **If its output starts with `ESCALATE:`** — the spec is more complex than assessed. Inform the user, re-tier to small/medium (or large if the reason warrants), and run the normal steps 2–4; the partial output is useful context for the RE.
 4. Otherwise: continue at step 5, using the combined output for both the RE sections and the TP sections.
 
+**Crash safety for the RE/TP phases (steps 2–4).** The RE and tech-planner outputs are held in context and not written to the spec file until step 5, so an interruption before the merge loses them. Two rules: (1) before invoking each agent, add a `subagents:` entry to the checkpoint (`agent: requirements-engineer`/`tech-planner`, `status: dispatched`, no `output` — they write no file yet); (2) once an agent's output is in hand, save it into the checkpoint (`RE_OUTPUT:` / `TP_OUTPUT:` block, as multi-ticket Phase A already does) and mark its entry `done`. On `/resume`, step 4a re-dispatches only the agent still `dispatched`; an agent whose output is already stored is not re-run. Clear the stored outputs when step 5 has merged them into the spec.
+
 ### 2. Requirements Engineering Phase
 
 Invoke the `requirements-engineer` subagent (isolated context; apply the refinement-tier model from the §0.2 table as the invocation's `model` parameter) with:

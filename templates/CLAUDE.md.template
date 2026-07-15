@@ -50,6 +50,8 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 
 For codebase questions — including "where is X?" discovery — prefer `code-explorer` (Haiku) over the generic built-in Explore agent: it reads this project's own docs to orient itself, so it knows where things live and what the conventions are. It reports facts; keep the judgment and planning in your main context, where the stronger model and full task context live.
 
+**A dispatched subagent can fail — never proceed on a missing result.** If a subagent returns null, empty, or a visibly failed/incomplete result (terminal API error after retries, or the user skipped it), retry it once; if it still fails, restart it (a writer agent: overwrite whatever partial artifact it left — subagents are stateless, so re-run from scratch rather than hand-patching). Only after a restart also fails do you stop and ask (supervised) or record the blocker in the checkpoint and escalate (unsupervised). When several subagents run as a batch, recover only the ones that failed. If a whole turn is interrupted while subagents are in flight, `/resume` step 4a recovers them on the next continue — see the checkpoint `subagents:` block.
+
 ## Model & Effort Routing
 
 **Session default: Sonnet** (`/model sonnet`) — the workflow elevates itself where quality pays. Two dials, applied automatically:

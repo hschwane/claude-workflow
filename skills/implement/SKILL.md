@@ -70,6 +70,8 @@ saved_at: {timestamp}
 
 ### 3. PHASE 1 — Test Writer (isolated subagent)
 
+**Record before dispatch:** add a `subagents:` entry to the checkpoint (`agent: test-writer`, `for: "Phase 1 tests"`, `output:` the test file/dir it will write, `status: dispatched`) before invoking it. If the turn is interrupted here, `/resume` step 4a checks that output: absent or partial → restart the test-writer; complete but uncommitted → verify and commit. Clear the entry (or mark `done`) once the tests are committed in this step.
+
 Invoke the `test-writer` subagent, passing the spec's `routing.test_writing` model as the per-invocation `model` parameter (its effort is pinned `medium`). Pass it ONLY:
 - The spec's **Acceptance Criteria** section
 - The spec's **Interface Definitions** section
