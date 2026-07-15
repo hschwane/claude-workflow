@@ -3,7 +3,11 @@ id: {{TYPE}}-{{NNN}}
 type: {{feature|bug}}
 status: draft
 version: ~
-size: medium
+size: medium            # trivial | small | medium | large — set by /refine triage
+routing:                # set by /refine; consumed by /implement and /pr
+  refinement: ~         # from size: trivial=sonnet-high, small/medium=opus-high, large=best-high
+  implementation: ~     # tech-planner's call: sonnet-medium (default) … best-medium (hardest); never best-high/haiku
+  test_writing: ~       # model only (sonnet | opus); test-writer effort is pinned medium
 created: {{YYYY-MM-DD}}
 updated: {{YYYY-MM-DD}}
 github_issue: ~

@@ -2,7 +2,8 @@
 name: draft
 description: Add a raw feature idea or bug report as a minimal backlog entry in docs/specs/backlog/. Use when the user wants to capture an idea or bug without planning it yet, or when /brainstorm accepts an idea.
 argument-hint: "feature|bug \"title\" [\"description\"]"
-model: haiku
+model: sonnet
+effort: medium
 ---
 
 # Draft

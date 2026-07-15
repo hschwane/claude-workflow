@@ -2,7 +2,7 @@
 name: code-explorer
 description: Explores THIS project's codebase to answer a specific question. Orients itself first via the project's own guide files (CLAUDE.md, docs/dev/architecture.md, docs/workflow/, src/CLAUDE.md, README) — so it knows where documentation lives and how the project is structured — then finds relevant files, interfaces, patterns, and call sites, and returns a condensed briefing with file:line references. Use PROACTIVELY before implementing in unfamiliar code, for the codebase summary during /refine, during /project-onboard, and for any codebase question that needs reading more than 3-4 files. Prefer this over the generic built-in Explore agent for any work in this project — unlike the built-in, it knows where this project keeps its docs and conventions. Reports facts, never implementation plans. Read-only.
 model: haiku
-effort: low
+effort: medium
 disallowedTools:
   - Write
   - Edit

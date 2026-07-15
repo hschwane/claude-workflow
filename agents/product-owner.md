@@ -2,6 +2,7 @@
 name: product-owner
 description: Assesses feature ideas and backlog items against the product vision — relevance, value, effort balance — and recommends what to build next. Use during /brainstorm to analyze project state and evaluate ideas, and during /prioritize to select backlog items for the next version. Read-only.
 model: sonnet
+effort: high
 disallowedTools:
   - Write
   - Edit
