@@ -121,7 +121,7 @@ Use `feat` for features, `fix` for bugs. Pushing the feature branch after every 
 
 This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
 
-**Adaptive routing during implementation** (see the Adaptive Routing Policy in the project CLAUDE.md):
+**Adaptive routing during implementation** — the essentials are below (the project CLAUDE.md may carry the full Adaptive Routing Policy, but this skill is self-contained; follow these rules even if that section is absent):
 
 - **Escalate — medium threshold.** Not at first friction and never on gut feeling, but on clear signals: the same subtask failed twice with the same class of error, the TP plan demonstrably doesn't fit reality, or the work turns out architecture-/security-relevant beyond the spec. Then: **first invoke `/consult`** with the concrete question — the advisor usually unblocks on the top tier and steps back down. Only if the *remaining execution itself* needs more capability: invoke the route skill one notch up (sonnet-medium → sonnet-high → opus-medium → opus-high; ceiling `best-medium`) and record `actual: {tier} — escalated: {reason}` in the spec's routing block.
 - **De-escalate — high threshold.** Only at a subtask boundary, only when the remaining work is clearly mechanical (plan fully made, repetitive application), one notch down, floor `sonnet-medium`.

@@ -68,17 +68,19 @@ Copy only the **system files** from the temp clone to this project's `.claude/`:
 # Smart merge (hook configuration — add new entries, never remove existing ones):
 .claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json;
                            add "statusLine" only if the project has none;
-                           union "permissions.allow" — add the template's mcp__Claude_Code_Remote__*
-                           wake-tool entries if absent, never remove existing allow entries
+                           union "permissions.allow" — add EVERY entry from the template's
+                           permissions.allow that the project is missing, never remove existing
+                           allow entries (this delivers new plugin permissions on every update,
+                           not just the wake tools)
 ```
 
 **Never touch** (project-specific files):
-- `CLAUDE.md`
+- `CLAUDE.md` — **except** the plugin-owned workflow sections, refreshed in step 5c; the title, description, `## Architecture`, and any project-authored sections are never modified
 - `CONTRIBUTING.md`
 - `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
 - `.claude/memory/`
 - `.claude/workflow-source.json` (updated separately in step 6)
-- Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** the template's `mcp__Claude_Code_Remote__*` wake-tool entries to `permissions.allow` if they're missing (union, never remove)
+- Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** any of the template's `permissions.allow` entries that the project is missing (union, never remove)
 - Any project source files
 
 For the hooks merge: read the `hooks` key of the current `.claude/settings.json`, read the new `templates/hooks/hooks.json`, add any new hook entries that don't exist yet. Do not remove entries the project added.
@@ -94,6 +96,21 @@ Overwriting `.claude/skills/` in step 5 replaced every skill with the plugin def
 
 Report how many tuned settings were re-applied so the user can confirm nothing was lost.
 
+### 5c. Reconcile Workflow Guidance in CLAUDE.md
+
+The project's root `CLAUDE.md` is **never overwritten** (it holds project-specific content: title, description, architecture summary, custom conventions). But the template also carries **workflow-owned sections** that describe how the *plugin* behaves — and those go stale when the plugin updates. These sections are plugin-owned, not project-specific:
+
+> `## Quick Reference` (command table) · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Model & Effort Routing` · `## Multi-Task Sessions` · `## Session Behavior` · `## Memory` · `## Context Management`
+
+Reconcile them without disturbing the rest:
+
+1. Read the new `{UPDATE_DIR}/templates/CLAUDE.md.template` and the project's current `CLAUDE.md`.
+2. For each workflow-owned section above: if the project's version differs from the template's (ignoring `{{PLACEHOLDER}}` fills, which don't appear in these sections — they're project-independent), **replace just that section** in the project `CLAUDE.md` (match a top-level `## ` heading at column 0; replace from it to the next such heading). **Only real section headings count — ignore any `##` line inside a fenced code block** (e.g. the `## In Progress` example inside `## Multi-Task Sessions`), so a section is never truncated at a fenced pseudo-heading. If a section is **absent** from the project (e.g. a new `## Model & Effort Routing` on a pre-routing project), insert it in template order.
+3. **Never touch** any section not in the list above — especially `# {title}`, the intro description, `## Architecture`, and any project-authored sections. When a project has renamed or heavily customized a workflow-owned section, do **not** silently overwrite it: note it in the report and show the new template version for the user to merge by hand.
+4. If `CLAUDE.md` was changed, stage it in step 7's commit.
+
+This is the CLAUDE.md analogue of step 5b: skills/agents get overwritten wholesale, decisions replay their tuned values, and the workflow-owned prose sections of CLAUDE.md refresh to the new plugin version — so a routing change (or any future guidance change) actually reaches existing projects instead of only new ones.
+
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
 ```json
@@ -103,7 +120,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md CLAUDE.md
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 
@@ -111,8 +128,8 @@ git commit -m "chore: update claude-workflow to {new_version}"
 Print:
 ```
 Updated claude-workflow: {old_version} → {new_version}
-Updated: agents/, skills/, hooks/ (merged)
-Preserved: CLAUDE.md, docs/, memory/
+Updated: agents/, skills/, hooks/ (merged), settings.json permissions (unioned)
+CLAUDE.md: {K} workflow section(s) refreshed{, L flagged for manual merge} · project content preserved
 Decisions: {N} tuned setting(s) re-applied from docs/workflow/decisions.md{, M new setting(s) added}
 
 {If breaking changes: "Review migration notes above and update your project files as needed."}

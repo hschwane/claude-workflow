@@ -52,7 +52,7 @@ Ask (AskUserQuestion):
 Create `.claude/` directory with:
 ```
 .claude/
-├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine`/`permissions` keys if settings.json exists; keep an existing statusLine; union `permissions.allow` — add the `mcp__Claude_Code_Remote__*` wake-tool entries if absent, never remove existing ones)
+├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine`/`permissions` keys if settings.json exists; keep an existing statusLine; union `permissions.allow` — add any template entries that are absent, never remove existing ones)
 ├── hooks/
 │   ├── auto-format.sh     ← parses stdin JSON, formats by language
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
