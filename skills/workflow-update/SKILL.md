@@ -113,6 +113,16 @@ Reconcile them without disturbing the rest:
 
 This is the CLAUDE.md analogue of step 5b: skills/agents get overwritten wholesale, decisions replay their tuned values, and the workflow-owned prose sections of CLAUDE.md refresh to the new plugin version — so a routing change (or any future guidance change) actually reaches existing projects instead of only new ones.
 
+### 5d. Reconcile Railway Watch Paths (if deployed on Railway)
+
+`railway.json` lives at the repo root (not under `.claude/`), so step 5 never touches it. If the project deploys on Railway (a `railway.json`/`railway.toml` exists, or a Railway CI step is present):
+
+1. If **no** `railway.json`/`railway.toml` exists but the project deploys on Railway: offer to add one from `{UPDATE_DIR}/templates/configs/railway.json` so docs/spec commits stop triggering redeploys.
+2. If `railway.json` exists **without** `build.watchPatterns`: offer to add the template's `watchPatterns` (merge into `build`, preserve other keys).
+3. If it exists **with** `watchPatterns`: never overwrite them (the project may have tuned exceptions for content it serves at runtime). If the template's default list has gained new entries since, show the diff and let the user decide.
+
+Report any change (or offer) so the user knows the watch-path config was checked.
+
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
 ```json

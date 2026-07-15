@@ -136,6 +136,13 @@ Copy `templates/memory/.gitignore` → `.claude/memory/.gitignore` (prevents run
 Check `.github/workflows/` — if no CI exists, offer to create it.
 Copy the matching `templates/github/ci-{language}.yml` as `.github/workflows/ci.yml`.
 
+**e2) Railway watch paths (if deployed on Railway):**
+If the project already deploys on Railway (a `railway.json`/`railway.toml` at the repo root, a Railway CI step, or the user confirms it): ensure `build.watchPatterns` are set so the workflow's constant docs/spec commits don't trigger redeploys.
+- If **no** `railway.json`/`railway.toml` exists: offer to copy `templates/configs/railway.json` → repo root `railway.json` (watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown).
+- If one **already exists** with no `build.watchPatterns`: offer to add the `watchPatterns` array (merge into the existing `build` object; don't clobber other keys).
+- If it already has `watchPatterns`: leave them — the project has made a deliberate choice; just mention the docs/spec-commit rationale in case they want to exclude those paths.
+Whenever watch patterns are added, note in `docs/workflow/deploy.md` that markdown/docs/tests paths are ignored, and to drop the matching `!` line if the app serves that content at runtime.
+
 **f) Subdirectory CLAUDE.md files (if src/ and tests/ exist):**
 Create `src/CLAUDE.md` with brief code convention note (user can expand).
 Create `tests/CLAUDE.md` with testing pattern note.

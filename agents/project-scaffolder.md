@@ -96,6 +96,8 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
+**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root). This is config-as-code that pins **watch paths** so Railway only redeploys on real app changes — the workflow commits docs/spec changes constantly (every `/refine`, `/draft`, changelog on `/release`), and without this every such commit to the deploy branch would trigger a full rebuild. The patterns watch everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. If the app **serves** markdown or files from those paths as runtime content, remove the matching `!` line and note it in `docs/workflow/deploy.md`.
+
 ## Step D: Docs Templates
 
 From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.

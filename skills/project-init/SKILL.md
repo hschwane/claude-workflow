@@ -135,6 +135,7 @@ Ask (AskUserQuestion) — **pre-select values inferred from the design document 
    - **Scale to zero** enabled — the app sleeps when idle, so it must tolerate cold starts
    - **European region** (e.g. `europe-west4`)
    - **Service URL prefixed with the project name** — choose the subdomain when generating the domain, e.g. `<project-name>.up.railway.app`
+   - **Watch paths (config-as-code)** — the scaffolder writes `railway.json` (from `templates/configs/railway.json`) at the repo root. Its `build.watchPatterns` stop the workflow's constant docs/spec commits (`/refine`, `/draft`, `/release` changelog) from triggering redeploys: it watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. Committing this to the repo means the setting can never silently drift from the Railway dashboard. If the app **serves** files from those paths as runtime content, note the exception in `docs/workflow/deploy.md` and drop the matching `!` line.
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
 
 Create:
