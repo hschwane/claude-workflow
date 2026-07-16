@@ -54,7 +54,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/commit` | Quality-gated conventional commit |
 | `/pr` | CI-first PR with AI review + auto-merge |
 | `/release` | Semver bump + changelog + tag + CI publish |
-| `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
+| `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) to skip brainstorm+prioritize and ship exactly those |
 | `/resume` | Resume interrupted work from checkpoint (re-arms the routing tier) |
 | `/consult` | Top-tier advisor: one elevated turn with full context, then step-down |
 | `/route-{sonnet\|opus\|best}-{medium\|high}` | Internal: pin model+effort for the rest of the turn (6 skills; used by refine/implement/pr per the spec routing block) |

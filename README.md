@@ -66,7 +66,7 @@ The development lifecycle:
 | `/commit` | Quality-gated conventional commit: format + lint + type-check first, then a generated `type(scope): description` message |
 | `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all blocking findings (small diffs: suggestions auto-fixed too; otherwise suggestions are listed in the final report) → squash-merge → move spec to `completed/` |
 | `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
-| `/ship [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release |
+| `/ship [TICKET-ID ...] [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release. Pass explicit ticket IDs to skip brainstorm+prioritize and ship exactly those |
 | `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` (re-arms the ticket's model/effort tier, then recovers any subagents left in flight by the crash) |
 | `/consult "question"` | Ask the top-tier advisor: one elevated turn (best/medium) with full session context, records the decision in `.claude/memory/decisions.md`, steps back down |
 | `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |

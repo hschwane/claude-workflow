@@ -15,7 +15,7 @@
 | `/commit` | Quality-gated conventional commit |
 | `/pr` | Create PR, wait for CI, run reviews, auto-merge |
 | `/release patch\|minor\|major` | Bump version, tag, trigger CI release |
-| `/ship [focus] [patch\|minor\|major]` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release |
+| `/ship [TICKET-ID ...] [focus] [patch\|minor\|major]` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release. Pass ticket IDs to skip brainstorm+prioritize and ship exactly those |
 | `/workflow-update` | Update claude-workflow plugin to latest version |
 | `/resume` | Resume in-progress work after token limit or interruption |
 | `/consult "question"` | Ask the top-tier advisor a hard question (one elevated turn, full context) |
@@ -86,6 +86,7 @@ Map plain-language requests to skills:
 | "create a PR", "open a pull request", "submit for review", "merge this" | `/pr` |
 | "release", "ship a new version", "bump the version", "publish" | `/release` |
 | "ship a version", "build the next release", "run the full dev cycle", "develop and release everything" | `/ship` |
+| "ship these tickets", "release FEAT-001 and FEAT-003", "build a version from this list" | `/ship FEAT-001 FEAT-003` (explicit-ticket mode) |
 | "resume", "continue where we left off", "I was interrupted", "pick up the task" | `/resume` |
 | "I'm stuck", "which approach is better?", a hard architecture/security call | `/consult` |
 | "update the workflow", "upgrade claude-workflow", "get the latest workflow" | `/workflow-update` |
