@@ -23,7 +23,7 @@ and not fail on hard tasks.
    (cheaper than Claude manually click-testing). But: scope tests to the **project and the
    ticket**, test the **important** things, drop the coverage-for-its-own-sake target.
    Writing tests = inline (judgment, session model). Running tests + all quality gates = the
-   Haiku `gate-runner` agent (runs the canonical entrypoint, digests output).
+   Haiku `runner` agent (runs the canonical entrypoint, digests output).
 5. **`/ship` = the one input-adaptive orchestrator.** Input can be a **spec list**, a
    **topic/direction**, or both. Flow: derive/collect tickets → light refinement →
    **batch ALL clarifying questions across all tickets up front** → then fully autonomous:
@@ -52,12 +52,13 @@ and not fail on hard tasks.
 
 **Agents: 12 → 4**
 - `code-explorer` (Haiku) — bulk read → digest.
-- `gate-runner` (Haiku/medium) — **was `test-runner`, expanded.** Runs the project's canonical
-  check entrypoint (lint + typecheck + format + tests + build — all quality gates), digests the
-  output, reports pass/fail + key failure lines. No project knowledge needed (runs one
-  predefined entrypoint), never fixes/judges — pure high-IO/low-judgment, ideal for Haiku. This
-  is *both* the local gate and "run exactly what CI runs", and it keeps verbose tooling output
-  off the expensive main model — a token win on every gate run.
+- `runner` (Haiku/medium) — **was `test-runner`, generalized.** Executes a **predefined project
+  entrypoint** and reports pass/fail + key output lines: `scripts/ci.sh` for the quality gate
+  (lint/typecheck/format/tests/build), `scripts/release.sh` for a scripted release/deploy
+  (bump → build → publish/push → trigger deploy), or any other predefined project command. No
+  project knowledge, never fixes/judges — pure high-IO/low-judgment, ideal for Haiku. Keeps
+  verbose tooling output off the expensive main model on every run. The main session only
+  decides inputs up front and takes over on failure.
 - `project-scaffolder` (Haiku) — init-only mechanical file creation (slim from 252 lines).
 - `reviewer` (one, **best model / high effort**) — spawned by **Claude's judgment**,
   sparingly, for genuinely critical tickets; merges the old code+security+architect
@@ -143,13 +144,16 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    `release-runner: ci` to isolate publish secrets. The user confirms at creation; both stay
    toggleable later via `/workflow-decisions` (sets the repo variable / decision).
 
-4. **Releases run locally by Claude, by default** — driven by `/release` in the **main session**
-   (NOT the Haiku `gate-runner`; release/deploy is high-stakes + judgment-heavy, wrong tier for
-   Haiku). Version bump, changelog, build, publish, tag, GitHub Release notes, and deploy execute
-   **in-session** — synchronous, no Actions minutes, no waiting, result seen immediately. Same
-   parity mechanism: a canonical release entrypoint (`scripts/release.sh` / `make release`) that
-   both `/release` and the fallback workflow call — separate from the check entrypoint
-   (`scripts/ci.sh`) that the `gate-runner` runs. **GitHub Actions release is a FALLBACK only**, used when local isn't
+4. **Releases run locally by default; on Haiku when it's just a script.** A release is normally a
+   deterministic canonical script (`scripts/release.sh` / `make release`): run gate → bump version
+   → build → publish/push image → trigger deploy. The **`runner` agent (Haiku)** executes it and
+   digests output — no reason to spend the main model on mechanical steps. The **main session
+   only** (a) supplies the up-front decisions that need judgment (bump type — usually a user input
+   like `/ship minor`; changelog — auto-generated from commits, reviewed only if needed), and
+   (b) **takes over if something goes wrong** (failed publish, unhealthy deploy → diagnose /
+   rollback). Synchronous, no Actions minutes. The same `release.sh` is the Actions fallback
+   (`workflow_dispatch`) when local can't run. (Separate from the check entrypoint `scripts/ci.sh`;
+   both are run by the same `runner` agent, just different entrypoints.) **GitHub Actions release is a FALLBACK only**, used when local isn't
    possible: publish credentials aren't in the session, CI-only provenance/OIDC signing is
    required, or the build needs an environment Claude lacks. When the fallback runs it's
    monitored via subscription + one scheduled check-in + report — never sleep-polled.
