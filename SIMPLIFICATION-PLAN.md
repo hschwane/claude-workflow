@@ -22,7 +22,8 @@ and not fail on hard tasks.
 4. **Tests — keep, but quality over quantity.** Automated unit/integration/e2e are worth it
    (cheaper than Claude manually click-testing). But: scope tests to the **project and the
    ticket**, test the **important** things, drop the coverage-for-its-own-sake target.
-   Writing tests = inline (judgment, session model). Running tests = Haiku `test-runner`.
+   Writing tests = inline (judgment, session model). Running tests + all quality gates = the
+   Haiku `gate-runner` agent (runs the canonical entrypoint, digests output).
 5. **`/ship` = the one input-adaptive orchestrator.** Input can be a **spec list**, a
    **topic/direction**, or both. Flow: derive/collect tickets → light refinement →
    **batch ALL clarifying questions across all tickets up front** → then fully autonomous:
@@ -51,7 +52,12 @@ and not fail on hard tasks.
 
 **Agents: 12 → 4**
 - `code-explorer` (Haiku) — bulk read → digest.
-- `test-runner` (Haiku) — run suite → condensed report.
+- `gate-runner` (Haiku/medium) — **was `test-runner`, expanded.** Runs the project's canonical
+  check entrypoint (lint + typecheck + format + tests + build — all quality gates), digests the
+  output, reports pass/fail + key failure lines. No project knowledge needed (runs one
+  predefined entrypoint), never fixes/judges — pure high-IO/low-judgment, ideal for Haiku. This
+  is *both* the local gate and "run exactly what CI runs", and it keeps verbose tooling output
+  off the expensive main model — a token win on every gate run.
 - `project-scaffolder` (Haiku) — init-only mechanical file creation (slim from 252 lines).
 - `reviewer` (one, **best model / high effort**) — spawned by **Claude's judgment**,
   sparingly, for genuinely critical tickets; merges the old code+security+architect
@@ -130,10 +136,12 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
      user's `GH_TOKEN`, so `github.actor` is identical for human and Claude. Workflow `if:`
      skips when the head commit contains the marker, unless the opt-in variable is set.
 
-3. **Opt-in per project** — decision `ci-on-claude` (a GitHub repo variable the workflow reads):
-   run CI even on Claude's commits. **Default off for apps** (Railway build+healthcheck is the
-   deploy gate), **on (recommended) for libraries** (matrix/multi-env local can't reproduce).
-   Toggled via `/workflow-decisions` (sets the repo variable).
+3. **Local by default; init recommends exceptions.** Everything runs locally by default
+   (`ci-on-claude: off`, `release-runner: local`). **At project creation Claude assesses the
+   project and asks/recommends** an exception where it genuinely helps — e.g. `ci-on-claude: on`
+   for a cross-platform **library** (matrix/multi-env local can't reproduce), or
+   `release-runner: ci` to isolate publish secrets. The user confirms at creation; both stay
+   toggleable later via `/workflow-decisions` (sets the repo variable / decision).
 
 4. **Releases run locally by Claude, by default.** Version bump, changelog, build, publish,
    tag, GitHub Release notes, and deploy execute **in-session** — synchronous, no Actions
@@ -156,6 +164,12 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    (skip docs/spec/markdown-only, mirroring the Railway watch-paths); dependency caching; cheap
    default job (lint/typecheck/unit) + heavy (matrix/e2e) only **on release** or **on-demand**
    (`ci:full` label) — never every push.
+
+7. **Workflows kept intact & runnable.** The CI and release workflows are **thin wrappers that
+   just call the canonical entrypoint** — so they can't drift from what Claude runs locally
+   ("intact" for free). They run automatically on **human commits**, and every workflow includes
+   **`workflow_dispatch`** so Claude can trigger it **manually as a backup** when a local run
+   fails (missing tool/env). Claude keeps the wrapper in sync when the entrypoint/build changes.
 
 **Result:** Claude's normal work = **0 Actions minutes** (local gate = CI's exact checks;
 releases run in-session); manual changes stay protected by CI; libraries opt into matrix;
