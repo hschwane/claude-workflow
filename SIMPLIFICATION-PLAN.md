@@ -144,16 +144,18 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    `release-runner: ci` to isolate publish secrets. The user confirms at creation; both stay
    toggleable later via `/workflow-decisions` (sets the repo variable / decision).
 
-4. **Releases run locally by default; on Haiku when it's just a script.** A release is normally a
-   deterministic canonical script (`scripts/release.sh` / `make release`): run gate → bump version
-   → build → publish/push image → trigger deploy. The **`runner` agent (Haiku)** executes it and
-   digests output — no reason to spend the main model on mechanical steps. The **main session
-   only** (a) supplies the up-front decisions that need judgment (bump type — usually a user input
-   like `/ship minor`; changelog — auto-generated from commits, reviewed only if needed), and
-   (b) **takes over if something goes wrong** (failed publish, unhealthy deploy → diagnose /
-   rollback). Synchronous, no Actions minutes. The same `release.sh` is the Actions fallback
-   (`workflow_dispatch`) when local can't run. (Separate from the check entrypoint `scripts/ci.sh`;
-   both are run by the same `runner` agent, just different entrypoints.) **GitHub Actions release is a FALLBACK only**, used when local isn't
+4. **Releases run locally by default; on Haiku when it's just a script.** Sequence:
+   - **Main session (judgment, up front):** bump the version, prepare the changelog (summarize
+     what changed). Cheap — usually a small step, bump type often a user input (`/ship minor`).
+   - **Hand off to the `runner` (Haiku):** run the gate (`scripts/ci.sh`, must be green), then
+     execute the release/deploy flow (`scripts/release.sh`: build → publish/push image → tag →
+     trigger deploy), digesting output.
+   - **On failure** (failed publish, unhealthy deploy) → control returns to the main session to
+     diagnose / rollback.
+
+   Synchronous, no Actions minutes. The same `release.sh` is the Actions fallback
+   (`workflow_dispatch`) when local can't run. Both `ci.sh` and `release.sh` are run by the one
+   `runner` agent — different entrypoints, same "execute + digest + report" job. **GitHub Actions release is a FALLBACK only**, used when local isn't
    possible: publish credentials aren't in the session, CI-only provenance/OIDC signing is
    required, or the build needs an environment Claude lacks. When the fallback runs it's
    monitored via subscription + one scheduled check-in + report — never sleep-polled.
