@@ -11,8 +11,10 @@ and not fail on hard tasks.
    - `/consult` → **best available model, high effort** for a hard decision (inline advisor).
    - **Haiku subagents** for high-IO / low-judgment work (bulk reading, running tests,
      mechanical scaffolding).
-2. **CI — PARKED.** We want a *new proper concept* for how CI is used; not designing it
-   now. Interim only: local gate is primary, reduce blocking/polling pain. See "Parked".
+2. **CI — DESIGNED** (see "CI Usage Concept"). CI defines the canonical checks; Claude runs the
+   *same* checks locally. GitHub Actions runs only on manual/human commits and releases — skipped
+   on Claude's commits (detected by the `Claude-Session:` trailer) unless `ci-on-claude` is set
+   (recommended for libraries). No non-blocking CI. Claude's normal work = 0 Actions minutes.
 3. **Review.** **Claude decides per ticket**: either a **self-review** (adopting a reviewer's
    perspective in the main context) or spawn the **independent `reviewer` agent (best model,
    high effort)**. The agent is used **sparingly** — only for genuinely critical work, by
@@ -105,13 +107,60 @@ work, no CI polling waits, ~half the instruction text loaded.
 
 (`/verify` is no longer a build phase — moved to Parked for proper design.)
 
+## CI Usage Concept (designed)
+
+**Principle:** CI is the canonical *definition* of the checks; Claude runs those same checks
+locally. GitHub Actions minutes are spent only on changes Claude didn't gate (manual/human
+commits) and on releases — never duplicating Claude's own local runs, unless a project opts in.
+Non-blocking CI is rejected outright: a run whose result nobody consumes is pure waste (success
+isn't even delivered by webhook; a post-merge failure means you already shipped). CI either
+**blocks and is consumed**, or it **doesn't run**.
+
+1. **Single source of checks (parity).** At project creation set up a canonical check
+   entrypoint — a script/target (`scripts/ci.sh` / `npm run verify` / `make check`) that runs
+   lint + typecheck + tests (+ build). **The CI workflow calls it AND Claude's local gate calls
+   it.** Same command → no drift, no ad-hoc "looks fine", closes the self-grading gap.
+
+2. **Who triggers a paid CI run:**
+   - **Manual/human commit** (no `Claude-Session:` trailer) → **CI runs** — guards changes that
+     skipped the local gate.
+   - **Claude's commit** (carries the `Claude-Session:` trailer) → **CI skipped** by default —
+     Claude already ran the identical canonical checks locally.
+   - Detection is by the **commit-message trailer, NOT the actor** — Claude pushes via the
+     user's `GH_TOKEN`, so `github.actor` is identical for human and Claude. Workflow `if:`
+     skips when the head commit contains the marker, unless the opt-in variable is set.
+
+3. **Opt-in per project** — decision `ci-on-claude` (a GitHub repo variable the workflow reads):
+   run CI even on Claude's commits. **Default off for apps** (Railway build+healthcheck is the
+   deploy gate), **on (recommended) for libraries** (matrix/multi-env local can't reproduce).
+   Toggled via `/workflow-decisions` (sets the repo variable).
+
+4. **Releases always run.** The release/publish/deploy workflow triggers on the **tag push**
+   (separate workflow, never skipped). Claude's `/release` triggers real publish/deploy and
+   **monitors via subscription + one scheduled check-in + report — never sleep-polls**.
+
+5. **Deployed apps:** Railway build + healthcheck is the clean-room + deploy gate; GitHub CI on
+   app PRs is off by default (per #3). No Actions minutes for app development.
+
+6. **Minutes hygiene in the templates:** `concurrency: cancel-in-progress`; `paths:` filters
+   (skip docs/spec/markdown-only, mirroring the Railway watch-paths); dependency caching; cheap
+   default job (lint/typecheck/unit) + heavy (matrix/e2e) only **on release** or **on-demand**
+   (`ci:full` label) — never every push.
+
+**Result:** Claude's normal work = **0 Actions minutes** (local gate = CI's exact checks);
+manual changes stay protected by CI; libraries opt into matrix; releases always verify+publish.
+
+**Implementation caveats (nail during build):** Claude's squash/merge commit to main must carry
+the trailer so the main push also skips; the release workflow must be a separate tag trigger so
+the skip never touches it; the canonical check script is the parity anchor — CI and local must
+call the same entrypoint.
+
+**Distributed across phases:** canonical script + `ci-on-claude` variable → P6 (templates/init)
++ P3 (commit/implement call it); no-wait PR + monitored release → P3/P4; toggle → P6
+(workflow-decisions). Not a standalone phase.
+
 ## Parked (need proper design before building)
 
-- **CI concept.** Design how CI is actually used (when to gate, when non-blocking, how to
-  stop breaching Actions free-tier, how to avoid long agent waits). Interim during P3:
-  local tests are the gate; still push + let CI run as a non-blocking backstop; stop the
-  hard poll-and-wait on `gh pr checks`; minimize `gh` calls. The `block-on-CI` setting is
-  the seed this concept grows from.
 - **`/verify` skill.** Design how it exercises a change: automated scoped tests first
   (primary proof — cheaper than manual clicking), then a *minimal* real-run smoke check
   (one CLI call / endpoint hit / single UI path via the pre-installed browser), and how it
@@ -148,4 +197,4 @@ tier pins (now fixed), deferred-findings policy.
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
 | Unsupervised threshold + autonomous defaults | usage cap + autonomous behavior | settings.md / unsupervised skill |
-| **block-on-CI** (new, interim) | yes / no — default `no` (local gate is the gate); seed for the parked CI concept | pr skill |
+| **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries) | GitHub repo variable, read by the CI workflow |
