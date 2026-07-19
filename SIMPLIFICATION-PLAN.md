@@ -126,24 +126,26 @@ work, no CI polling waits, ~half the instruction text loaded.
 - **Architecture doc — light end-of-ship pass** + updated during `implement` when structure
   changes.
 
-## Workflow settings after simplification (~16 → ~11)
+## Workflow settings after simplification (~16 → ~7)
 
 **Removed** (feature gone): refine sizing tiers, review tier rule, adaptive routing, agent
 tier pins (now fixed), deferred-findings policy.
 
-**Kept / simplified:**
+**Removed** (now fixed defaults, not tunable):
+- **Session model** — just use whatever the user has enabled; not a workflow setting.
+- **Consult** — always `best` model / high effort; no mapping to configure.
+- **Merge strategy** — fixed: **squash + auto-merge** on a green local gate, keeping the
+  ask-before-merge safety conditions (merge conflict, major/breaking version, protected
+  branch requiring human approval → ask first in supervised mode).
+- **Reviewer** — Claude's judgment, always available (best/high, sparing); no toggle.
+
+**Kept (the real settings — mostly project-setup values):**
 | Setting | Controls | Lives in |
 |---|---|---|
-| Session model | model the session runs on (default Sonnet) | project CLAUDE.md |
-| Consult / "best" mapping | what `/consult` escalates to (`best`=Fable, else Opus-compensated) | consult skill |
 | Testing scope | project default Unit / +Integration / +E2E (ticket may narrow) | quality.md |
-| Merge strategy & auto-merge | squash/merge/rebase, auto vs manual, ask-before-merge | pr skill |
 | Branching model | main-only / git-flow | release.md |
 | Version source of truth | per-language version location | release.md |
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
 | Unsupervised threshold + autonomous defaults | usage cap + autonomous behavior | settings.md / unsupervised skill |
-
-**New:**
-- **Reviewer agent** — enabled/disabled (default enabled; Claude decides when, best/high, sparing).
-- **block-on-CI** — yes/no; interim knob, default likely `no` (local gate is the gate). Seed for the parked CI concept.
+| **block-on-CI** (new, interim) | yes / no — default `no` (local gate is the gate); seed for the parked CI concept | pr skill |
