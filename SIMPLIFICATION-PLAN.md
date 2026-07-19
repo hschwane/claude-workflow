@@ -143,11 +143,13 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    `release-runner: ci` to isolate publish secrets. The user confirms at creation; both stay
    toggleable later via `/workflow-decisions` (sets the repo variable / decision).
 
-4. **Releases run locally by Claude, by default.** Version bump, changelog, build, publish,
-   tag, GitHub Release notes, and deploy execute **in-session** — synchronous, no Actions
-   minutes, no waiting, result seen immediately. Same parity mechanism: a canonical release
-   entrypoint (`scripts/release.sh` / `make release`) that both Claude and the fallback
-   workflow call. **GitHub Actions release is a FALLBACK only**, used when local isn't
+4. **Releases run locally by Claude, by default** — driven by `/release` in the **main session**
+   (NOT the Haiku `gate-runner`; release/deploy is high-stakes + judgment-heavy, wrong tier for
+   Haiku). Version bump, changelog, build, publish, tag, GitHub Release notes, and deploy execute
+   **in-session** — synchronous, no Actions minutes, no waiting, result seen immediately. Same
+   parity mechanism: a canonical release entrypoint (`scripts/release.sh` / `make release`) that
+   both `/release` and the fallback workflow call — separate from the check entrypoint
+   (`scripts/ci.sh`) that the `gate-runner` runs. **GitHub Actions release is a FALLBACK only**, used when local isn't
    possible: publish credentials aren't in the session, CI-only provenance/OIDC signing is
    required, or the build needs an environment Claude lacks. When the fallback runs it's
    monitored via subscription + one scheduled check-in + report — never sleep-polled.
