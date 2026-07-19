@@ -135,9 +135,19 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    deploy gate), **on (recommended) for libraries** (matrix/multi-env local can't reproduce).
    Toggled via `/workflow-decisions` (sets the repo variable).
 
-4. **Releases always run.** The release/publish/deploy workflow triggers on the **tag push**
-   (separate workflow, never skipped). Claude's `/release` triggers real publish/deploy and
-   **monitors via subscription + one scheduled check-in + report — never sleep-polls**.
+4. **Releases run locally by Claude, by default.** Version bump, changelog, build, publish,
+   tag, GitHub Release notes, and deploy execute **in-session** — synchronous, no Actions
+   minutes, no waiting, result seen immediately. Same parity mechanism: a canonical release
+   entrypoint (`scripts/release.sh` / `make release`) that both Claude and the fallback
+   workflow call. **GitHub Actions release is a FALLBACK only**, used when local isn't
+   possible: publish credentials aren't in the session, CI-only provenance/OIDC signing is
+   required, or the build needs an environment Claude lacks. When the fallback runs it's
+   monitored via subscription + one scheduled check-in + report — never sleep-polled.
+   - **Deploy:** Railway apps deploy on merge (Railway watches the repo — no Actions, no
+     explicit step); Claude verifies health via the Railway MCP. Other targets: Claude runs
+     the deploy CLI/script locally.
+   - **Setting `release-runner`** (default `local`): flip to `ci` to keep publish secrets
+     isolated to Actions rather than exposing them in the session (a security tradeoff).
 
 5. **Deployed apps:** Railway build + healthcheck is the clean-room + deploy gate; GitHub CI on
    app PRs is off by default (per #3). No Actions minutes for app development.
@@ -147,8 +157,9 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    default job (lint/typecheck/unit) + heavy (matrix/e2e) only **on release** or **on-demand**
    (`ci:full` label) — never every push.
 
-**Result:** Claude's normal work = **0 Actions minutes** (local gate = CI's exact checks);
-manual changes stay protected by CI; libraries opt into matrix; releases always verify+publish.
+**Result:** Claude's normal work = **0 Actions minutes** (local gate = CI's exact checks;
+releases run in-session); manual changes stay protected by CI; libraries opt into matrix;
+Actions only fires for human commits, opt-in library matrix, and release fallback.
 
 **Implementation caveats (nail during build):** Claude's squash/merge commit to main must carry
 the trailer so the main push also skips; the release workflow must be a separate tag trigger so
@@ -198,3 +209,4 @@ tier pins (now fixed), deferred-findings policy.
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
 | Unsupervised threshold + autonomous defaults | usage cap + autonomous behavior | settings.md / unsupervised skill |
 | **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries) | GitHub repo variable, read by the CI workflow |
+| **release-runner** (new) | `local` (default — Claude releases in-session) / `ci` (isolate publish secrets to Actions) | release skill / decisions |
