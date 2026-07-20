@@ -5,10 +5,10 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 ## What It Does
 
 ```
-/draft → /refine → /implement → /pr → /release
+/draft → /plan → /implement → /verify → merge → /release  (or just /ship)
 ```
 
-An idea enters the backlog as a one-liner, gets refined into a testable spec, is implemented test-first, passes CI and AI reviews in a PR, and ships with a semver release — each step is one command.
+An idea enters the backlog as a one-liner, gets planned into a spec with observable acceptance criteria, is implemented subtask-by-subtask with tests, is verified by running it, merges locally, and ships with a semver release — each step is one command, or `/ship` runs the whole chain.
 
 ## Quick Start
 
@@ -59,64 +59,44 @@ The development lifecycle:
 | Skill | What it does |
 |-------|--------------|
 | `/draft feature\|bug "title"` | Capture a raw idea as a minimal spec in `docs/specs/backlog/` (+ GitHub issue). Deliberately no planning — capturing must be cheap |
-| `/brainstorm` | The `product-owner` agent analyzes project state vs. vision and proposes ideas; you accept/modify/skip interactively, accepted ideas become drafts |
-| `/prioritize` | The `product-owner` agent ranks the backlog against the vision and recommends the slate for the next version |
-| `/refine FEAT-001` | Depth scales with a complexity triage: **trivial** specs get one combined `tech-planner` fast-track pass (escalates itself if it finds hidden complexity); **small/medium/large** run the full `requirements-engineer` + `tech-planner` iteration (max 1 / 1 / 3 rounds) until the spec meets the Definition of Ready — small/medium on opus-high, large on best-high (trivial's fast-track runs sonnet-high). Writes the per-ticket `routing:` block. Bug tickets pull platform logs (e.g. Railway) as evidence first. Pass **multiple IDs** to batch: questions up front, then all tickets complete autonomously |
-| `/implement FEAT-001` | Phase 1: `test-writer` writes failing tests from the spec alone (never sees implementation code). Phase 2: implement subtask by subtask, one commit + push each. Then full verification via `test-runner` and docs via `documentation-writer` |
-| `/commit` | Quality-gated conventional commit: format + lint + type-check first, then a generated `type(scope): description` message |
-| `/pr` | Create draft PR → wait for CI → reviews scaled to the diff: small low-risk diffs get one combined review, anything touching security-sensitive files gets the dedicated `security-reviewer` (plus `code-reviewer`, conditionally `architect-reviewer`) → fix all blocking findings (small diffs: suggestions auto-fixed too; otherwise suggestions are listed in the final report) → squash-merge → move spec to `completed/` |
-| `/release patch\|minor\|major` | Test, bump version, update changelog, tag, push; in git flow: merge `develop` → `master` so master's tip equals the release |
-| `/ship [TICKET-ID ...] [focus] [patch\|minor\|major]` | Full dev cycle in one command: brainstorm → prioritize → refine → implement → PR → release. Pass explicit ticket IDs to skip brainstorm+prioritize and ship exactly those |
-| `/resume` | Continue interrupted work from the checkpoint in `.claude/memory/context-{branch}.md` (re-arms the ticket's model/effort tier, then recovers any subagents left in flight by the crash) |
-| `/consult "question"` | Ask the top-tier advisor: one elevated turn (best/medium) with full session context, records the decision in `.claude/memory/decisions.md`, steps back down |
-| `/unsupervised on [80]\|off` | Toggle autonomous mode, optionally with a token-budget cap — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
-| `/workflow-decisions [setting]` | View or change a tunable workflow setting (refine sizing, testing scope, review tier, branching, auto-merge, …). Edits the live value in the skill **and** updates `docs/workflow/decisions.md` in sync — that file is the human-readable record of every workflow decision |
+| `/plan FEAT-001 [FEAT-002 …]` | Turn draft(s) into ready spec(s) in one light pass: goal, **observable acceptance criteria**, approach + interfaces, subtasks. Surfaces open questions (batched up front for multiple IDs), defaults to in-scope. Uses `code-explorer` for codebase context |
+| `/implement FEAT-001` | For each subtask: write code + its tests, run the fast gate (`ci.sh fast` via `runner`), commit green, tick the box. Then runs `/verify`. State is the repo (spec boxes + git log) |
+| `/verify [FEAT-001]` | Feature-done QA: full gate (`ci.sh full`) + review (self, or `reviewer`/`consult` for critical) + blackbox manual smoke (`smoke-tester`, new features). Smoke bugs become automated tests |
+| `/commit` | Gated conventional commit: runs the canonical `ci.sh fast` via `runner`, generates a `type(scope): description` message, appends `[skip ci]` per `ci-on-claude` |
+| `/release patch\|minor\|major` | Bump version + changelog (main session), then `runner` runs `scripts/release.sh` locally (gate → build → publish → deploy). CI release only as fallback |
+| `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: from a spec list **or** a topic/direction → plan (batch questions) → implement → verify → **local merge** → release → report. Out-of-scope deferrals surfaced in the report |
+| `/pr [base]` | **Optional** — open a PR for external review or a repo that requires it. The default flow merges locally with plain git (no PR) |
+| `/resume` | Continue interrupted work by reconstructing state from the repo (branch + in-progress spec's unchecked boxes + git log) — works the same in every environment |
+| `/consult "question"` | Ask the advisor: one elevated turn (best/high) with full context, records the decision in `.claude/memory/decisions.md` |
+| `/unsupervised on [80]\|off` | Toggle autonomous mode — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
+| `/workflow-decisions [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
 
 ## Agents
 
-Agents are isolated subagents: each runs in its own context window, so heavy file reading and noisy output never pollute the main conversation. The three reviewers are hard read-only (`tools: Read, Grep, Glob` — no Bash, no write tools); the other analysts are read-only by instruction plus `disallowedTools: Write, Edit, NotebookEdit`. Claude delegates to them automatically based on their descriptions.
+Five isolated subagents — each runs in its own context window so heavy reading and noisy output never pollute the main conversation. Four are Haiku (mechanical, high-IO); the `reviewer` is best/high, read-only (`tools: Read, Grep, Glob`). Claude delegates to them automatically based on their descriptions.
 
 | Agent | Role | Used by |
 |-------|------|---------|
-| `code-explorer` | Project-aware Haiku scout: orients via the project's own docs, then reads many files and returns a condensed briefing (relevant files, interfaces, patterns, pitfalls) with `file:line` refs | `/refine`, `/project-onboard`, ad-hoc codebase questions |
-| `requirements-engineer` | Turns a draft into user story, testable acceptance criteria, out-of-scope list, open questions | `/refine` |
-| `tech-planner` | Turns requirements into interface definitions (the test-writer's contract), technical approach, ordered subtasks | `/refine` |
-| `product-owner` | Judges ideas/backlog against `docs/VISION.md`, scores relevance, recommends next-version slate | `/brainstorm`, `/prioritize` |
-| `project-scaffolder` | Mechanical file creation after design decisions: directories, language configs, CI templates, docs, workflow infrastructure, initial commit — runs on Haiku, it only copies and fills | `/project-init` scaffolding phase |
-| `test-writer` | Writes the failing test suite from acceptance criteria + interfaces only — by design it cannot see implementation code | `/implement` Phase 1 |
-| `test-runner` | Executes test/lint runs and digests the output into a short failure report | `/implement`, `/release` |
-| `code-reviewer` | Quality review of the diff: correctness, conventions, tests, complexity | `/pr` |
-| `security-reviewer` | OWASP-oriented review: injection, auth, secrets, data exposure | `/pr` |
-| `architect-reviewer` | Structural review: module boundaries, dependency direction, AI-friendliness, ADR alignment | `/pr` (only for structural changes) |
-| `documentation-writer` | Updates dev/user/API docs from spec + implemented interfaces | `/implement` |
-| `workflow-coach` | Answers "how does the workflow work?" questions from `docs/workflow/` so those docs never load into the main context | ad-hoc questions |
+| `code-explorer` (haiku) | Project-aware scout: orients via the project's own docs, then reads many files and returns a condensed briefing with `file:line` refs | `/plan`, `/project-onboard`, ad-hoc |
+| `runner` (haiku) | Executes a predefined entrypoint (`ci.sh fast/full`, `release.sh`, a named command), digests output → pass/fail + key lines. Never fixes/judges | `/commit`, `/implement`, `/verify`, `/release` |
+| `smoke-tester` (haiku/high) | Drives a running app from explicit prose steps (blackbox — no spec/code), reports failing steps only. Doubles as a novice-usability check | `/verify` (new features) |
+| `reviewer` (best/high) | Fresh-eyes read-only review of a critical diff — correctness, security, quality, architecture in one pass | `/verify`/`/pr`, critical diffs only |
+| `project-scaffolder` (haiku) | Mechanical file creation after design decisions: directories, configs, canonical scripts, CI, docs, initial commit | `/project-init` |
 
-**Why agents and not main-thread work?** Subagents pay a startup overhead but keep the main context clean — the rule of thumb (matching [official guidance](https://code.claude.com/docs/en/best-practices)): anything that reads more than 3-4 files or produces large output goes to a subagent; anything interactive, stateful, or small stays in the main thread. That's why **release/deploy is a skill, not an agent** (sequential, needs user confirmations and main-context state), while exploration, test-output digestion, and reviews are agents.
+**Why agents and not main-thread work?** Subagents pay a startup overhead but keep the main context clean — the rule of thumb (matching [official guidance](https://code.claude.com/docs/en/best-practices)): anything that reads more than 3-4 files or produces large output goes to a subagent; anything interactive, stateful, or small stays in the main thread. That's why **release/deploy is a skill, not an agent** (sequential, needs user confirmations and main-context state), while planning and implementation judgment stay in the main session.
 
-### Model & effort routing
+### Models
 
-The workflow routes **model** and **effort** per task so quality lands where it pays (planning, review) and everything else runs cheap. **Recommended session model: Sonnet** — the workflow elevates itself.
+**The session runs on whatever model you picked — the workflow never switches it.** No per-ticket tiers, no route skills, no mid-flow model changes (which would invalidate the prompt cache). Just two levers:
 
-**Fixed agent pins** (`model:`/`effort:` frontmatter):
+- **Haiku subagents** do the mechanical, high-IO work — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `smoke-tester` (drives the app → failures only), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
+- **`/consult` (best model, high effort)** for a hard call — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, read-only, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
-| Tier | Agents | Rationale |
-|------|--------|-----------|
-| haiku / medium | `code-explorer`, `test-runner`, `workflow-coach`, `project-scaffolder` | Gather, run, condense, copy — no deep reasoning needed; Haiku costs ~⅓ of Sonnet |
-| sonnet / medium | `test-writer`, `documentation-writer` (and `/draft`) | Solid writing; the hard thinking happened upstream. The test-writer's *model* still follows the ticket routing |
-| sonnet / high | `product-owner` | Vision-fit judgment, bounded depth |
-| effort high, model per ticket | `requirements-engineer`, `tech-planner` | Planning is where quality pays — the model comes from the ticket's refinement tier |
-| per review tier | `code-reviewer`, `security-reviewer`, `architect-reviewer` | Model passed per invocation from the review-tier rule in `/pr` |
+`best` resolves to Fable when available, else the latest Opus.
 
-**Per-ticket routing**: `/refine` triages each ticket (trivial → sonnet-high, small/medium → opus-high, large → best-high refinement) and the `tech-planner` writes a `routing:` block into the spec (implementation `sonnet-medium` by default, up to `best-medium` for the hardest tickets; tests on `sonnet`/`opus`). `/implement` and `/pr` apply these via **route skills** (`route-sonnet-medium` … `route-best-high`) — tiny skills whose frontmatter pins model+effort for the rest of the turn, then reverts on the next prompt. The checkpoint's `tier:` line re-arms the tier after every wake (`/resume`). `best` resolves to Fable when available, else the latest Opus; if Fable access ends, switch to the Opus-compensated mapping (opus/high · opus/xhigh) via `/workflow-decisions top-tier`.
+**Why a project-aware `code-explorer` over the built-in Explore agent**: same cheap Haiku tier, but it orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`), so its briefings land on the right code and cite the project's conventions. It reports facts; judgment stays with the caller.
 
-**Adaptive routing**: the planned tier is a starting point, not a straitjacket. On clear failure signals (same error twice, plan vs. reality mismatch, unexpected security/architecture scope) Claude first consults the advisor — `/consult` runs one turn on the top tier with full session context, records the decision, steps back down — and only re-routes upward when the remaining execution itself needs it (medium threshold; ceiling best-medium for implementation). De-escalation has a high threshold (subtask boundary, clearly mechanical remainder). Refinement and review gates are never self-adjusted. Toggle via `/workflow-decisions adaptive routing`.
-
-**Why a project-aware `code-explorer` instead of the built-in Explore agent**: Claude Code ships a generic built-in Explore agent (Haiku, read-only), but it knows nothing about how *your* project is laid out — where the docs live, what the conventions are. `code-explorer` runs on the same cheap Haiku tier but orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`), so its briefings land on the right code faster and cite the project's own conventions. It reports facts (files, interfaces, patterns, call sites); the judgment and planning stay with the caller — the main session or the `tech-planner`, both of which run your session model with full task context. Prefer it over the built-in Explore for any work in this project.
-
-Overrides, from broadest to narrowest:
-- `CLAUDE_CODE_SUBAGENT_MODEL` env var forces one model for **all** subagents (beats everything)
-- Edit the `model:` line in `.claude/agents/{name}.md` in your project (after init/onboard the files are local)
-- Skill frontmatter `model:`/`effort:` is turn-scoped and deliberate: the six `route-*` skills and `/consult` ARE the routing mechanism, and `/draft` pins sonnet/medium for cheap capture. A skill-set tier persists for the rest of the turn — that's why every workflow skill arms its own tier explicitly (and steps down after expensive phases) rather than assuming a clean slate.
+Override the agents' model with `CLAUDE_CODE_SUBAGENT_MODEL`, or by editing the `model:` line in `.claude/agents/{name}.md`.
 
 ## Key Design Principles
 
@@ -129,19 +109,19 @@ Overrides, from broadest to narrowest:
 
 ## Parallel Sessions
 
-You can run multiple Claude Code sessions on the same repository simultaneously — with one constraint: **each session must be on a different git branch**. Each branch gets its own isolated checkpoint file (`.claude/memory/context-{branch}.md`), so sessions never collide.
+You can run multiple Claude Code sessions on the same repository simultaneously — with one constraint: **each session must be on a different git branch**. State lives in the repo (branch + spec checkboxes + git log), so sessions on different branches never collide.
 
 **Safe — recommended pattern:**
 
 | Session | Branch | Task |
 |---------|--------|------|
 | A | `feature/feat-001-login` | `/implement FEAT-001` |
-| B | `develop` | `/refine FEAT-002` or `/brainstorm` |
+| B | `develop` | `/plan FEAT-002` |
 | C | `feature/feat-003-api` | `/pr` waiting for CI |
 
 Session A codes, Session B refines a different spec, Session C handles a PR — all simultaneously, no conflicts.
 
-**Not safe:** two sessions on the **same branch**. They share the same checkpoint file and can conflict on source files. Don't do it.
+**Not safe:** two sessions on the **same branch** — they would race on the same files. Don't do it.
 
 **Rule of thumb:** one session per branch. Keep each implementation session on its own feature branch. Use a dedicated session on `develop` (or `main`) for planning work (refine, draft, brainstorm) that doesn't touch feature code.
 
@@ -156,46 +136,24 @@ Pushing rules in both models: **push your feature branch freely after every comm
 
 ## Unsupervised Mode & Resume Logic
 
-Unsupervised mode lets a long task (or a queue of tasks) run without a human. The primary design is **in-session**: you start a task, leave the session open (terminal or VS Code extension — same console, context preserved), and the hooks keep Claude working, pause it when your token budget runs low, and resume it automatically.
+Unsupervised mode lets a long task run without a human: `/unsupervised on` → Claude never asks questions, applies autonomous defaults, and keeps working until done or genuinely blocked.
 
-```
-/unsupervised on 80       # enable; pause at 80% of the 5h or weekly limit
-/implement FEAT-001       # start the task, leave the session open
-```
+**State is the repo — there is no checkpoint file to maintain.** The branch names the ticket, the in-progress spec's unchecked subtask boxes name the remaining work, and `git log` is the record of what landed. `/resume` reconstructs from these (git wins on disagreement), so it behaves identically in local, cloud, docker, and VS Code sessions. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
 The moving parts:
 
 | Piece | Role |
 |-------|------|
-| `.claude/memory/settings.md` | `unsupervised: true` + optional `usage_threshold: 80` — set by `/unsupervised on [80]` |
-| `.claude/memory/context.md` | The checkpoint: task, branch, spec pointer, last/next step (subtask progress lives in the spec's checkboxes) |
-| `completeness-check.sh` (Stop hook) | Blocks Claude from stopping while `## In Progress` exists (loop guard via `stop_hook_active`) |
-| `usage-guard.sh` (PostToolUse hook) | Watches session (5h) and weekly (7d) usage; trips at the threshold |
-| `statusline.sh` (status line) | Shows `ctx \| 5h \| 7d` usage and caches the official `rate_limits` data for the guard |
-| `session-start.sh` (SessionStart hook) | Injects the checkpoint + auto-resume directive when a NEW session starts |
-| `scripts/claude-loop.sh` | **Optional** headless fallback for terminal-only/overnight scenarios |
+| `session-start.sh` (SessionStart hook) | Detects an in-progress spec; in unsupervised mode emits an AUTO-RESUME directive, else suggests `/resume` |
+| `completeness-check.sh` (Stop hook) | In unsupervised mode, blocks stopping while the in-progress spec has unchecked boxes (loop-guarded via `stop_hook_active`) |
+| `usage-guard.sh` (PostToolUse hook) | Where usage is readable, pauses at the threshold (default 80%) so you keep headroom |
+| `statusline.sh` (status line) | Shows usage and caches the official `rate_limits` data for the guard |
+| recovery heartbeat (cloud) | One recurring Routine armed by `/unsupervised on` — resumes a rate-limit kill after reset, self-deletes when done |
+| `scripts/claude-loop.sh` | **Optional** headless fallback for terminal-only/overnight runs |
 
-The in-session flow:
+**Pausing at the usage threshold** (local terminal / VS Code, where usage is readable via the statusline `rate_limits` field or the OAuth endpoint): at 80% Claude finishes the current atomic step, commits, and ends the turn; it resumes when usage recovers. **In cloud/docker, usage cannot be read** (no credentials file, no headless statusline), so there is no pre-emptive pause — the session runs into the limit and the **recovery heartbeat** resumes it after reset. Because the repo is the checkpoint, a kill costs at most the current subtask.
 
-```
-work ──► usage-guard trips at threshold (e.g. 80%)
-              │  "pause: commit current step, update checkpoint"
-              ▼
-         wait loop: bash usage-guard.sh --wait   (repeats, ~90s sleep per call,
-              │      same session, same console)  cache-friendly < 5min apart)
-              ▼  prints RESUME_OK once usage ≤ threshold−10  (5h window slides)
-         continue working ──► … ──► done: "## In Progress" cleared, Stop allowed
-```
-
-**Cloud/remote sessions** (Claude Code on the web, or any managed session without an attached terminal — detectable by the presence of a schedule-a-future-message tool like `send_later` or `ScheduleWakeup`): the `--wait` sleep loop would burn turns and can hit session limits, so Claude instead runs the one-shot `usage-guard.sh --check`, and if usage is still above the resume level, schedules a wakeup 20–30 minutes out and goes idle. Each wakeup re-checks until `RESUME_OK`, then work continues from the checkpoint. The same scheduled-wakeup pattern replaces the CI/merge polling sleeps in `/pr` and `/release`.
-
-**Token-budget guard (`usage_threshold`)**: pausing at e.g. 80% keeps 20% headroom for your own interactive use and avoids ever hitting the hard limit mid-task. Usage data comes from the official statusline `rate_limits` field (cached locally) with the community-established OAuth usage endpoint as fallback; if neither is available the guard fails open. Hysteresis (resume at threshold−10) prevents flapping.
-
-**Why in-session?** No context loss, no new consoles, works identically in the CLI and the VS Code extension (hooks and the status line run in both). The wait loop is just repeated short Bash calls ~90s apart, so the prompt cache stays warm — waiting costs almost nothing.
-
-**Checkpoint cost**: a checkpoint update is 1-2 small file edits (~50-100 tokens) per subtask — noise compared to the thousands of tokens a subtask implementation uses. Checkpoints are deliberately minimal (no duplicated subtask lists; the spec's checkboxes are the source of truth) and are pure crash insurance in the in-session design: the running conversation already has the context.
-
-**If the session dies anyway** (crash, hard rate limit, closed laptop): reopen it — the SessionStart hook injects the checkpoint with an AUTO-RESUME directive and Claude continues, in the CLI and in VS Code alike. For fully unattended recovery in a terminal (e.g. overnight on a server) there is `./scripts/claude-loop.sh`, which waits for the usage threshold, starts fresh headless sessions from the checkpoint, and exits on `## Blocked` (code 2) or completion (code 0). It uses `--dangerously-skip-permissions` by default (`CLAUDE_LOOP_PERMISSIONS` to override) — only in trusted repos, ideally containerized.
+**If the session dies** (crash, hard rate limit, closed laptop): reopen it — the SessionStart hook auto-resumes from the repo (cloud does this via the heartbeat automatically). For fully unattended terminal recovery there is `./scripts/claude-loop.sh`, which restarts headless sessions that resume from the repo and exits on `## Blocked` or completion. It uses `--dangerously-skip-permissions` by default (`CLAUDE_LOOP_PERMISSIONS` to override) — trusted repos only, ideally containerized.
 
 ## Languages Supported
 

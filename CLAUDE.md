@@ -47,14 +47,13 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/project-init` | Create a new project with full infrastructure |
 | `/project-onboard` | Add workflow infrastructure to an existing project |
 | `/draft` | Add a raw feature/bug to the backlog |
-| `/brainstorm` | Analyze project + generate backlog ideas interactively |
-| `/prioritize` | Rank backlog against vision, select next-version items |
-| `/refine` | RE + Tech Planner iterate until spec is ready |
-| `/implement` | Tests-first implementation, per-subtask commits |
-| `/commit` | Quality-gated conventional commit |
-| `/pr` | CI-first PR with AI review + auto-merge |
-| `/release` | Semver bump + changelog + tag + CI publish |
-| `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) to skip brainstorm+prioritize and ship exactly those |
+| `/plan` | Turn draft(s) into ready spec(s) — one light pass, batches questions |
+| `/implement` | Per-subtask code+tests, fast gate each, then `/verify` |
+| `/verify` | Feature-done QA: full gate + review + manual smoke |
+| `/commit` | Gated conventional commit (runs canonical `ci.sh fast`) |
+| `/pr` | Optional — open a PR for external review (default merges locally) |
+| `/release` | Semver bump + changelog, then run `release.sh` locally |
+| `/ship` | The orchestrator: spec list OR topic → plan → implement → verify → merge → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) or a `"topic"` |
 | `/resume` | Resume interrupted work by reconstructing state from the branch + spec checkboxes + git log |
 | `/consult` | Top-tier advisor: one elevated turn (best/high) with full context, then back to the session model |
 | `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
@@ -63,24 +62,17 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 ## Agents
 
-All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via a `tools: Read, Grep, Glob` allowlist.
+All agents are subagents — each runs in its own isolated context. Four of five are Haiku (mechanical, high-IO); the `reviewer` is best/high, read-only.
 
 Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents (`code-explorer`, `runner`, `smoke-tester`, `project-scaffolder`) do mechanical high-IO work to keep bulk output off the session model; `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
 
 | Agent | When used |
 |-------|-----------|
-| `code-explorer` | During `/refine`, `/project-onboard`, ad-hoc — project-aware Haiku scout; condensed codebase briefings |
-| `requirements-engineer` | During `/refine` — structures requirements |
-| `tech-planner` | During `/refine` — plans interfaces + subtasks |
-| `product-owner` | During `/brainstorm`, `/prioritize` — vision fit + priorities |
-| `project-scaffolder` | During `/project-init` — mechanical file creation, template copying, initial commit |
-| `test-writer` | During `/implement` — writes tests before impl |
-| `test-runner` | During `/implement`, `/release` — runs tests, digests output |
-| `code-reviewer` | During `/pr` — reviews code quality |
-| `security-reviewer` | During `/pr` — reviews for security issues |
-| `architect-reviewer` | During `/pr` — reviews structural changes |
-| `documentation-writer` | During `/implement` — updates docs after impl |
-| `workflow-coach` | Ad-hoc — answers workflow questions from docs/workflow/ |
+| `code-explorer` (haiku) | During `/plan`, `/project-onboard`, ad-hoc — project-aware scout; condensed codebase briefings |
+| `runner` (haiku) | During `/commit`, `/implement`, `/verify`, `/release` — runs a canonical entrypoint (`ci.sh`/`release.sh`), digests output |
+| `smoke-tester` (haiku) | During `/verify` — drives the app from prose steps (blackbox), reports failing steps |
+| `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review |
+| `project-scaffolder` (haiku) | During `/project-init` — mechanical file creation, template copying, initial commit |
 
 ## Contributing to claude-workflow
 
