@@ -2,7 +2,7 @@
   "name": "claude-workflow",
   "displayName": "Claude Workflow",
   "version": "2.0.0-alpha.1",
-  "description": "Professional AI-assisted software development workflow: draft \u2192 refine \u2192 implement \u2192 PR \u2192 release",
+  "description": "Professional AI-assisted software development workflow: draft \u2192 plan \u2192 implement \u2192 verify \u2192 merge \u2192 release",
   "author": {
     "name": "Hendrik Schwanekamp",
     "email": "hendrik.schwanekamp@gmx.net"

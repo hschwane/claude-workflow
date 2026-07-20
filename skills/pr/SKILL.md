@@ -32,7 +32,7 @@ The default flow **merges locally** with plain git (see the Merge policy in `CLA
 Claude's commits carry `[skip ci]`, so **CI usually does not run on this PR** — don't wait for checks that will never report (a skipped required check sits Pending forever). Only when the project is `ci-on-claude: yes` **and** CI is running: arm `subscribe_pr_activity` once and end the turn; act on failures when the webhook wakes you. Never sleep-poll `gh pr checks`.
 
 ### 5. Merge
-Once review is satisfied (and CI green if it ran): `gh pr merge --squash` (add `--auto` if CI is pending under branch protection). Set the squash commit message explicitly and append `[skip ci]` unless `ci-on-claude: yes`, so the squashed commit landing on the base doesn't re-trigger CI.
+Once review is satisfied (and CI green if it ran): `gh pr merge --squash`. Set the squash commit message explicitly and append `[skip ci]` unless `ci-on-claude: yes`, so the squashed commit landing on the base doesn't re-trigger CI. **Don't use `--auto` expecting a `[skip ci]` check to report** — a skipped required check sits Pending forever; if branch protection blocks the merge on a stuck check, that protection config is the problem to fix (this scheme assumes CI is not a required check).
 
 Ask before merging when: a merge conflict needed non-trivial resolution, the change is a major/breaking version, or the base branch requires human approval.
 

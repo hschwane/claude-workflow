@@ -99,7 +99,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
-- If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`. **If `RELEASE_RUNNER` is `ci`**, uncomment its `push: tags: [v*]` trigger; leave it commented for `local` (default) so a locally-pushed tag doesn't double-publish.
+- If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`. The release workflow is **`workflow_dispatch`-only** for both `local` and `ci` release-runner — `/release` triggers it explicitly in `ci` mode. Never add a tag trigger: the local `/release` always pushes the version tag, so a tag-triggered workflow would double-publish.
 - Do **not** mark the CI workflow a required status check — Claude's `[skip ci]` commits would leave it Pending forever and block merges.
 - `{PLUGIN_SOURCE_DIR}/templates/github/dependabot.yml` → `{TARGET_DIR}/.github/dependabot.yml`, then uncomment the package ecosystem matching CI_LANGUAGE_TEMPLATE (typescript → npm, python → pip, rust → cargo; cpp has no ecosystem — leave only github-actions active)
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
@@ -157,7 +157,7 @@ Write to `{TARGET_DIR}/README.md`.
 
 **Copy hooks:** `{PLUGIN_SOURCE_DIR}/templates/hooks/*.sh` → `{TARGET_DIR}/.claude/hooks/`
 
-**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge the `hooks`, `statusLine`, and `permissions` keys — preserve any existing `statusLine`, and for `permissions.allow` union every template entry with the project's existing ones (add any that are absent; never remove existing allow entries). The `permissions.allow` block pre-approves the scheduled-wakeup / PR-subscription tools that `/pr` and `/release` rely on in cloud sessions.
+**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge the `hooks`, `statusLine`, and `permissions` keys — preserve any existing `statusLine`, and for `permissions.allow` union every template entry with the project's existing ones (add any that are absent; never remove existing allow entries). The `permissions.allow` block pre-approves the Claude Code Remote tools (recovery heartbeat, PR-subscription for optional `/pr`) so cloud unsupervised runs don't hit approval prompts.
 
 **workflow-source.json:**
 ```json
@@ -200,16 +200,7 @@ Write `{TARGET_DIR}/.claude/memory/decisions.md`:
 - GitHub integration: {yes if GITHUB_REPO is yes-public or yes-private, else no}
 ```
 
-Write `{TARGET_DIR}/.claude/memory/context.md`:
-```markdown
-# Context
-
-Project initialized on {TODAY}. Ready to begin development.
-
-## Current State
-- Branch: main (or develop if git-flow)
-- Next step: /draft or /ship "<topic>" → /plan → /implement
-```
+(Do NOT create `context.md` — that name is a gitignored runtime note, not a place for project overview. Runtime state lives in the repo; the memory notes are created on demand.)
 
 Write empty `{TARGET_DIR}/.claude/memory/gotchas.md` (just a `# Gotchas` heading).
 Write empty `{TARGET_DIR}/.claude/memory/tech-debt.md` (just a `# Tech Debt` heading).
@@ -232,9 +223,12 @@ Add a note in `{TARGET_DIR}/docs/dev/setup.md`: "Run `mkdocs serve` to preview t
 
 ```bash
 cd {TARGET_DIR}
+# Initialize the repo if TARGET_DIR isn't one yet (a fresh /project-init dir never is).
+git rev-parse --git-dir >/dev/null 2>&1 || git init -b main
 git add -A
 git commit -m "chore: initialize project with claude-workflow infrastructure"
 ```
+(If `git init -b main` isn't supported by the local git, use `git init && git branch -M main`.)
 
 If BRANCHING_MODEL is `git-flow`:
 ```bash

@@ -100,12 +100,11 @@ Override the agents' model with `CLAUDE_CODE_SUBAGENT_MODEL`, or by editing the 
 
 ## Key Design Principles
 
-- **Token-efficient**: Only load what's needed. Subdirectory CLAUDE.md files, on-demand agents, CI does the mechanical work.
+- **Token-efficient**: Only load what's needed. Directory-scoped CLAUDE.md files, Haiku agents for bulk/mechanical work, one model per session (no cache-invalidating switches).
 - **Self-contained after init**: Projects get copies of all workflow files. No permanent `--plugin-dir` needed.
-- **CI before AI**: GitHub Actions handles lint/typecheck/test/security. Claude only reviews after CI passes.
-- **Isolated subagents**: Code review, security review, test writing — each runs in its own isolated context for unbiased results; reviewers are hard read-only (`tools: Read, Grep, Glob`).
-- **Checkpoint-based resumability**: Every long-running skill saves progress so `/resume` can recover from token limits. Checkpoints also track in-flight subagents (`subagents:` block), so a session that crashed mid-dispatch re-runs only the subagents whose results were lost — verifying each one's output before deciding continue-vs-restart.
-- **Sequential TDD**: Test-writer sees only the spec (not the implementation code). Tests are committed before implementation begins.
+- **Local-first, evidence over ceremony**: the canonical `scripts/ci.sh` is the gate (Claude runs the *same* checks CI would); `/verify` proves a change by *running* it. GitHub Actions runs only on human commits + releases — Claude's commits carry `[skip ci]`.
+- **Repo is the checkpoint**: state = branch + spec checkboxes + git log, so `/resume` reconstructs identically in every environment — no separate checkpoint file to maintain.
+- **Tests that matter**: automated unit/integration/e2e scoped to the ticket, quality over coverage; every bug found by the manual smoke test becomes an automated test.
 
 ## Parallel Sessions
 
@@ -117,22 +116,22 @@ You can run multiple Claude Code sessions on the same repository simultaneously 
 |---------|--------|------|
 | A | `feature/feat-001-login` | `/implement FEAT-001` |
 | B | `develop` | `/plan FEAT-002` |
-| C | `feature/feat-003-api` | `/pr` waiting for CI |
+| C | `feature/feat-003-api` | `/verify` + local merge |
 
-Session A codes, Session B refines a different spec, Session C handles a PR — all simultaneously, no conflicts.
+Session A codes, Session B plans a different spec, Session C verifies and merges — all simultaneously, no conflicts.
 
 **Not safe:** two sessions on the **same branch** — they would race on the same files. Don't do it.
 
-**Rule of thumb:** one session per branch. Keep each implementation session on its own feature branch. Use a dedicated session on `develop` (or `main`) for planning work (refine, draft, brainstorm) that doesn't touch feature code.
+**Rule of thumb:** one session per branch. Keep each implementation session on its own feature branch; use a dedicated session on `develop` (or `main`) for planning/drafting.
 
 ## Branching Models
 
 `/project-init` asks which model the project uses; all skills adapt automatically:
 
-- **main-only** (default): feature branches merge into `main` via `/pr`; `/release` tags on `main`.
-- **git flow**: feature branches merge into `develop` via `/pr`. `master` contains *only released states*: `/release` tests `develop`, then merges `develop` → `master` (`--no-ff`), tags the merge commit, and syncs master back into develop. The tip of `master` always equals the latest release.
+- **main-only** (default): feature branches merge into `main`; `/release` tags on `main`.
+- **git flow**: feature branches merge into `develop`. `master` contains *only released states*: `/release` runs the full gate on `develop`, then merges `develop` → `master` (`--no-ff`), tags the merge commit, and syncs master back into develop. The tip of `master` always equals the latest release.
 
-Pushing rules in both models: **push your feature branch freely after every commit** — pushes are backups. The quality gate (CI green + AI reviews) applies at the **merge** into the integration branch, which only happens via `/pr`.
+Both models: **push your feature branch freely** (backups). The gate is the local `/verify` before the **merge**, which is plain local git by default (`/pr` only when you want external review).
 
 ## Unsupervised Mode & Resume Logic
 

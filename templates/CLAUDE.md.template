@@ -86,4 +86,6 @@ When `unsupervised: true`: never use `AskUserQuestion` (apply the `/unsupervised
 
 ## Memory
 
-`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and per-branch runtime notes (`context-{branch}.md`, gitignored). Read them when relevant; they're not auto-loaded.
+`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and runtime notes (gitignored). Read them when relevant; they're not auto-loaded.
+
+Runtime notes: `context-{branch}.md` for a branch's `## Blocked` note — **`{branch}` = the git branch with every `/` replaced by `-`** (`feature/feat-001-x` → `context-feature-feat-001-x.md`); the hooks compute it exactly this way, so skills must too. `/ship` orchestration state lives in the **fixed, branch-independent** `context-ship.md` (a ship spans many branches).

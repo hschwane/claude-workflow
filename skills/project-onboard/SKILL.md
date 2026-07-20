@@ -65,7 +65,6 @@ Create `.claude/` directory with:
 ├── workflow-source.json
 └── memory/
     ├── decisions.md
-    ├── context.md
     ├── gotchas.md
     ├── tech-debt.md
     └── .gitignore      ← from templates/memory/.gitignore
@@ -125,16 +124,7 @@ Added: {today}
 - GitHub integration: {yes if user confirmed GitHub in step 2, else no}
 ```
 
-Write initial `.claude/memory/context.md`:
-```markdown
-# Project Context
-
-## Overview
-{project summary from analysis agent}
-
-## Status
-Onboarded on {today}. Ready to use workflow.
-```
+(Do NOT create `context.md` — that name is a gitignored runtime note. Put any project overview worth keeping into `.claude/memory/decisions.md` (tracked); runtime state lives in the repo.)
 
 Copy `templates/memory/.gitignore` → `.claude/memory/.gitignore` (prevents runtime state files from being committed to git).
 
@@ -167,7 +157,7 @@ Run `/reload-skills` so Claude Code picks up the newly installed skills and agen
 
 ### 4. GitHub Setup (if applicable)
 Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
-- Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, refining, ready, in-progress, done, trivial, small, medium, large — `--force` because defaults like `bug` already exist)
+- Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, ready, in-progress, done — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 
 ### 5. Commit

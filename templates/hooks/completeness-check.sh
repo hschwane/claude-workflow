@@ -8,17 +8,20 @@ set -euo pipefail
 INPUT=$(cat)
 ROOT="${CLAUDE_PROJECT_DIR:-.}"
 MEM="$ROOT/.claude/memory"
-branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || true)
+branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || true)  # {branch} = git branch with / → -
 CTX="$MEM/context-${branch}.md"
+SHIP="$MEM/context-ship.md"   # /ship state — branch-independent
 
-# Recorded blocker → human needed → allow stop.
-[ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null && exit 0
+# Recorded blocker (this branch or the ship run) → human needed → allow stop.
+{ [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; } && exit 0
+{ [ -f "$SHIP" ] && grep -q "^## Blocked" "$SHIP" 2>/dev/null; } && exit 0
 
 # What's in flight: the in-progress spec (and whether it has unchecked boxes), or a ## Ship run.
 SPEC=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/null | head -1 || true)
-HAS_SHIP=no; { [ -f "$CTX" ] && grep -q "^## Ship" "$CTX" 2>/dev/null; } && HAS_SHIP=yes
+HAS_SHIP=no; { [ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null; } && HAS_SHIP=yes
 UNCHECKED=0
-[ -n "$SPEC" ] && UNCHECKED=$(grep -c "^- \[ \]" "$SPEC" 2>/dev/null || echo 0)
+# grep -c prints 0 AND exits 1 on no match; `|| true` swallows the exit so we don't get "0\n0".
+[ -n "$SPEC" ] && UNCHECKED=$(grep -c "^- \[ \]" "$SPEC" 2>/dev/null || true)
 
 # Nothing in progress → allow stop.
 [ -z "$SPEC" ] && [ "$HAS_SHIP" = no ] && exit 0

@@ -202,16 +202,15 @@ Run `/reload-skills` so Claude Code picks up the newly installed skills and agen
 Skip this step in unsupervised mode.
 
 The scaffolder created `docs/workflow/decisions.md` — the record of every tunable workflow
-setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …).
-It ships with sensible defaults. Show the user the **Refinement → Sizing defaults** table
-from that file and note the other settings it lists.
+setting (testing scope, branching, deploy target, ci-on-claude, release-runner, pause threshold).
+It ships with sensible defaults. Show the user the settings it lists.
 
-Ask (AskUserQuestion): "Want to tune any workflow defaults now, or keep them? [Keep defaults / Adjust refine sizing / Adjust something else]"
+Ask (AskUserQuestion): "Want to tune any workflow defaults now, or keep them? [Keep defaults / Adjust a setting]"
 
 - **Keep defaults**: continue.
-- **Adjust refine sizing / something else**: run the `/workflow-decisions` procedure now for the
-  chosen setting — it edits the live value in `.claude/skills/…` **and** updates
-  `docs/workflow/decisions.md` together. Everything is also changeable later via `/workflow-decisions`.
+- **Adjust a setting**: run the `/workflow-decisions` procedure now for the chosen setting — it
+  edits the live location **and** `docs/workflow/decisions.md` together. Everything is also
+  changeable later via `/workflow-decisions`.
 
 ### 7. Initial Backlog — Four-Phase Structure
 
@@ -280,14 +279,9 @@ Create GitHub labels (`--force` updates labels that already exist, e.g. the defa
 gh label create feature --force --color 0075ca --description "New feature"
 gh label create bug --force --color d73a4a --description "Bug report"
 gh label create backlog --force --color e4e669 --description "In backlog"
-gh label create refining --force --color 0075ca --description "Being refined"
 gh label create ready --force --color 0e8a16 --description "Ready to implement"
 gh label create "in-progress" --force --color fbca04 --description "Being implemented"
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
-gh label create trivial --force --color e4f2bf --description "Trivial effort"
-gh label create small --force --color bfd4f2 --description "Small effort"
-gh label create medium --force --color d4c5f9 --description "Medium effort"
-gh label create large --force --color e99695 --description "Large effort"
 ```
 
 Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created, then commit (`docs: fill CI badge repo`). (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)

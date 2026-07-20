@@ -21,7 +21,7 @@ Resolve the spec: the argument, or the in-progress spec on the current branch. R
 ### 1. Full gate
 Invoke the `runner` agent with `scripts/ci.sh full` (format + lint + typecheck + **all** automated tests incl. integration/e2e + the deployable build). Fix anything red, commit the fix, re-run until green. This is the authoritative correctness gate.
 
-**Skip only if** HEAD is unchanged since the last green full run (e.g. `/verify` was just run and nothing was committed since) — no point re-running the identical suite.
+**Skip only if** you can be certain HEAD is unchanged since the last green full run in *this* session (e.g. `/verify` was just run and nothing committed since). After a `/resume` or any uncertainty, **re-run** — the repo doesn't record the last green sha, so when in doubt, run it.
 
 ### 2. Review (Claude's judgment)
 Default: **self-review** — reread the diff (`git diff {integration-branch}...HEAD`) adopting a reviewer's perspective: correctness, security basics, conventions, test quality. Fix what you find.

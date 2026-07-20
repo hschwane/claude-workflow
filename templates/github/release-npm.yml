@@ -1,15 +1,12 @@
 # Release workflow — the FALLBACK path. By default `/release` runs scripts/release.sh
 # LOCALLY (release-runner: local) and this only runs on manual dispatch.
-# Only if release-runner: ci (isolate publish secrets, or need npm provenance/OIDC) —
-# uncomment the tag trigger below so a pushed v* tag runs the publish here instead.
-# NOTE: never enable BOTH local release and the tag trigger — you'd publish twice.
+# Dispatch-only: /release triggers this in ci mode. Never add a tag trigger — the local
+# /release always pushes the version tag, so a tag trigger would double-publish.
 name: Release
 on:
   workflow_dispatch:
     inputs:
       version: { description: "version to release (e.g. 1.2.0)", required: true }
-  # push:
-  #   tags: ["v*"]        # enable ONLY for release-runner: ci
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -20,6 +17,6 @@ jobs:
         with: { node-version: "22", cache: "npm", registry-url: "https://registry.npmjs.org" }
       - run: npm ci
       # Same entrypoint Claude runs locally — parity. VERSION from dispatch input or the tag.
-      - run: bash scripts/release.sh "${{ github.event.inputs.version || github.ref_name }}"
+      - run: bash scripts/release.sh "${{ github.event.inputs.version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

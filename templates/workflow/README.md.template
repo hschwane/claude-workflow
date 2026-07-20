@@ -5,46 +5,44 @@ This project follows an AI-assisted development workflow powered by [claude-work
 ## Lifecycle Overview
 
 ```
-IDEA → [/draft] → BACKLOG → [/plan] → READY → [/implement] → IN-PROGRESS → [/pr] → DONE
-                                                                                        ↓
-                                                                               [/release] → RELEASED
+IDEA → [/draft] → BACKLOG → [/plan] → READY → [/implement] → [/verify] → merge (local) → DONE
+                                                                                            ↓
+                                                                                   [/release] → RELEASED
 ```
+Or run the whole chain with **`/ship`** (from a spec list or a topic).
 
 ## Commands
 
 | Command | Phase | What it does |
 |---------|-------|-------------|
-| `/draft feature "title"` | Draft | Create raw backlog entry (no planning needed) |
-| `/draft bug "title"` | Draft | Report a bug |
+| `/draft feature\|bug "title"` | Draft | Create a raw backlog entry (no planning) |
 | `/plan FEAT-001` | Planning | One light pass: goal, observable acceptance criteria, subtasks |
-| `/implement FEAT-001` | Implementation | Tests first (isolated context), then code |
-| `/commit` | Implementation | Quality-gated conventional commit |
-| `/pr [base]` | Review | CI → code review → security review → auto-merge |
-| `/release patch\|minor\|major` | Release | Version bump + changelog + tag + publish |
-| `/resume` | Recovery | Continue interrupted in-progress work |
-| `/unsupervised on\|off` | Autonomy | No questions, autonomous defaults, loop-safe |
-| `/workflow-decisions [setting]` | Config | View/change a workflow setting; syncs the skill + `decisions.md` |
-| `/workflow-update` | Maintenance | Update workflow plugin to latest version |
-
-Questions about the process? These docs cover the lifecycle, quality gates, and settings.
+| `/implement FEAT-001` | Implementation | Per subtask: code + tests, fast gate, commit; then `/verify` |
+| `/verify` | QA | Full gate + review + manual smoke (new features) |
+| `/commit` | Implementation | Gated conventional commit (runs the canonical `ci.sh fast`) |
+| `/release patch\|minor\|major` | Release | Version bump + changelog, then run `release.sh` locally |
+| `/ship [IDs]\|"topic"` | Orchestration | plan → implement → verify → merge → release |
+| `/pr [base]` | Review | Optional — open a PR (default merges locally) |
+| `/resume` | Recovery | Continue interrupted work (reconstructs from the repo) |
+| `/unsupervised on\|off` | Autonomy | No questions, autonomous defaults |
+| `/workflow-decisions [setting]` | Config | View/change a workflow setting |
+| `/workflow-update` | Maintenance | Update the workflow plugin |
 
 ## Configuration
 
-Every tunable setting (refine sizing defaults, testing scope, review tier, branching model, auto-merge, GitHub integration, …) is documented in [`decisions.md`](decisions.md). That file is the human-readable **record** — each setting's live value lives in the skill that uses it for speed. Change any setting with **`/workflow-decisions`**, which edits the live value and updates `decisions.md` together so they never drift.
+Tunable settings (testing scope, branching model, deploy target, `ci-on-claude`, `release-runner`, GitHub integration, pause threshold) are recorded in [`decisions.md`](decisions.md). Change any with **`/workflow-decisions`**, which edits the live location and the record together.
 
 ## Specs
 
-Specs live in `docs/specs/`:
-- `backlog/` — raw drafts, not yet refined
-- `ready/` — refined, DoR met, ready to implement
-- `completed/` — implemented and merged
+Specs live in `docs/specs/`: `backlog/` (raw drafts) → `ready/` (planned) → `completed/` (done).
 
 ## Quality Gates
 
 | Gate | When | Who |
 |------|------|-----|
 | Auto-format | Every file edit | Hook |
-| Tests | Per subtask (during implement) | Claude locally |
-| CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
-| Review | At /verify, critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
-| Documentation | Inline during /implement (minimal per policy) | main session |
+| Fast gate (`ci.sh fast`) | Per subtask | `runner` (Haiku), locally |
+| Full gate (`ci.sh full`) + smoke | Feature-done (`/verify`) | `runner` + `smoke-tester`, locally |
+| Review | Critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
+| GitHub Actions CI | Human commits + releases only (Claude's carry `[skip ci]`) | GitHub Actions |
+| Documentation | Inline during `/implement` (minimal) | main session |

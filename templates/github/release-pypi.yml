@@ -1,14 +1,12 @@
 # Release workflow — the FALLBACK path. By default `/release` runs scripts/release.sh
 # LOCALLY (release-runner: local) and this only runs on manual dispatch.
-# Only if release-runner: ci — uncomment the tag trigger below.
-# NOTE: never enable BOTH local release and the tag trigger — you'd publish twice.
+# Dispatch-only: /release triggers this in ci mode. Never add a tag trigger — the local
+# /release always pushes the version tag, so a tag trigger would double-publish.
 name: Release
 on:
   workflow_dispatch:
     inputs:
       version: { description: "version to release (e.g. 1.2.0)", required: true }
-  # push:
-  #   tags: ["v*"]        # enable ONLY for release-runner: ci
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -18,4 +16,4 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]" || pip install -r requirements-dev.txt
-      - run: bash scripts/release.sh "${{ github.event.inputs.version || github.ref_name }}"
+      - run: bash scripts/release.sh "${{ github.event.inputs.version }}"

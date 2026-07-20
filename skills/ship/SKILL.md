@@ -32,12 +32,12 @@ Be on the integration branch (`develop` if it exists, else `main`/`master`) — 
 ### 1. Plan — all questions up front
 Run `/plan` **once with every ticket** that isn't already `ready` (skip ones already in `docs/specs/ready/`). This batches all `[USER]` questions across all tickets into a single round at the start. Answer them (unsupervised: reasonable defaults, noted). After this point the run is autonomous — the user can walk away.
 
-Record the resolved plan (ticket order + the batched answers) in `.claude/memory/context-{branch}.md` under `## Ship` — this is the only orchestration state kept (per-ticket detail lives in the specs).
+Record the resolved plan (ticket order + the batched answers) in **`.claude/memory/context-ship.md`** under `## Ship` — a **fixed, branch-independent** file, because a ship run spans many feature branches. This is the only orchestration state kept (per-ticket detail lives in the specs). Update it as tickets complete; delete it (or clear `## Ship`) when the whole run is done or write `## Blocked` there on a hard blocker.
 
 ### 2. Per ticket, in priority order
 For each ticket:
 1. **`/implement {id}`** — builds it on its own feature branch, fast-gating + committing each subtask, then runs `/verify` (full gate + review + smoke for new features).
-2. **Merge to the integration branch — local git, per the Merge policy** (no PR): if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only`, no re-run. Otherwise resolve conflicts locally, re-run the full gate, then merge. The merge commit carries `[skip ci]` unless `ci-on-claude: yes`.
+2. **Merge to the integration branch — local git, per the Merge policy** (no PR): if the merge is fast-forward and the full gate is known-green on this exact HEAD from this session (e.g. `/verify` just ran) → `git merge --ff-only`, no re-run. Otherwise — or after a `/resume`, when the last-green sha isn't known — resolve conflicts if any, re-run the full gate (`ci.sh full`), then merge. The merge commit carries `[skip ci]` unless `ci-on-claude: yes`.
 3. Tick the ticket off in the `## Ship` state.
 
 No CI waits, no PR round-trips — nothing to idle on, so tickets flow one after another. (Use `/pr` instead of the local merge only if the user asked for PRs / the repo requires them.)

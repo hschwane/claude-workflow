@@ -7,25 +7,29 @@ set -euo pipefail
 
 ROOT="${CLAUDE_PROJECT_DIR:-.}"
 MEM="$ROOT/.claude/memory"
-branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || true)
+branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || true)  # {branch} = git branch with / → -
 CTX="$MEM/context-${branch}.md"
+SHIP="$MEM/context-ship.md"   # /ship orchestration state — branch-independent (a ship spans many branches)
 
 # Unsupervised? (drives auto-resume vs suggest — no marker files needed)
 UNSUP=no
 [ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=yes
 
 # A blocker always takes priority — surface it, never auto-resume past it.
-if [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; then
-  echo "=== BLOCKED WORK ON THIS BRANCH ==="
-  grep -A 6 "^## Blocked" "$CTX" | head -8 || true
+BLK=""
+[ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null && BLK="$CTX"
+[ -z "$BLK" ] && [ -f "$SHIP" ] && grep -q "^## Blocked" "$SHIP" 2>/dev/null && BLK="$SHIP"
+if [ -n "$BLK" ]; then
+  echo "=== BLOCKED WORK ==="
+  grep -A 6 "^## Blocked" "$BLK" | head -8 || true
   echo "Resolve the blocker, then /resume. ==="
   exit 0
 fi
 
-# In-progress spec on this branch = a spec still marked in-progress with unchecked boxes.
+# In flight = an in-progress spec anywhere, OR an active /ship run.
 INPROG=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/null | head -1 || true)
 HAS_SHIP=no
-[ -f "$CTX" ] && grep -q "^## Ship" "$CTX" 2>/dev/null && HAS_SHIP=yes
+[ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null && HAS_SHIP=yes
 
 if [ -z "$INPROG" ] && [ "$HAS_SHIP" = no ]; then
   exit 0   # nothing in flight
@@ -39,6 +43,6 @@ else
   echo "Run /resume to continue, or start something new."
 fi
 [ -n "$INPROG" ] && echo "  spec: ${INPROG#$ROOT/}"
-[ "$HAS_SHIP" = yes ] && { echo "  ship state:"; grep -A 8 "^## Ship" "$CTX" | head -10 || true; }
+[ "$HAS_SHIP" = yes ] && { echo "  ship state:"; grep -A 8 "^## Ship" "$SHIP" | head -10 || true; }
 echo "==========================="
 exit 0

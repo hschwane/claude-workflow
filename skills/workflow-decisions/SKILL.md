@@ -1,27 +1,22 @@
 ---
 name: workflow-decisions
 description: View or change a workflow decision (testing scope, branching, deploy target, ci-on-claude, release-runner, pause threshold, …) — edits the live value and keeps docs/workflow/decisions.md in sync
-argument-hint: "[setting | natural-language change] — e.g. \"refine sizing\" | \"make large tickets use fable\""
+argument-hint: "[setting | natural-language change] — e.g. \"ci-on-claude\" | \"testing scope\""
 disable-model-invocation: true
 ---
 
 # Workflow Decisions
 
-`docs/workflow/decisions.md` is the human-readable **record** of every tunable workflow
-setting this project has decided on. For speed the *live* value of each setting is written
-directly into the skill that uses it — skills never read `decisions.md` at runtime. This
-skill is what keeps the two in sync: it edits the live value **and** updates
-`decisions.md` together, in one commit.
+`docs/workflow/decisions.md` is the **record** of every tunable workflow setting. Each setting has a **Live in** location — usually a project doc (`quality.md`, `lifecycle.md`, `release.md`, `deploy.md`, `.claude/memory/decisions.md`) that the skills read at runtime (e.g. `/commit` reads `ci-on-claude`, `/release` reads `release-runner`). This skill keeps the record and the live location in sync: it edits both together, in one commit.
 
-(Distinct from `.claude/memory/decisions.md`, which records *architecture* decisions about
-the code — this skill only touches the *workflow* record in `docs/workflow/decisions.md`.)
+(Distinct from `.claude/memory/decisions.md`, which records *architecture* decisions about the code — this skill only touches the *workflow* settings.)
 
 ## Usage
 ```
 /workflow-decisions                          # list settings, pick one to change
-/workflow-decisions refine sizing            # jump straight to a setting
-/workflow-decisions "make large tickets use fable and manual approval"
-/workflow-decisions "review only small diffs, always full review otherwise"
+/workflow-decisions ci-on-claude             # jump straight to a setting
+/workflow-decisions "run CI on my commits too for this library"
+/workflow-decisions "release through CI to keep publish secrets off my machine"
 ```
 
 ## Instructions
@@ -62,7 +57,7 @@ For each setting being changed:
 
 1. **Edit the Live in target.** Open the file named in the setting's **Live in** line and
    change the value in place. Preserve the surrounding format exactly — for table-based
-   settings (e.g. the refine sizing table) edit only the affected cells; for prose settings
+   settings (e.g. a table) edit only the affected cells; for prose settings
    (e.g. branching model, testing scope) replace only the value.
    - Some targets are docs, not skills (`docs/workflow/quality.md`, `docs/workflow/release.md`,
      `.claude/memory/decisions.md`) — edit those the same way.
@@ -70,7 +65,7 @@ For each setting being changed:
      `/unsupervised on {threshold}`.
 2. **Update `docs/workflow/decisions.md`.** Change that setting's **Current** value to match
    what you just wrote, and bump the `Last updated:` date to today.
-3. If a setting's live value appears in more than one place (the sizing table is referenced in
+3. If a setting's live value appears in more than one place (referenced in
    several places), update every occurrence so nothing drifts.
 
 **Consistency check:** after editing, re-read the **Live in** location and the **Current**

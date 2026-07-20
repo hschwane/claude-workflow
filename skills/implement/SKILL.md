@@ -71,7 +71,7 @@ Commit with `[skip ci]` per the same rule as 2d.
 - Spec frontmatter `status: done`; `git mv docs/specs/ready/{file} docs/specs/completed/{file}`.
 - If `github_issue` set and integration is on: comment "✅ implemented on `{branch}`".
 - Commit (`docs(specs): complete {id}  [skip ci]`).
-- If a `## Blocked`/`## In Progress` note was written for this branch, clear it.
+- If a `## Blocked` note was written for this branch, clear it.
 
 Merging is a separate step — the caller (`/ship`) or the user handles it per the **Merge policy** (local git, no formal PR by default). Report:
 ```

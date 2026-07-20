@@ -18,7 +18,7 @@ The main session prepares the judgment parts (version bump, changelog), then the
 ### 1. Pre-flight
 - Read `docs/workflow/release.md` for the branching model (git-flow if it says so or a `develop` branch exists; else main-only). Be on the right branch (main-only: `main`/`master`; git-flow: `develop`).
 - Working tree clean (`git status`); `git pull` so the release includes everything merged.
-- **Full gate green:** invoke the `runner` with `scripts/ci.sh full`. Stop if red (fix first).
+- The full gate runs inside `scripts/release.sh` (step 7), so don't run it separately here. For `release-runner: ci` **only**, run `scripts/ci.sh full` via the `runner` now as a fail-fast check before dispatching to Actions.
 
 ### 2–6. Prepare version + changelog (main session — the judgment part)
 - **Bump type**: the argument, or ask (patch/minor/major).
@@ -34,14 +34,14 @@ Read the `release-runner` decision (`docs/workflow/decisions.md`).
 **`release-runner: local` (default):** hand off to the `runner` agent → `scripts/release.sh {version}` (it runs the gate again, builds, publishes where creds are present, and triggers/awaits deploy). The runner reports each step.
 - **On failure** (publish errored, unhealthy deploy) → the runner returns control; diagnose and fix, or `## Blocked` in unsupervised mode. Don't leave a half-published release silently.
 
-**`release-runner: ci`:** trigger the GitHub release workflow instead — `gh workflow run release.yml -f version={version}` (or push the tag if that workflow uses a tag trigger). Monitor **without sleep-polling**: check `gh run list --workflow=release.yml --limit=1` once; if still running in a cloud session, schedule a self-check-in and end the turn, re-checking on wake until it concludes.
+**`release-runner: ci`:** trigger the release workflow by **dispatch** — `gh workflow run release.yml -f version={version}`. The workflow is dispatch-only (never tag-triggered), so the tag you push in step 8 does not re-fire it (no double-publish). Monitor **without sleep-polling**: check `gh run list --workflow=release.yml --limit=1` once; if still running in a cloud session, schedule a self-check-in and end the turn, re-checking on wake until it concludes.
 
 ### 8. Tag + push
 ```
 git tag v{version}
 git push && git push --tags
 ```
-Git-flow: merge `develop → master`, tag the merge commit, push, then sync master back into develop (stop + `## Blocked` on merge conflicts).
+The tag is the version record; it triggers nothing (the release workflow is dispatch-only). Git-flow: merge `develop → master`, tag the merge commit, push, then sync master back into develop (stop + `## Blocked` on merge conflicts).
 
 ### 9. Deploy verification
 For a deployed app (e.g. Railway auto-deploys on the merge/push): verify health — hit the healthcheck / use the Railway MCP to confirm the new deploy is live and serving. Report the result; roll back if unhealthy.

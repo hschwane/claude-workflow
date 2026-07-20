@@ -15,10 +15,11 @@ Picks up interrupted work. There is no separate checkpoint to trust — **the re
 ## Instructions
 
 ### 1. Find the work
-- Current branch: `git branch --show-current`. A feature branch (`feature/{id}-…`) names the ticket.
+- Current branch: `git branch --show-current` (`{branch}` = with `/`→`-` for the memory filename). A feature branch (`feature/{id}-…`) names the ticket.
+- **Ship run?** Check the fixed **`.claude/memory/context-ship.md`** first: a `## Ship` section means a `/ship` orchestration is active — resume it from the first unfinished ticket (may need to switch branches / do a pending merge). A `## Blocked` there → surface it and stop.
 - The in-progress spec: the one with `status: in-progress` (search `docs/specs/`), or the one matching the branch id.
-- If `.claude/memory/context-{branch}.md` has a `## Blocked` section → tell the user what's blocking and stop (don't work around a human-needed blocker). If it has a `## Ship` section → this is a `/ship` run; resume the orchestration from the first unfinished ticket.
-- If there's no in-progress spec and no branch work: say "nothing in progress", list any `status: ready` specs, and stop.
+- Branch blocker: `.claude/memory/context-{branch}.md` with `## Blocked` → tell the user and stop (don't work around a human-needed blocker).
+- If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs, and stop.
 
 ### 2. Reconcile against reality (git wins)
 Read the spec's subtask checkboxes and compare to `git log --oneline -15` on this branch. **If they disagree, trust git** and fix the boxes: a subtask with a matching commit is done even if unchecked; an unchecked box with no commit is the next work. This self-corrects a crash mid-subtask.

@@ -28,10 +28,11 @@ usage_threshold: {threshold or 80}
 ```
 **If this is a cloud/remote session** (the `mcp__Claude_Code_Remote__create_trigger` tool is available / `CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE` is set): arm the **recovery heartbeat** — one recurring Routine so a rate-limit kill or crash is recovered automatically. Idempotent: check `list_triggers` for `unsupervised-recovery: {branch}` bound to this session; if absent, create it (cron `{minute} * * * *` from `date +%M`) with this prompt, and record its id as `recovery_trigger: {id}` in settings.md:
 ```
-Unsupervised auto-recovery heartbeat for branch {branch}. Silently: read
-.claude/memory/context-{branch}.md and the in-progress spec. If a ## Blocked section
+Unsupervised auto-recovery heartbeat. Silently run /resume, which reconstructs state
+from the repo: it checks .claude/memory/context-ship.md (a ## Ship run spans branches),
+any in-progress spec + its unchecked boxes, and ## Blocked notes. If a ## Blocked note
 exists → delete this Routine (find via list_triggers by name) and stop. If in-progress
-work remains → /resume. If nothing remains → delete this Routine and stop. If still
+work remains → continue it. If nothing remains → delete this Routine and stop. If still
 rate-limited and you can't proceed → stop; the next hourly firing retries.
 ```
 Skip the heartbeat in local/VS Code/docker sessions (the session-start hook + user, or `claude-loop.sh`, handle restart there).

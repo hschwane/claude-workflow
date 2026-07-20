@@ -2,69 +2,47 @@
 
 ## Definition of Ready (DoR)
 
-A spec must meet ALL of these before implementation starts:
+A spec must meet ALL of these before implementation starts (`/plan` produces them):
 
-- [ ] User Story is clear: who / what / why
-- [ ] All acceptance criteria are testable (no vague language like "should work well")
-- [ ] Interface definitions are complete (types, signatures, shapes)
-- [ ] All subtasks are defined and independently committable
-- [ ] Out-of-scope is explicit
+- [ ] Goal is clear: who / what / why
+- [ ] Acceptance criteria are **observable** and testable (no vague "should work well")
+- [ ] Approach + key interfaces are sketched
+- [ ] Subtasks are defined and independently committable
 - [ ] No open questions remain
-- [ ] /verify passed (gate + review + smoke for new features)
 
 ## Definition of Done (DoD)
 
 A feature is done only when ALL of these are true:
 
-- [ ] All CI checks pass (lint + typecheck + tests + security + build)
-- [ ] All code review findings addressed
-- [ ] All security review findings addressed
-- [ ] Documentation updated (architecture.md, user docs if applicable)
+- [ ] Full gate green (`ci.sh full` — format, lint, typecheck, all tests, build)
+- [ ] `/verify` passed (gate + review + manual smoke for new features); smoke-found bugs became automated tests
+- [ ] Review addressed (inline self-review, or the `reviewer` agent for critical diffs)
+- [ ] Documentation updated where the change warrants (architecture.md, user docs if user-facing)
+- [ ] Merged to the integration branch (local git, or `/pr` if used)
 - [ ] Spec moved to `docs/specs/completed/`
-- [ ] PR merged to main
 
 ## Quality Gates
 
 | Gate | Trigger | Owner |
 |------|---------|-------|
 | Auto-format | Every file edit | Hook (PostToolUse) |
-| Subtask tests | Per subtask during implement | Claude (local) |
-| Linter | Per subtask during implement | Claude (local) |
-| CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
-| Review | At /verify, critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
-| Documentation | Inline during /implement (minimal per policy) | main session |
+| Fast gate (`ci.sh fast`) | Per subtask | `runner` (Haiku), local |
+| Full gate (`ci.sh full`) + smoke | Feature-done (`/verify`) | `runner` + `smoke-tester`, local |
+| Review | Critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
+| GitHub Actions CI | Human commits + releases only | GitHub Actions |
+| Documentation | Inline during `/implement` (minimal) | main session |
 
 ## Test Strategy
 
-**Konfigurierter Scope:** {{TESTING_SCOPE}}
+**Configured scope:** {{TESTING_SCOPE}}. Test the **important behaviors** — quality over coverage. Each acceptance criterion maps to the lowest test level that meaningfully covers it.
 
-### Test-Ebenen
+- **Unit** — isolated logic (pure functions, domain rules, validation, calculations). Mock only external I/O (network, FS, DB, time); never mock your own code. Error cases and boundaries live here.
+- **Integration** *(from "Unit + Integration")* — system boundaries (HTTP endpoints, DB operations, service interactions) against real test dependencies (test DB / in-memory), no mocks of your own layers. Don't repeat what unit tests cover.
+- **E2E** *(only at "Unit + Integration + E2E")* — critical user flows spanning UI + backend + DB that aren't verifiable at integration level. Cap ~3–5 scenarios per feature; only when an E2E framework is actually configured.
 
-**Unit Tests** — Geschäftslogik isoliert
-- Ziel: reine Funktionen, Domänenregeln, Eingabevalidierung, Berechnungen, Transformationen
-- Mock: nur externe I/O (Netzwerk, Dateisystem, DB, Zeit) — nie eigenen Code mocken
-- Fehlerfälle und Grenzwerte gehören hierher, nicht in Integration Tests
-
-**Integration Tests** — Komponenteninteraktionen an Systemgrenzen *(ab "Unit + Integration")*
-- Ziel: HTTP-Endpunkte, Datenbankoperationen, Service-Interaktionen, Message Handler
-- Ausführung: gegen echte Test-Dependencies (Test-DB, In-Memory-Äquivalent) — keine Mocks eigener Schichten
-- Grenzwerte und Fehlerfälle nicht wiederholen, die Unit Tests bereits abdecken
-
-**E2E Tests** — kritische Nutzer-Flows über alle Schichten *(nur bei "Unit + Integration + E2E")*
-- Ziel: Flows, die UI + Backend + DB überspannen und nicht auf Integration-Ebene verifizierbar sind
-- Limit: max. 3–5 Szenarien pro Feature; im Zweifel Integration Test bevorzugen
-- Nur schreiben, wenn ein E2E-Framework im Projekt tatsächlich konfiguriert ist
-
-### Regel: Eine Ebene pro Kriterium
-Jedes Akzeptanzkriterium wird genau **einer** Test-Ebene zugeordnet — der niedrigsten, die es sinnvoll abdeckt:
-- Kriterium prüft isolierte Logik (kein Netzwerk/DB nötig) → **Unit Test** (inkl. seiner Fehlerfälle)
-- Kriterium prüft Systemgrenze (Endpunkt, DB-Aufruf, externer Service) → **Integration Test**
-- Kriterium prüft Nutzer-Flow über mehrere Schichten → **E2E** (nur wenn im Scope und Framework vorhanden)
-
-Glue-Code (dünne Controller, Adapter, Wrapper) wird indirekt durch Integration Tests abgedeckt — keine eigenen Unit Tests nötig.
+Glue code (thin controllers, adapters, wrappers) is covered indirectly by integration tests — no dedicated unit tests needed.
 
 ## Security
-- Dependency audits run in CI on every PR
-- Security agent reviews every PR
-- No secrets in code — use environment variables
-- `.env` is protected by the file-protection hook
+- Security is reviewed as part of `/verify` (self-review, or the `reviewer` agent for auth/crypto/payments/data diffs).
+- Dependency audits run in the canonical gate / CI.
+- No secrets in code — use environment variables; `.env` is protected by the file-protection hook.
