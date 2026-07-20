@@ -58,22 +58,25 @@ Ask the user (via AskUserQuestion):
 If breaking changes exist, show them explicitly and ask separately: "This update has breaking changes. Review them above. Continue?"
 
 ### 5. Apply Update
-Copy only the **system files** from the temp clone to this project's `.claude/`:
+Copy the **system files** from the temp clone into this project's `.claude/`. Agents and skills are plugin-owned wholesale, so **mirror** them — replace the directory contents AND delete any skill/agent the new version no longer ships (e.g. on the 2.x upgrade: `route-*`, `prioritize`, `brainstorm` skills; `test-writer`, `requirements-engineer`, `tech-planner`, `documentation-writer`, `product-owner`, `workflow-coach`, `test-runner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` agents). Leaving stale files behind is a real bug.
 ```
-# Overwrite (system files — always updated):
-.claude/agents/          ← copy all from temp clone (agents/)
-.claude/skills/          ← copy all from temp clone (skills/, preserving {name}/SKILL.md structure)
-.claude/hooks/*.sh       ← copy all from temp clone (templates/hooks/*.sh)
-.claude/memory/.gitignore ← copy from temp clone (templates/memory/.gitignore) — the ONLY file
-                            touched under memory/; it's a fixed plugin-owned runtime-pattern list
+# Mirror (delete-then-copy so removed files don't linger):
+.claude/agents/          ← mirror temp clone agents/       (removes deleted agents)
+.claude/skills/          ← mirror temp clone skills/       (removes deleted skills; {name}/SKILL.md)
+.claude/hooks/*.sh       ← copy all from temp clone templates/hooks/*.sh; chmod +x
+.claude/memory/.gitignore ← copy from temp clone templates/memory/.gitignore (only file touched under memory/)
 
-# Smart merge (hook configuration — add new entries, never remove existing ones):
-.claude/settings.json    ← merge the "hooks" key from temp clone's templates/hooks/hooks.json;
+# Canonical scripts — ADD if missing, NEVER overwrite (they are project-customized after init):
+scripts/ci.sh, scripts/release.sh, scripts/claude-loop.sh
+                         ← if the project has none, copy from temp clone templates/scripts/ and
+                           tell the user to fill in the {{...}} command placeholders. If they exist,
+                           leave them — the project tuned them.
+
+# Smart merge (settings.json — add, never remove):
+.claude/settings.json    ← merge the "hooks" key from templates/hooks/hooks.json (add new entries);
                            add "statusLine" only if the project has none;
-                           union "permissions.allow" — add EVERY entry from the template's
-                           permissions.allow that the project is missing, never remove existing
-                           allow entries (this delivers new plugin permissions on every update,
-                           not just the wake tools)
+                           union "permissions.allow" — add every template entry the project lacks,
+                           never remove existing ones
 ```
 
 **Never touch** (project-specific files):
@@ -89,7 +92,7 @@ For the hooks merge: read the `hooks` key of the current `.claude/settings.json`
 
 ### 5b. Re-apply Workflow Decisions (reconcile after overwrite)
 
-Overwriting `.claude/skills/` in step 5 replaced every skill with the plugin defaults — including any settings the user tuned via `/workflow-decisions` (refine sizing, review tier, auto-merge, …), whose live values are stored **inside** those skills. `docs/workflow/decisions.md` is a preserved project file and is the record of the chosen values, so replay it back into the fresh skills:
+Mirroring `.claude/skills/` in step 5 reset any settings the user tuned via `/workflow-decisions` whose live value lives inside a skill (e.g. `release-runner`). Most settings now live in project docs (`quality.md`, `lifecycle.md`, `release.md`, `deploy.md`, `.claude/memory/decisions.md`) which are preserved — but replay the record to be safe. `docs/workflow/decisions.md` is the record of chosen values:
 
 1. Read `docs/workflow/decisions.md`. If it doesn't exist, skip this step (older project — offer to create it from the template).
 2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-decisions` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.
@@ -102,16 +105,18 @@ Report how many tuned settings were re-applied so the user can confirm nothing w
 
 The project's root `CLAUDE.md` is **never overwritten** (it holds project-specific content: title, description, architecture summary, custom conventions). But the template also carries **workflow-owned sections** that describe how the *plugin* behaves — and those go stale when the plugin updates. These sections are plugin-owned, not project-specific:
 
-> `## Quick Reference` (command table) · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Model & Effort Routing` · `## Multi-Task Sessions` · `## Session Behavior` · `## Memory` · `## Context Management`
+> `## Quick Reference` · `## Models` · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Merging` · `## Documentation policy` · `## Session Behavior` · `## Memory`
+
+(These changed in 2.x — old projects may still have `## Model & Effort Routing`, `## Multi-Task Sessions`, `## Context Management`. Those are now **retired**: remove them, and insert the new sections in template order.)
 
 Reconcile them without disturbing the rest:
 
 1. Read the new `{UPDATE_DIR}/templates/CLAUDE.md.template` and the project's current `CLAUDE.md`.
-2. For each workflow-owned section above: if the project's version differs from the template's (ignoring `{{PLACEHOLDER}}` fills, which don't appear in these sections — they're project-independent), **replace just that section** in the project `CLAUDE.md` (match a top-level `## ` heading at column 0; replace from it to the next such heading). **Only real section headings count — ignore any `##` line inside a fenced code block** (e.g. the `## In Progress` example inside `## Multi-Task Sessions`), so a section is never truncated at a fenced pseudo-heading. If a section is **absent** from the project (e.g. a new `## Model & Effort Routing` on a pre-routing project), insert it in template order.
-3. **Never touch** any section not in the list above — especially `# {title}`, the intro description, `## Architecture`, and any project-authored sections. When a project has renamed or heavily customized a workflow-owned section, do **not** silently overwrite it: note it in the report and show the new template version for the user to merge by hand.
-4. If `CLAUDE.md` was changed, stage it in step 7's commit.
+2. For each workflow-owned section: if the project's differs from the template's (ignoring `{{PLACEHOLDER}}` fills), **replace just that section** (match a top-level `## ` heading at column 0; replace to the next such heading — ignoring any `##` inside a fenced code block). Insert sections that are **absent** in template order; **delete** retired sections listed above.
+3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, project-authored sections. If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
+4. If `CLAUDE.md` changed, stage it in step 7's commit.
 
-This is the CLAUDE.md analogue of step 5b: skills/agents get overwritten wholesale, decisions replay their tuned values, and the workflow-owned prose sections of CLAUDE.md refresh to the new plugin version — so a routing change (or any future guidance change) actually reaches existing projects instead of only new ones.
+So skills/agents mirror wholesale, decisions replay their tuned values, and CLAUDE.md's workflow sections refresh — the update reaches existing projects, not just new ones.
 
 ### 5d. Reconcile Railway Watch Paths (if deployed on Railway)
 

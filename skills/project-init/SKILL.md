@@ -30,7 +30,7 @@ Creates a new software project from scratch with the full claude-workflow infras
 
 Skip this step in unsupervised mode. Print once, non-blocking — do not ask:
 
-> 💡 The design phase (vision, architecture) is interactive across many turns, so the workflow's turn-scoped route skills can't hold a tier here — the session model is what thinks. Sonnet is fine for straightforward projects; for a complex or novel domain, consider `/model opus` (or `best`) for the design phase and switch back to `sonnet` afterwards. The scaffolding phase runs on a Haiku subagent either way.
+> 💡 The design phase (vision, architecture) is interactive — the session model is what thinks. Sonnet is fine for straightforward projects; for a complex or novel domain, consider `/model opus` (or `best`) for the design phase, then switch back. The mechanical scaffolding runs on a Haiku subagent either way.
 
 Continue immediately on the current model unless the user switches.
 
@@ -74,7 +74,7 @@ Ask the user (AskUserQuestion) — **skip questions already resolved in step 0.5
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
 
 ### 2. Product Vision Workshop
-Tell the user: "Let me help you define the product vision — this guides the Requirements Engineer during refinement. Answer these questions as briefly or thoroughly as you like."
+Tell the user: "Let me help you define the product vision — this guides planning and implementation. Answer these questions as briefly or thoroughly as you like."
 
 **If vision elements were extracted from the design document in step 0.5, pre-fill the corresponding questions and ask the user to confirm or refine rather than asking from scratch.**
 
@@ -135,8 +135,12 @@ Ask (AskUserQuestion) — **pre-select values inferred from the design document 
    - **Scale to zero** enabled — the app sleeps when idle, so it must tolerate cold starts
    - **European region** (e.g. `europe-west4`)
    - **Service URL prefixed with the project name** — choose the subdomain when generating the domain, e.g. `<project-name>.up.railway.app`
-   - **Watch paths (config-as-code)** — the scaffolder writes `railway.json` (from `templates/configs/railway.json`) at the repo root. Its `build.watchPatterns` stop the workflow's constant docs/spec commits (`/refine`, `/draft`, `/release` changelog) from triggering redeploys: it watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. Committing this to the repo means the setting can never silently drift from the Railway dashboard. If the app **serves** files from those paths as runtime content, note the exception in `docs/workflow/deploy.md` and drop the matching `!` line.
+   - **Watch paths (config-as-code)** — the scaffolder writes `railway.json` (from `templates/configs/railway.json`) at the repo root. Its `build.watchPatterns` stop the workflow's constant docs/spec commits (`/plan`, `/draft`, `/release` changelog) from triggering redeploys: it watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. Committing this to the repo means the setting can never silently drift from the Railway dashboard. If the app **serves** files from those paths as runtime content, note the exception in `docs/workflow/deploy.md` and drop the matching `!` line.
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
+
+**Then set two CI/release decisions — recommend by project type, confirm (don't belabor):**
+- `CI_ON_CLAUDE` — should GitHub Actions also run on *Claude's* commits? **Default `no`** (Claude ran the identical `ci.sh` locally; save the minutes). **Recommend `yes` for a cross-platform library** where CI adds matrix/multi-env coverage local can't reproduce.
+- `RELEASE_RUNNER` — **default `local`** (Claude runs `scripts/release.sh` in-session). Recommend `ci` only if the user wants publish secrets kept out of the session, or needs CI-only provenance/OIDC signing.
 
 Create:
 - `docs/workflow/release.md` from `templates/workflow/release.md.template`, filled with their answers
@@ -177,6 +181,8 @@ TARGET_DIR: {absolute path to the new project directory}
 GITIGNORE_TEMPLATE: {typescript | python | rust | cpp}
 CI_LANGUAGE_TEMPLATE: {typescript | python | rust | cpp}
 RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}
+CI_ON_CLAUDE: {no | yes}
+RELEASE_RUNNER: {local | ci}
 TODAY: {today's date, YYYY-MM-DD}
 WORKFLOW_REPO: {repository field from .claude-plugin/plugin.json}
 WORKFLOW_VERSION: {version field from .claude-plugin/plugin.json}
@@ -189,14 +195,14 @@ memory), and the initial git commit. Full instructions are in your agent definit
 
 Wait for the agent to complete and review its report before proceeding.
 
-Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
+Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/plan`, `/implement`, etc.) are immediately available.
 
 ### 6. Workflow Decisions Review (Supervised Mode Only)
 
 Skip this step in unsupervised mode.
 
 The scaffolder created `docs/workflow/decisions.md` — the record of every tunable workflow
-setting (refine sizing defaults, testing scope, review tier, branching, auto-merge, …).
+setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …).
 It ships with sensible defaults. Show the user the **Refinement → Sizing defaults** table
 from that file and note the other settings it lists.
 
@@ -255,7 +261,7 @@ created: {today}
 updated: {today}
 github_issue: ~
 ```
-Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /refine]`.
+Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /plan]`.
 
 IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
 
@@ -319,8 +325,8 @@ Scaffolding (project-scaffolder agent):
   {GitHub repo: https://github.com/.../...}
 
 Workflow commands:
-  /brainstorm           generate more backlog ideas
-  /refine FEAT-001      refine first backlog item
+
+  /plan FEAT-001        plan the first backlog item
   /draft feature "..."  add raw ideas quickly
 
 → Restart your Claude Code session now.

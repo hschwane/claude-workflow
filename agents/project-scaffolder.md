@@ -33,6 +33,8 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
+| `CI_ON_CLAUDE` | no (default) / yes (cross-platform libraries) |
+| `RELEASE_RUNNER` | local (default) / ci |
 | `TODAY` | Date in YYYY-MM-DD format |
 | `WORKFLOW_REPO` | Plugin repository URL |
 | `WORKFLOW_VERSION` | Plugin version string |
@@ -88,15 +90,22 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
-## Step C: CI Templates
+## Step C: Canonical scripts + CI templates
 
+**Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **fill the `{{...}}` placeholders** with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest; Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — fill the build/publish/deploy placeholders for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
+- `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
+
+**GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
-- If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`
+- If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`. **If `RELEASE_RUNNER` is `ci`**, uncomment its `push: tags: [v*]` trigger; leave it commented for `local` (default) so a locally-pushed tag doesn't double-publish.
+- Do **not** mark the CI workflow a required status check — Claude's `[skip ci]` commits would leave it Pending forever and block merges.
 - `{PLUGIN_SOURCE_DIR}/templates/github/dependabot.yml` → `{TARGET_DIR}/.github/dependabot.yml`, then uncomment the package ecosystem matching CI_LANGUAGE_TEMPLATE (typescript → npm, python → pip, rust → cargo; cpp has no ecosystem — leave only github-actions active)
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
-**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root). This is config-as-code that pins **watch paths** so Railway only redeploys on real app changes — the workflow commits docs/spec changes constantly (every `/refine`, `/draft`, changelog on `/release`), and without this every such commit to the deploy branch would trigger a full rebuild. The patterns watch everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. If the app **serves** markdown or files from those paths as runtime content, remove the matching `!` line and note it in `docs/workflow/deploy.md`.
+**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root). This is config-as-code that pins **watch paths** so Railway only redeploys on real app changes — the workflow commits docs/spec changes constantly (every `/plan`, `/draft`, changelog on `/release`), and without this every such commit to the deploy branch would trigger a full rebuild. The patterns watch everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. If the app **serves** markdown or files from those paths as runtime content, remove the matching `!` line and note it in `docs/workflow/deploy.md`.
 
 ## Step D: Docs Templates
 
@@ -106,7 +115,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 - `workflow/lifecycle.md.template` → `{TARGET_DIR}/docs/workflow/lifecycle.md`
 - `workflow/conventions.md.template` → `{TARGET_DIR}/docs/workflow/conventions.md`
 - `workflow/quality.md.template` → `{TARGET_DIR}/docs/workflow/quality.md` (also fill `{{TESTING_SCOPE}}` → TESTING_SCOPE)
-- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}` → TODAY, `{{TESTING_SCOPE}}` → TESTING_SCOPE, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`, `{{DEPLOY_TARGET}}` → DEPLOY)
+- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}`, `{{GITHUB_INTEGRATION}}` = `no` if GITHUB_REPO is `no` else `yes`, `{{DEPLOY_TARGET}}` → DEPLOY, `{{CI_ON_CLAUDE}}` → CI_ON_CLAUDE (default `no`; `yes` for cross-platform libraries), `{{RELEASE_RUNNER}}` → RELEASE_RUNNER (default `local`))
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/style-guide.md.template` → `{TARGET_DIR}/docs/dev/style-guide.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`
@@ -199,7 +208,7 @@ Project initialized on {TODAY}. Ready to begin development.
 
 ## Current State
 - Branch: main (or develop if git-flow)
-- Next step: brainstorm backlog → /refine → /implement
+- Next step: /draft or /ship "<topic>" → /plan → /implement
 ```
 
 Write empty `{TARGET_DIR}/.claude/memory/gotchas.md` (just a `# Gotchas` heading).

@@ -10,8 +10,7 @@ A spec must meet ALL of these before implementation starts:
 - [ ] All subtasks are defined and independently committable
 - [ ] Out-of-scope is explicit
 - [ ] No open questions remain
-- [ ] Requirements Engineer sign-off
-- [ ] Tech Planner sign-off
+- [ ] /verify passed (gate + review + smoke for new features)
 
 ## Definition of Done (DoD)
 

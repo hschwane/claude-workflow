@@ -3,65 +3,34 @@
 ## Stages
 
 ```
-IDEA → DRAFT → REFINE → IMPLEMENT → PR → (RELEASE)
+IDEA → DRAFT → PLAN → IMPLEMENT → VERIFY → MERGE → (RELEASE)
 ```
 
 ### Draft
-A raw idea or bug report added with `/draft`. No planning required.
-Spec file created in `docs/specs/backlog/`. Minimal content — just enough to capture the idea.
+A raw idea or bug added with `/draft` → `docs/specs/backlog/`. Minimal — just capture it.
 
-### Refine
-Refinement depth scales with a complexity triage (trivial / small / medium / large — judged by scope, novelty, risk, and ambiguity, no hard limits). Trivial specs are fast-tracked through a single combined planning pass that escalates itself if it finds hidden complexity; small, medium, and large specs go through the full Requirements Engineer + Tech Planner iteration until the spec meets the **Definition of Ready**. Larger and more critical specs get more iteration rounds, more clarifying questions, and a higher model/effort tier (see `decisions.md` → Sizing defaults); the tech-planner also decides each ticket's implementation/test tier, recorded in the spec's `routing:` block.
-Triggered with `/refine {id}`. Spec moves to `docs/specs/ready/` when DoR is satisfied.
+### Plan
+`/plan {id}` turns a draft into a ready spec in one light pass: a goal, **observable acceptance criteria**, an approach + interfaces, and subtasks. It surfaces open questions (batched up front when you pass multiple IDs) and defaults to keeping work in scope — deferrals are the exception and get noted. Spec moves to `docs/specs/ready/`.
 
 ### Implement
-Tests are written first (isolated context, spec-only), then code is implemented subtask by subtask.
-Each subtask gets its own commit. Run with `/implement {id}`.
-Progress is checkpointed — use `/resume` after any interruption.
+`/implement {id}`: for each subtask, write the code and its tests, run the fast gate (`scripts/ci.sh fast` via the `runner` agent), and commit green. The spec's checkboxes + git log are the progress record — `/resume` reconstructs from them after any interruption.
 
-### PR
-CI runs first (lint + typecheck + tests + security). Claude waits for CI, then scales the reviews
-to the diff: small low-risk diffs get one combined review; anything touching security-sensitive
-files (auth, crypto, deps, input handling, …) always gets the dedicated security review, plus code
-review and optionally architect review. All findings are fixed before merge.
-Run with `/pr`. Claude auto-merges after all reviews pass.
+### Verify
+`/verify` at feature-done: the full gate (`ci.sh full` — all automated tests + build), a review (inline self-review by default; the `reviewer` agent or `/consult` only for critical changes), and — for new features — a blackbox manual smoke test (the `smoke-tester` agent drives the app from explicit steps, reports failures only). Every smoke-found bug becomes an automated test.
+
+### Merge
+**Local git, no formal PR** (default): fast-forward + gate-already-green-on-this-HEAD → `git merge --ff-only`, no re-run; otherwise resolve conflicts locally, re-run `ci.sh full`, then merge. Use `/pr` only for external review / repos that require it.
 
 ### Release
-Version bump, CHANGELOG update, git tag, push. CI publishes the release.
-Run with `/release patch|minor|major`.
+`/release patch|minor|major`: bump version + changelog (main session), then `scripts/release.sh` runs the gate + build/publish/deploy locally (via the `runner`); GitHub Actions release only as a fallback.
+
+`/ship` orchestrates the whole chain from a spec list or a topic.
 
 ---
 
 ## Parallel Sessions
 
-You can run multiple Claude Code sessions on this repository simultaneously, **as long as each session is on a different git branch**. Each branch has its own isolated checkpoint file (`.claude/memory/context-{branch}.md`), so sessions never overwrite each other's state.
-
-**Safe — recommended parallel workflow:**
-
-| Session | Branch | Doing |
-|---------|--------|-------|
-| A | `feature/feat-001-login` | `/implement FEAT-001` |
-| B | `develop` (or `feature/feat-002-signup`) | `/refine FEAT-002` |
-
-Session A implements on its feature branch. Session B refines a different spec from develop or its own branch. No conflict.
-
-**Not safe — same branch, two sessions:**
-
-Two sessions both on `feature/feat-001-login` will race to write the same checkpoint file and may conflict on source files. Don't do it.
-
-**Rule of thumb:** one session per branch. Keep implementation sessions on their feature branches. Use a separate session on `develop` for refinement, drafting, and brainstorming of other specs.
-
----
-
-## Context Management
-
-Long sessions (especially `/implement` on a non-trivial feature) can approach the context limit. Claude cannot trigger `/compact` itself — the working rules are:
-
-**Keep compaction safe at every natural boundary** (after each subtask commit, after a review cycle, after a refine completes): commit and push all changes, keep the branch context file (`.claude/memory/context-{branch}.md`) current, and make spec checkboxes reflect actual progress. Then automatic compaction — or a user-run `/compact` at a phase boundary — never loses state.
-
-**Avoid bloat**: bulky reading and full test runs go to subagents; raw logs and large files stay out of the main context.
-
-After any compaction, Claude reads the branch context file to re-orient before continuing.
+Run multiple sessions **on different branches**. State lives in the repo (branch + spec checkboxes + git log), so sessions on different branches never conflict. Don't run two sessions on the same branch (they'd race on the same files). One session per branch.
 
 ---
 
@@ -69,22 +38,11 @@ After any compaction, Claude reads the branch context file to re-orient before c
 
 This project uses: **{{BRANCHING_MODEL}}**
 
-### Common rules (both models)
 | Branch | Purpose |
 |--------|---------|
-| `feature/feat-001-title` | Feature branches — one per spec |
-| `fix/bug-042-title` | Bug fix branches |
-| `chore/description` | Maintenance work |
+| `feature/feat-001-title` | one per spec |
+| `fix/bug-042-title` | bug fixes |
 
-- **Pushing to feature branches is always allowed** — push after every commit (backup, visibility).
-- **The quality gate sits at the merge, not the push**: merging into the integration branch happens only via `/pr` (CI green + AI reviews passed).
-- Branches are created by `/implement` and deleted by `/pr` after merge.
-
-### main-only
-- Feature branches merge into `main` via `/pr`.
-- `/release` tags directly on `main`.
-
-### git flow
-- `develop` is the integration branch — all feature/fix branches merge into `develop` via `/pr`.
-- `master` contains **only released states**: `/release` tests `develop`, fixes remaining bugs, then merges `develop` → `master` and tags the merge commit. The tip of `master` always equals the latest release.
-- Nobody pushes directly to `develop` or `master` (exception: the release merge performed by `/release`).
+- Push feature branches freely (backup). The quality gate is local (`/verify`) before the merge.
+- **main-only:** feature branches merge into `main`; `/release` tags on `main`.
+- **git-flow:** feature branches merge into `develop`; `/release` runs the full gate on `develop`, merges `develop → master`, and tags — `master`'s tip is always the latest release.

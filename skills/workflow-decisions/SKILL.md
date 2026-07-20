@@ -1,6 +1,6 @@
 ---
 name: workflow-decisions
-description: View or change a workflow decision (refine sizing, testing scope, review tier, branching, auto-merge, …) — edits the live value in the skill and keeps docs/workflow/decisions.md in sync
+description: View or change a workflow decision (testing scope, branching, deploy target, ci-on-claude, release-runner, pause threshold, …) — edits the live value and keeps docs/workflow/decisions.md in sync
 argument-hint: "[setting | natural-language change] — e.g. \"refine sizing\" | \"make large tickets use fable\""
 disable-model-invocation: true
 ---
@@ -43,16 +43,15 @@ projects. If the user declines, stop.
 - **No argument** — present the settings from `decisions.md` grouped by area and ask
   (AskUserQuestion) which one to change. Then ask for the new value, offering the documented
   **Options** as choices.
-- **A setting name** (`refine sizing`, `testing scope`, `branching`, `review tier`, …) —
+- **A setting name** (`testing scope`, `branching`, `deploy target`, `ci-on-claude`, `release-runner`, …) —
   show its current value and ask for the new one (offer the **Options**).
 - **A natural-language change** — map it to one or more concrete setting edits yourself.
   State your interpretation as *"You want: {setting} → {new value}"* and, unless in
   unsupervised mode, confirm before applying.
 
-**For changes that weaken a gate or reduce coverage** — e.g. disabling a reviewer, dropping
-a testing level, widening the light-review threshold, turning auto-merge on for a protected
-branch — consult the `workflow-coach` subagent first for the implications, and surface them
-to the user before applying (in unsupervised mode: note them in the report, still apply).
+**For changes that weaken a gate or reduce coverage** — e.g. dropping a testing level, turning
+off CI on a shared repo — state the implication to the user before applying (in unsupervised
+mode: note it in the report, still apply).
 
 Validate the new value against the **Options** for that setting. If it is out of range or
 ambiguous, ask again rather than guessing.
@@ -72,7 +71,7 @@ For each setting being changed:
 2. **Update `docs/workflow/decisions.md`.** Change that setting's **Current** value to match
    what you just wrote, and bump the `Last updated:` date to today.
 3. If a setting's live value appears in more than one place (the sizing table is referenced in
-   several sub-steps of `/refine`), update every occurrence so nothing drifts.
+   several places), update every occurrence so nothing drifts.
 
 **Consistency check:** after editing, re-read the **Live in** location and the **Current**
 entry and confirm they now state the same value. If they disagree, fix before committing.
@@ -93,7 +92,7 @@ Decision updated ✓
 {setting}: {old} → {new}
   Live value: {Live in path}
   Record:     docs/workflow/decisions.md
-{implications from workflow-coach, if any}
+{implication note, if the change weakens a gate}
 Committed.
 ```
 

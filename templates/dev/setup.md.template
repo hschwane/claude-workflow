@@ -46,7 +46,7 @@ cp .env.example .env
 
 ```
 /draft feature "idea"    add to backlog
-/refine FEAT-001         refine a spec
+/plan FEAT-001         refine a spec
 /implement FEAT-001      implement a spec
 /pr                      create PR with reviews
 /release patch           release a version

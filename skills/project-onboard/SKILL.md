@@ -58,7 +58,7 @@ Create `.claude/` directory with:
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
 │   ├── completeness-check.sh  ← Stop hook: keeps unsupervised work going
 │   ├── session-start.sh   ← shows in-progress work / auto-resume directive
-│   ├── usage-guard.sh     ← token-budget threshold for unsupervised mode
+│   ├── usage-guard.sh     ← 80% usage pause for unsupervised (where usage is readable)
 │   └── statusline.sh      ← status line + usage cache for the guard
 ├── agents/                ← copy all agent .md files
 ├── skills/                ← copy all skill directories (each as {name}/SKILL.md)
@@ -77,7 +77,13 @@ Write `.claude/workflow-source.json`. Read the `repository` and `version` fields
 ```
 
 Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
-Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh` and make it executable: `chmod +x scripts/claude-loop.sh`
+
+**Canonical scripts (the parity anchor — `/commit`, `/verify`, `/release` and CI all call these):**
+- Copy `templates/scripts/ci.sh` → `scripts/ci.sh` and **fill the `{{...}}` placeholders** with this project's *existing* commands (detect from package.json scripts / Makefile / pyproject / Cargo — reuse what the project already uses for format/lint/typecheck/test/build). `fast` = format-check + lint + typecheck + unit; `full` = + integration/e2e + build.
+- Copy `templates/scripts/release.sh` → `scripts/release.sh` and fill in the project's build/publish/deploy steps.
+- Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh`.
+- `chmod +x scripts/*.sh`
+- If the project already has an equivalent script, point `ci.sh`/`release.sh` at it (or skip and note it) rather than duplicating.
 
 **b) Create workflow documentation** (from plugin templates/):
 ```
@@ -87,7 +93,7 @@ docs/workflow/
 ├── conventions.md    ← templates/workflow/conventions.md.template
 ├── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
 ├── release.md        ← templates/workflow/release.md.template (fill `{{BRANCHING_MODEL}}`; /release and decisions.md reference this file)
-└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2). The record of all tunable workflow settings; changeable later via `/workflow-decisions`.
+└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2, `{{DEPLOY_TARGET}}` = detected/asked deploy target, `{{CI_ON_CLAUDE}}` = `no` (or `yes` for a cross-platform library), `{{RELEASE_RUNNER}}` = `local`). The record of all tunable workflow settings; changeable later via `/workflow-decisions`.
 docs/dev/
 ├── setup.md          ← templates/dev/setup.md.template
 └── style-guide.md    ← templates/dev/style-guide.md.template
@@ -157,7 +163,7 @@ Create root `README.md` from `templates/README.md.template`, filled with the det
 Create root `CLAUDE.md` from template, filled with detected tech stack and architecture summary.
 If CLAUDE.md already exists: offer to add the workflow commands table to it.
 
-Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/refine`, `/implement`, etc.) are immediately available.
+Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/plan`, `/implement`, etc.) are immediately available.
 
 ### 4. GitHub Setup (if applicable)
 Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
@@ -181,7 +187,7 @@ Installed:
   {CLAUDE.md / CONTRIBUTING.md / CI workflow — if created}
 
 Next steps:
-  /brainstorm              to analyze and fill the backlog
+
   /draft feature "title"   to add first items manually
   /workflow-update         to update to latest version later
 

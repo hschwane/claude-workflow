@@ -5,7 +5,7 @@ This project follows an AI-assisted development workflow powered by [claude-work
 ## Lifecycle Overview
 
 ```
-IDEA → [/draft] → BACKLOG → [/refine] → READY → [/implement] → IN-PROGRESS → [/pr] → DONE
+IDEA → [/draft] → BACKLOG → [/plan] → READY → [/implement] → IN-PROGRESS → [/pr] → DONE
                                                                                         ↓
                                                                                [/release] → RELEASED
 ```
@@ -14,11 +14,9 @@ IDEA → [/draft] → BACKLOG → [/refine] → READY → [/implement] → IN-PR
 
 | Command | Phase | What it does |
 |---------|-------|-------------|
-| `/brainstorm` | Planning | Analyze project + generate backlog ideas with you |
-| `/prioritize` | Planning | Rank backlog against vision, pick next-version items |
 | `/draft feature "title"` | Draft | Create raw backlog entry (no planning needed) |
 | `/draft bug "title"` | Draft | Report a bug |
-| `/refine FEAT-001` | Refinement | RE + Tech Planner iterate until spec is ready |
+| `/plan FEAT-001` | Planning | One light pass: goal, observable acceptance criteria, subtasks |
 | `/implement FEAT-001` | Implementation | Tests first (isolated context), then code |
 | `/commit` | Implementation | Quality-gated conventional commit |
 | `/pr [base]` | Review | CI → code review → security review → auto-merge |

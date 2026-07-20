@@ -7,11 +7,11 @@ This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI
 ### Lifecycle
 
 ```
-/draft → /refine → /implement → /pr → /release
+/draft → /plan → /implement → /pr → /release
 ```
 
 1. **Draft** — Add raw ideas to backlog: `/draft feature "idea"`
-2. **Refine** — Turn a draft into a spec with Requirements Engineer + Tech Planner: `/refine FEAT-001`
+2. **Refine** — Turn a draft into a ready spec in one light pass: `/plan FEAT-001`
 3. **Implement** — Write tests first, then code: `/implement FEAT-001`
 4. **PR** — CI runs, then AI reviews, then auto-merge: `/pr`
 5. **Release** — Version bump + tag + publish: `/release patch`

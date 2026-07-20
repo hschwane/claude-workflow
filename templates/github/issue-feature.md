@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature (will be refined into a spec via /refine)
+about: Suggest a new feature (will be refined into a spec via /plan)
 labels: feature, backlog
 ---
 
@@ -14,4 +14,4 @@ labels: feature, backlog
 <!-- Sketches, links, examples — anything that helps -->
 
 ---
-*This issue will be refined into a full spec by the Requirements Engineer and Tech Planner via `/refine #{issue_number}`.*
+*This issue will be planned into a full spec via `/plan #{issue_number}`.*

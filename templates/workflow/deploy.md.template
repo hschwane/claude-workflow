@@ -17,7 +17,7 @@
 <!-- Railway watch paths (config-as-code):
      `railway.json` at the repo root pins `build.watchPatterns` so only real app
      changes trigger a redeploy. The workflow commits docs/spec changes constantly
-     (every /refine, /draft, and the changelog on /release), so without this each of
+     (every /plan, /draft, and the changelog on /release), so without this each of
      those commits to the deploy branch would rebuild and redeploy the app.
      Default watched: everything EXCEPT docs/, tests/, .claude/, .github/, and *.md.
      Because it lives in the repo, this can never drift from the Railway dashboard —
