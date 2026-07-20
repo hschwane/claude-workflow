@@ -127,9 +127,10 @@ spawns 5–7 → 0–1 — remaining spawns are cheap Haiku runners by design; n
   an optional utility (explicit request only).
 - **P5 — Continuity v2.** Repo-as-checkpoint: strip routine checkpoint writes from all skills
   (memory file only for Blocked + ship state); `/resume` reconstructs from branch+spec+git log;
-  remove usage-guard machinery (script, thresholds, markers, statusline cache role); simplify
-  `unsupervised` (flag + defaults + one heartbeat per cloud run, armed at start / deleted at
-  end); simplify `claude-loop.sh` (no marker files); session-start/stop hooks keyed on the spec.
+  replace usage-guard with the **minimal dual-signal guard** (real usage locally, env-var work
+  budget in cloud/docker; clean-stop on trip); simplify `unsupervised` (flag + defaults + one
+  heartbeat per cloud run, armed at start / deleted at end); simplify `claude-loop.sh` (no
+  marker files); session-start/stop hooks keyed on the spec.
 - **P6 — Docs model + context trim.** Inline minimal doc-comments policy; one concise
   maintained architecture doc (updated in a light end-of-ship pass + during `implement` when
   structure changes); minimal user docs (favor self-explanatory UI + in-app hints). Trim root
@@ -317,10 +318,21 @@ checkboxes** — identical in every environment, zero extra writes, zero extra l
 3. **Session-start hook stays** (env-agnostic, cheap): in-progress spec on this branch →
    auto-resume in unsupervised mode, suggest `/resume` otherwise. Stop hook keys on the same
    single source of truth (unsupervised + unchecked boxes → don't stop).
-4. **Usage-guard machinery REMOVED entirely** — `usage-guard.sh`, thresholds, `--wait/--check`
-   modes, wait/offer markers, statusline usage-cache integration. Rationale: can't read usage
-   in cloud (never fires), marginal value locally, large complexity. Unsupervised becomes just:
-   flag on → no questions, autonomous defaults, keep going, `## Blocked` on true blockers.
+4. **Usage-guard → MINIMAL dual-signal guard** (replaces the ~300-line machinery: no `--wait/
+   --check` modes, no wait/offer markers, no statusline-cache coupling). One PostToolUse hook,
+   ~50-60 lines, two signal sources:
+   - **Real usage where readable** (local terminal/VS Code: OAuth credentials file exists) —
+     threshold check as today, threshold via one setting.
+   - **Deterministic work budget everywhere else** (cloud/docker: usage is unreadable — no
+     credentials file, statusline never runs headless): count tool calls + elapsed session time
+     in a small counter file; budgets from **env vars set in the environment config**
+     (e.g. `WORKFLOW_BUDGET_MINUTES`, `WORKFLOW_BUDGET_CALLS`), tunable per environment.
+   - **On trip (same everywhere):** finish the atomic step, commit, end the turn cleanly. Cloud:
+     the heartbeat resumes later (fires hourly; retries if still rate-limited). Local: continue
+     when usage recovers / user pokes. No in-session wait loops.
+   Because the repo is the checkpoint, a missed pause costs at most the current subtask.
+   Unsupervised itself stays simple: flag on → no questions, autonomous defaults, keep going,
+   `## Blocked` on true blockers.
 5. **Trigger churn → near zero.** The old prompts came mostly from `/pr`'s per-wake `send_later`
    check-ins — those die with the CI-wait removal (local gates, local merges). What remains:
    - **Cloud unsupervised runs only:** arm ONE recovery routine at run start, delete it at run
@@ -368,7 +380,8 @@ tier pins (now fixed), deferred-findings policy.
 | Version source of truth | per-language version location | release.md |
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
-| Unsupervised mode | on/off flag — no questions, autonomous defaults, keep going (no usage threshold anymore — usage-guard removed) | settings.md / unsupervised skill |
+| Unsupervised mode | on/off flag — no questions, autonomous defaults, keep going | settings.md / unsupervised skill |
+| Pause budget | usage threshold % (local, real usage) + work budget (cloud: `WORKFLOW_BUDGET_MINUTES`/`_CALLS` env vars in the environment config) | guard hook / env config |
 | **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries). Implemented purely in `/commit`: off → append `[skip ci]`, on → don't. No repo variable, no workflow logic | local decision, read by `/commit` |
 | **release-runner** (new) | `local` (default — Claude releases in-session) / `ci` (isolate publish secrets to Actions) | release skill / decisions |
 
