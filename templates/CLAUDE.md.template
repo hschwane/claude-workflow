@@ -50,22 +50,16 @@ IMPORTANT: Use these subagents automatically whenever they fit — do not ask fi
 
 For codebase questions — including "where is X?" discovery — prefer `code-explorer` (Haiku) over the generic built-in Explore agent: it reads this project's own docs to orient itself, so it knows where things live and what the conventions are. It reports facts; keep the judgment and planning in your main context, where the stronger model and full task context live.
 
-**A dispatched subagent can fail — never proceed on a missing result.** If a subagent returns null, empty, or a visibly failed/incomplete result (terminal API error after retries, or the user skipped it), retry it once; if it still fails, restart it (a writer agent: overwrite whatever partial artifact it left — subagents are stateless, so re-run from scratch rather than hand-patching). Only after a restart also fails do you stop and ask (supervised) or record the blocker in the checkpoint and escalate (unsupervised). When several subagents run as a batch, recover only the ones that failed. If a whole turn is interrupted while subagents are in flight, `/resume` step 4a recovers them on the next continue — see the checkpoint `subagents:` block.
+**A dispatched subagent can fail — never proceed on a missing result.** If a subagent returns null, empty, or a visibly failed result, just re-run it — the workflow's agents are short-lived and idempotent (they run a script or drive the app; nothing to recover). If it fails again, stop and ask (supervised) or write `## Blocked` (unsupervised).
 
-## Model & Effort Routing
+## Models
 
-**Session default: Sonnet** (`/model sonnet`) — the workflow elevates itself where quality pays. Two dials, applied automatically:
+**The session runs on whatever model you picked** — the workflow does not switch it. Two levers only:
 
-- **Agents pin their own tier** (frontmatter): mechanical agents run haiku/medium; writers sonnet/medium; RE/tech-planner effort high with the model passed per ticket; reviewers get the review tier per invocation.
-- **The main session's tier is set by `route-*` skills** (`route-sonnet-medium` … `route-best-high`) — each pins model+effort for the rest of the current turn, then reverts. Workflow skills invoke them from the spec's `routing:` block; the checkpoint's `tier:` line re-arms after every wake (see `/resume`).
+- **Haiku subagents do the mechanical, high-IO work** (`code-explorer` reads the codebase, `runner` executes gates/scripts, `smoke-tester` drives the app). They keep verbose output and bulk reading off your session model. Judgment stays in the main session.
+- **`/consult` for a hard call** — one turn on the best available model at high effort, with full context, then back to normal. Reach for it when stuck (same failure twice), on an architecture/security decision, or genuinely unsure between approaches — instead of grinding on the wrong approach. The `reviewer` agent (best/high) is the review counterpart, used sparingly for genuinely critical diffs.
 
-**Adaptive Routing Policy** (applies to workflow AND ad-hoc work; planned routing is the starting point, this adjusts it):
-
-- **Escalate — medium threshold.** On clear signals only (same failure twice, plan doesn't fit reality, unexpected architecture/security relevance) — not first friction, not gut feeling. **Consult first** (`/consult` — one elevated advisor turn, then back down); re-route one notch up only if the remaining execution itself needs it (ceiling `best-medium` for implementation).
-- **De-escalate — high threshold.** Only at a subtask boundary, only when the remainder is clearly mechanical; one notch, floor `sonnet-medium`.
-- **Gates are never adaptive**: refinement and review tiers come from the spec/policy — never self-downgrade a quality gate.
-- Switch only at phase boundaries (switches invalidate the prompt cache), announce every switch in one line with its reason, at most ~2 unplanned switches per turn.
-- **Always prefer the cheaper worker for a subtask**: delegate mechanical work to haiku agents, use sonnet tiers for routine execution, and reach for `/consult` when stuck or unsure instead of grinding on a too-small model or camping on an expensive one.
+No per-ticket tiers, no model-switching mid-flow. Simpler and it keeps the prompt cache warm.
 
 ## Skills — invoke proactively
 

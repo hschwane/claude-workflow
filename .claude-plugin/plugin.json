@@ -1,13 +1,19 @@
 {
   "name": "claude-workflow",
   "displayName": "Claude Workflow",
-  "version": "1.29.1",
-  "description": "Professional AI-assisted software development workflow: draft → refine → implement → PR → release",
+  "version": "2.0.0-alpha.1",
+  "description": "Professional AI-assisted software development workflow: draft \u2192 refine \u2192 implement \u2192 PR \u2192 release",
   "author": {
     "name": "Hendrik Schwanekamp",
     "email": "hendrik.schwanekamp@gmx.net"
   },
   "repository": "https://github.com/hschwane/claude-workflow",
   "license": "MIT",
-  "keywords": ["workflow", "tdd", "spec-driven", "ci", "code-review"]
+  "keywords": [
+    "workflow",
+    "tdd",
+    "spec-driven",
+    "ci",
+    "code-review"
+  ]
 }

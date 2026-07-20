@@ -55,9 +55,8 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/pr` | CI-first PR with AI review + auto-merge |
 | `/release` | Semver bump + changelog + tag + CI publish |
 | `/ship` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) to skip brainstorm+prioritize and ship exactly those |
-| `/resume` | Resume interrupted work from checkpoint (re-arms the routing tier) |
-| `/consult` | Top-tier advisor: one elevated turn with full context, then step-down |
-| `/route-{sonnet\|opus\|best}-{medium\|high}` | Internal: pin model+effort for the rest of the turn (6 skills; used by refine/implement/pr per the spec routing block) |
+| `/resume` | Resume interrupted work by reconstructing state from the branch + spec checkboxes + git log |
+| `/consult` | Top-tier advisor: one elevated turn (best/high) with full context, then back to the session model |
 | `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
 | `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
 | `/workflow-update` | Update plugin files to a newer version |
@@ -66,7 +65,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 All agents are subagents — each runs in its own isolated context (unbiased, fresh eyes). Reviewers are read-only via a `tools: Read, Grep, Glob` allowlist.
 
-Model & effort routing: mechanical agents pin haiku/medium (code-explorer, test-runner, workflow-coach, project-scaffolder), writers sonnet/medium (test-writer, documentation-writer), product-owner sonnet/high; RE/tech-planner pin `effort: high` and get their model per ticket from the refinement tier; reviewers get the review tier per invocation from `/pr`. The main session's tier is set turn-scoped by the six `route-*` skills, driven by each spec's `routing:` block (written during `/refine`) and re-armed from the checkpoint's `tier:` line. See README "Model & effort routing".
+Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents (`code-explorer`, `runner`, `smoke-tester`, `project-scaffolder`) do mechanical high-IO work to keep bulk output off the session model; `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
 
 | Agent | When used |
 |-------|-----------|
