@@ -1,13 +1,9 @@
 ---
 id: {{TYPE}}-{{NNN}}
 type: {{feature|bug}}
-status: draft
+status: draft            # draft → ready (after /plan) → in-progress (/implement) → done
 version: ~
-size: medium            # trivial | small | medium | large — set by /refine triage
-routing:                # set by /refine; consumed by /implement and /pr
-  refinement: ~         # from size: trivial=sonnet-high, small/medium=opus-high, large=best-high
-  implementation: ~     # tech-planner's call: sonnet-medium (default) … best-medium (hardest); never best-high/haiku
-  test_writing: ~       # model only (sonnet | opus); test-writer effort is pinned medium
+test_scope: ~           # unit | +integration | +e2e — set by /plan, within the project default
 created: {{YYYY-MM-DD}}
 updated: {{YYYY-MM-DD}}
 github_issue: ~
@@ -15,43 +11,32 @@ github_issue: ~
 
 # {{Title}}
 
-## User Story
-As a [specific user type], I want [concrete goal], so that [measurable benefit].
+## Goal
+As a [user], I want [goal], so that [benefit].
 
 <!-- Bug format:
-**Observed:** [what happens]
-**Expected:** [what should happen]
-**Steps to reproduce:**
-1. ...
-2. ...
+**Observed:** [what happens]   **Expected:** [what should happen]
+**Steps to reproduce:** 1. …  2. …
 -->
 
 ## Acceptance Criteria
-- [ ] [Testable: system does X when Y]
-- [ ] [Testable: system rejects Z with error message W]
+<!-- OBSERVABLE — an action → a checkable result. This is the contract /verify checks against. -->
+- [ ] Running/calling X → produces observable result Z
+- [ ] Invalid input W → rejected with error/message V
 
-## Out of Scope
-- [Explicitly excluded item]
-
-## Technical Approach
-<!-- Filled in by Tech Planner during /refine -->
-
-### Affected Components
-- `src/` — reason
-
-### Interface Definitions
-<!-- Must be complete before status → ready. This is the contract for the test-writer. -->
-```typescript
-// Define interfaces here
+## Approach & Interfaces
+<!-- Enough to implement without re-deciding architecture mid-build. The key signatures to add/change. -->
+```
+// interfaces / signatures
 ```
 
 ## Subtasks
-<!-- Filled in by Tech Planner during /refine -->
-- [ ] #1: [Title] — [description]
+<!-- Ordered; each a green-committable unit. -->
+- [ ] #1: [title] — [what]
+
+## Smoke steps
+<!-- Written by /verify (fewest steps that meaningfully validate the new behavior); re-runnable later.
+     Each: action → expected observable result. Handed BLACKBOX to the smoke-tester (no spec/code). -->
 
 ## Open Questions
-<!-- Must be empty before status → ready -->
-
-## Sign-off
-- [ ] Requirements Engineer
-- [ ] Tech Planner
+<!-- Must be empty before status → ready. -->

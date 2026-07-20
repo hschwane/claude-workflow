@@ -1,43 +1,21 @@
+# Release workflow — the FALLBACK path. By default `/release` runs scripts/release.sh
+# LOCALLY (release-runner: local) and this only runs on manual dispatch.
+# Only if release-runner: ci — uncomment the tag trigger below.
+# NOTE: never enable BOTH local release and the tag trigger — you'd release twice.
 name: Release
-
 on:
-  push:
-    tags:
-      - "v*"
-
+  workflow_dispatch:
+    inputs:
+      version: { description: "version to release (e.g. 1.2.0)", required: true }
+  # push:
+  #   tags: ["v*"]        # enable ONLY for release-runner: ci
 jobs:
   release:
-    name: GitHub Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run tests
-        run: |
-          # Replace with your test command
-          echo "Add test command here"
-
-      - name: Build
-        run: |
-          # Replace with your build command
-          echo "Add build command here"
-
-      - name: Extract changelog entry
-        id: changelog
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          NOTES=$(awk "/^## \[?${VERSION}\]?/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.changelog.outputs.notes }}
-          # Uncomment to attach build artifacts:
-          # files: |
-          #   dist/*
+      # Add language toolchain setup here if the build needs it.
+      - run: bash scripts/release.sh "${{ github.event.inputs.version || github.ref_name }}"
+        env:
+          GH_TOKEN: ${{ github.token }}

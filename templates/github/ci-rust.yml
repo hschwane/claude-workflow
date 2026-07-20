@@ -1,34 +1,23 @@
+# Thin wrapper around scripts/ci.sh — same checks Claude runs locally (parity).
+# Claude's commits carry [skip ci] (native), so this runs on HUMAN commits + manual dispatch.
+# Do NOT mark this a required status check: [skip ci] leaves required checks Pending forever.
 name: CI
-
 on:
-  pull_request:
-    branches: [main, master, develop]
   push:
     branches: [main, master, develop]
-
+    paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
+  pull_request:
+    paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   ci:
-    name: Format, Lint, Test, Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
+        with: { components: "clippy, rustfmt" }
       - uses: Swatinem/rust-cache@v2
-
-      - name: Format check
-        run: cargo fmt --check
-
-      - name: Lint (Clippy)
-        run: cargo clippy -- -D warnings
-
-      - name: Tests
-        run: cargo test
-
-      - name: Security audit
-        run: |
-          cargo install cargo-audit --locked
-          cargo audit
+      - run: bash scripts/ci.sh full

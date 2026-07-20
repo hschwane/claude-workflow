@@ -1,43 +1,22 @@
+# Thin wrapper around scripts/ci.sh — same checks Claude runs locally (parity).
+# Claude's commits carry [skip ci] (native), so this runs on HUMAN commits + manual dispatch.
+# Do NOT mark this a required status check: [skip ci] leaves required checks Pending forever.
 name: CI
-
 on:
-  pull_request:
-    branches: [main, master, develop]
   push:
     branches: [main, master, develop]
-
+    paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
+  pull_request:
+    paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   ci:
-    name: Build, Lint, Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang clang-tidy clang-format cmake ninja-build
-
-      - name: Configure (Debug with sanitizers)
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++
-
-      - name: Build
-        run: cmake --build build
-
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure
-
-      - name: clang-tidy
-        run: |
-          cmake -B build-tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-p;build-tidy"
-          OUTPUT=$(cmake --build build-tidy 2>&1)
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -qE "warning:|error:"; then
-            echo "clang-tidy found issues — failing the build."
-            exit 1
-          fi
-
-      - name: clang-format check
-        run: find src tests -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake clang clang-tidy clang-format
+      - run: bash scripts/ci.sh full

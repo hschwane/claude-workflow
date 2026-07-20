@@ -1,50 +1,21 @@
+# Release workflow — the FALLBACK path. By default `/release` runs scripts/release.sh
+# LOCALLY (release-runner: local) and this only runs on manual dispatch.
+# Only if release-runner: ci — uncomment the tag trigger below.
+# NOTE: never enable BOTH local release and the tag trigger — you'd publish twice.
 name: Release
-
 on:
-  push:
-    tags:
-      - "v*"
-
+  workflow_dispatch:
+    inputs:
+      version: { description: "version to release (e.g. 1.2.0)", required: true }
+  # push:
+  #   tags: ["v*"]        # enable ONLY for release-runner: ci
 jobs:
   release:
-    name: Build, Publish to PyPI, GitHub Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
+    permissions: { contents: write, id-token: write }   # id-token for PyPI trusted publishing
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install build tools
-        run: pip install build
-
-      - name: Run tests
-        run: |
-          pip install -e ".[dev]"
-          pytest
-
-      - name: Build distribution
-        run: python -m build
-
-      - name: Publish to PyPI (trusted publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-      - name: Extract changelog entry
-        id: changelog
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          NOTES=$(awk "/^## \[?${VERSION}\]?/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.changelog.outputs.notes }}
-          files: dist/*
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" || pip install -r requirements-dev.txt
+      - run: bash scripts/release.sh "${{ github.event.inputs.version || github.ref_name }}"

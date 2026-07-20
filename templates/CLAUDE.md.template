@@ -6,21 +6,19 @@
 
 | Command | Description |
 |---------|-------------|
-| `/draft feature "title"` | Add raw feature idea to backlog |
-| `/draft bug "title"` | Report a bug |
-| `/brainstorm` | Analyze project state + generate backlog ideas |
-| `/prioritize` | Rank backlog against vision, pick items for next version |
-| `/refine FEAT-001` | Refine a draft into a ready spec (RE + Tech Planner) |
-| `/implement FEAT-001` | Implement a ready spec (tests first, then code) |
-| `/commit` | Quality-gated conventional commit |
-| `/pr` | Create PR, wait for CI, run reviews, auto-merge |
-| `/release patch\|minor\|major` | Bump version, tag, trigger CI release |
-| `/ship [TICKET-ID ...] [focus] [patch\|minor\|major]` | Full dev cycle: brainstorm → prioritize → refine → implement → PR → release. Pass ticket IDs to skip brainstorm+prioritize and ship exactly those |
-| `/workflow-update` | Update claude-workflow plugin to latest version |
-| `/resume` | Resume in-progress work after token limit or interruption |
-| `/consult "question"` | Ask the top-tier advisor a hard question (one elevated turn, full context) |
-| `/unsupervised on\|off` | Toggle unsupervised mode (no questions, loop-safe) |
-| `/workflow-decisions [setting]` | View/change a tunable workflow setting; syncs the skill + `docs/workflow/decisions.md` |
+| `/draft feature\|bug "title"` | Capture a raw idea/bug in the backlog |
+| `/plan FEAT-001 [FEAT-002 …]` | Turn draft(s) into ready spec(s); batches questions up front |
+| `/implement FEAT-001` | Build a ready spec — tests + code per subtask, then `/verify` |
+| `/verify [FEAT-001]` | Feature-done QA: full gate + review + manual smoke |
+| `/commit` | Gated conventional commit (runs the canonical `ci.sh fast`) |
+| `/release patch\|minor\|major` | Bump + changelog, then run the release/deploy locally |
+| `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: plan → implement → verify → merge → release |
+| `/resume` | Continue interrupted work (reconstructs state from the repo) |
+| `/consult "question"` | One elevated turn (best/high) on a hard call |
+| `/unsupervised on\|off` | Toggle autonomous mode |
+| `/pr [base]` | (optional) Open a PR — only when you want external review |
+| `/workflow-decisions [setting]` | View/change a workflow setting |
+| `/workflow-update` | Update the workflow plugin |
 
 ## Architecture
 
@@ -28,131 +26,64 @@
 
 Tech stack: {{TECH_STACK}}
 
-Details (read on demand, not auto-loaded):
-- `docs/workflow/README.md` — workflow overview
-- `docs/workflow/decisions.md` — record of every tunable workflow setting (change via `/workflow-decisions`)
-- `docs/dev/architecture.md` — architecture details
-
-## Agents — delegate proactively
-
-IMPORTANT: Use these subagents automatically whenever they fit — do not ask first. The main context is the scarcest resource; anything that requires reading many files or produces large output belongs in a subagent.
-
-| Agent | Use when |
-|-------|----------|
-| `code-explorer` | Any codebase question that needs reading more than 3-4 files, or "where is X?" discovery; before implementing in unfamiliar code. Project-aware — it reads this project's docs to orient itself |
-| `test-runner` | Any full test/lint run — returns a condensed failure report instead of raw output |
-| `workflow-coach` | The user asks how the dev workflow works or which command to use |
-| `product-owner` | Judging ideas/backlog items against the vision (used by /brainstorm, /prioritize) |
-| `code-reviewer` / `security-reviewer` / `architect-reviewer` | Reviewing a diff (used by /pr; also on direct request) |
-| `requirements-engineer` / `tech-planner` | Structured refinement (used by /refine) |
-| `test-writer` | Spec-only test creation (used by /implement Phase 1) |
-| `documentation-writer` | Doc updates after implementation (used by /implement) |
-
-For codebase questions — including "where is X?" discovery — prefer `code-explorer` (Haiku) over the generic built-in Explore agent: it reads this project's own docs to orient itself, so it knows where things live and what the conventions are. It reports facts; keep the judgment and planning in your main context, where the stronger model and full task context live.
-
-**A dispatched subagent can fail — never proceed on a missing result.** If a subagent returns null, empty, or a visibly failed result, just re-run it — the workflow's agents are short-lived and idempotent (they run a script or drive the app; nothing to recover). If it fails again, stop and ask (supervised) or write `## Blocked` (unsupervised).
+Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (lifecycle, quality, decisions, deploy).
 
 ## Models
 
-**The session runs on whatever model you picked** — the workflow does not switch it. Two levers only:
+**The session runs on whatever model you picked** — the workflow never switches it. Two levers only:
+- **Haiku subagents do mechanical, high-IO work** — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `smoke-tester` (drives the app from prose steps → failures only). They keep bulk output off your session model; judgment stays in the main session.
+- **`/consult` (best/high) for a hard call** — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
-- **Haiku subagents do the mechanical, high-IO work** (`code-explorer` reads the codebase, `runner` executes gates/scripts, `smoke-tester` drives the app). They keep verbose output and bulk reading off your session model. Judgment stays in the main session.
-- **`/consult` for a hard call** — one turn on the best available model at high effort, with full context, then back to normal. Reach for it when stuck (same failure twice), on an architecture/security decision, or genuinely unsure between approaches — instead of grinding on the wrong approach. The `reviewer` agent (best/high) is the review counterpart, used sparingly for genuinely critical diffs.
+## Agents — delegate proactively
 
-No per-ticket tiers, no model-switching mid-flow. Simpler and it keeps the prompt cache warm.
+Use these automatically when they fit — don't ask first. Anything that reads many files or produces bulk output belongs in a subagent.
+
+| Agent | Use when |
+|-------|----------|
+| `code-explorer` (Haiku) | Any codebase question needing >3-4 files, or "where is X?" — prefer it over the built-in Explore; it reads this project's docs to orient itself |
+| `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes/judges |
+| `smoke-tester` (Haiku) | Manually exercise a running feature from explicit prose steps (blackbox — no spec/code) — reports failing steps only |
+| `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
+
+**A subagent can fail — never proceed on a missing result.** Just re-run it (the agents are idempotent — they run a script or drive the app; nothing to recover). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).
 
 ## Skills — invoke proactively
 
-**CRITICAL: When the user's request matches a workflow skill, invoke that skill — never improvise your own process for something a skill already covers.**
+**When a request matches a skill, invoke it — don't improvise a process a skill already covers.**
 
-Executing the skill IS the correct response. Do not paraphrase its steps or attempt the work ad-hoc.
+| User says… | Skill |
+|-----------|-------|
+| "capture this idea/bug" | `/draft` |
+| "plan / spec out FEAT-001", "make X ready" | `/plan` |
+| "implement / build FEAT-001" | `/implement` |
+| "verify / does it actually work" | `/verify` |
+| "commit" | `/commit` |
+| "release / publish / bump version" | `/release` |
+| "ship a version", "build these tickets", "work toward <topic>" | `/ship` |
+| "resume / continue / I was interrupted" | `/resume` |
+| "I'm stuck", a hard architecture/security call | `/consult` |
+| "open a PR / submit for review" | `/pr` (optional — default merges locally) |
 
-Map plain-language requests to skills:
+Multiple tasks in one message: work through them in order; in unsupervised mode apply autonomous defaults and don't stop between them. `/ship` is the built-in orchestrator for a full cycle.
 
-| User says something like… | Skill to invoke |
-|--------------------------|-----------------|
-| "add a feature idea", "capture this bug", "log this idea" | `/draft` |
-| "brainstorm features", "what should we build next?", "generate backlog ideas" | `/brainstorm` |
-| "prioritize the backlog", "what should we work on?", "pick items for the next version" | `/prioritize` |
-| "refine FEAT-001", "plan feature X", "write requirements for X", "make X ready to implement" | `/refine` |
-| "implement FEAT-001", "build feature X", "start working on X", "code this up" | `/implement` |
-| "commit", "save my changes", "make a commit" | `/commit` |
-| "create a PR", "open a pull request", "submit for review", "merge this" | `/pr` |
-| "release", "ship a new version", "bump the version", "publish" | `/release` |
-| "ship a version", "build the next release", "run the full dev cycle", "develop and release everything" | `/ship` |
-| "ship these tickets", "release FEAT-001 and FEAT-003", "build a version from this list" | `/ship FEAT-001 FEAT-003` (explicit-ticket mode) |
-| "resume", "continue where we left off", "I was interrupted", "pick up the task" | `/resume` |
-| "I'm stuck", "which approach is better?", a hard architecture/security call | `/consult` |
-| "update the workflow", "upgrade claude-workflow", "get the latest workflow" | `/workflow-update` |
+## Merging
 
-**When in doubt whether a skill applies:** invoke the `workflow-coach` agent with the user's request before doing anything. It reads the workflow docs and skill definitions and will identify the right skill — or confirm none applies. Only invent a custom process after `workflow-coach` confirms no skill covers the situation.
+Default is **local git, no formal PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts locally, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only when you want external review or the repo requires it.
 
-## Multi-Task Sessions
+## Documentation policy
 
-When the user gives multiple tasks in one message (e.g. "refine FEAT-001, FEAT-002, then implement both"):
-
-**1. Checkpoint immediately — before any work:**
-Write the full task list to the branch-scoped context file (`.claude/memory/context-{branch}.md`) under `## In Progress`:
-```markdown
-## In Progress
-task: Multi-task session — {brief description}
-tasks:
-- [ ] Refine FEAT-001
-- [ ] Refine FEAT-002
-- [ ] Implement FEAT-001
-- [ ] Implement FEAT-002
-next_step: "Refine FEAT-001"
-saved_at: {timestamp}
-```
-
-**2. Work through in order:**
-Invoke the relevant skill for each item. After each completes, tick it off (`- [x]`) and update `next_step`, then immediately start the next item.
-
-- **Supervised mode**: each skill runs normally — ask all the questions it normally asks. The only difference from a normal session is that after a skill finishes, move on to the next task automatically instead of stopping. Do not add extra confirmation prompts *between* tasks ("should I continue with the next item?") — just continue.
-- **Unsupervised mode**: all skills apply their autonomous defaults (no questions). Proceed fully automatically.
-
-**3. Compact between phases (user action — do not self-invoke):**
-`/compact` is a built-in Claude Code command that only the **user** can trigger — it cannot be reliably self-invoked across CLI, VS Code, or web environments. Do NOT call it yourself.
-
-Instead, at a phase boundary (e.g. all refines done, about to start implementations):
-- Ensure all changes are committed and the checkpoint is fully up to date
-- In supervised mode: ask the user "Context is getting large — please run `/compact` so I can continue cleanly." Wait for confirmation, then continue.
-- In unsupervised mode: skip the compact, continue directly. The infrastructure will compress context automatically when needed.
-
-After the user runs `/compact`: immediately read `.claude/memory/context-{branch}.md` to restore the task list, then continue with the next unchecked item.
-
-**4. Done only when every item is checked off:**
-Clear `## In Progress` only after all items show `[x]`. The Stop hook will remind you of remaining work if you try to stop early.
+Keep it minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions — not everything. Maintain one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints; a little markdown for key concepts + setup.
 
 ## Session Behavior
 
-If the session start context contains `=== AUTO-RESUME REQUIRED ===`, immediately execute `/resume` without waiting for user input.
+- Session-start says `=== AUTO-RESUME REQUIRED ===` → run `/resume` immediately.
+- Says `=== IN-PROGRESS WORK FOUND ===` → tell the user and suggest `/resume`; don't auto-resume.
+- Says `=== BLOCKED WORK ===` → surface the blocker; don't work around it.
 
-If the session start context contains `=== IN-PROGRESS WORK FOUND ===`, tell the user what task is in progress and suggest they run `/resume` to continue — but do not resume automatically.
+**State lives in the repo** — the branch, the in-progress spec's unchecked subtask boxes, and `git log`. There is no checkpoint file to maintain; `/resume` reconstructs from these. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
-If a hook reports `SUPERVISED_USAGE_ALERT`: use `AskUserQuestion` to ask the user whether they want to switch to unsupervised mode now (so auto-resume becomes available). Options: yes at 80% / yes with a custom threshold / no. If they agree, run `/unsupervised on [threshold]`; if not, continue normally. The alert will not repeat until usage drops and rises again.
-
-If `.claude/memory/settings.md` contains `unsupervised: true`:
-- **Never** use `AskUserQuestion` — apply autonomous defaults from the `/unsupervised` skill
-- **Cloud/remote sessions** (`mcp__Claude_Code_Remote__*` tools available / `CLAUDE_CODE_REMOTE_ENVIRONMENT_TYPE` set): the rate limit **cannot be read** here, so the session is not paused before it hits the cap — it is simply killed. A standing **recovery heartbeat** (an hourly Routine armed by `/unsupervised on`) resumes the work from the checkpoint once the limit clears and self-deletes when done. Ensure it is armed at the start of any autonomous run (idempotent — see the `/unsupervised` skill "Cloud/remote auto-recovery heartbeat"). Keep every subtask committed + the checkpoint current so a mid-work kill loses nothing.
-- If a hook reports `USAGE THRESHOLD REACHED` (local sessions, where usage *is* readable): commit the current atomic step, update the checkpoint, then pick one:
-  - **`.claude/memory/loop-mode.marker` present** (running under `claude-loop.sh`): stop the session — the loop will restart it with a fresh context window and resume from the checkpoint automatically.
-  - **Interactive VS Code / terminal session**: run `bash .claude/hooks/usage-guard.sh --wait` (3-minute Bash timeout) repeatedly until it prints `RESUME_OK`, then continue working.
-- If you hit a genuine blocker (merge conflict, missing credentials, unresolvable ambiguity), write `## Blocked: <reason>` to the branch context file (`.claude/memory/context-{branch}.md`), delete the recovery heartbeat if armed (cloud/remote), and stop — do not wait for input
-- When all work is complete, clear `## In Progress` from the branch context file, delete the recovery heartbeat if armed (cloud/remote), and stop
+When `unsupervised: true`: never use `AskUserQuestion` (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes. A usage-guard pause (local, at threshold) → finish the atomic step, commit, end the turn — you resume when usage recovers. In cloud, the recovery heartbeat resumes a rate-limit kill automatically.
 
 ## Memory
 
-`.claude/memory/` contains project memory (decisions, context, gotchas, tech-debt). Read these when they are relevant — they are not auto-loaded.
-
-**Multi-session checkpoint isolation:** Context is stored per branch to avoid conflicts when multiple Claude Code sessions work on the same repository simultaneously. Always use `.claude/memory/context-{branch}.md` as the checkpoint file, where `{branch}` = current git branch with `/` replaced by `-` (e.g. `feature/feat-001-login` → `context-feature-feat-001-login.md`). Determine it at runtime: `git branch --show-current | sed 's|/|-|g'`. When reading context, try the branch-scoped file first; fall back to `context.md` only for legacy checkpoints.
-
-## Context Management
-
-Long sessions accumulate context fast — a single `/implement` run can approach the limit. Claude cannot invoke `/compact` itself (see Multi-Task §3); the levers that ARE yours:
-
-**Keep compaction safe at every natural boundary** (after each subtask commit, after a review cycle, after a refine completes): all changes committed and pushed, checkpoint (`.claude/memory/context-{branch}.md`) current, spec checkboxes matching reality. Then automatic compaction — or a user-triggered `/compact` — can never lose state. Unsafe window: mid-subtask with uncommitted edits; finish the atomic unit first.
-
-**Don't bloat the context in the first place:** delegate bulky reading and full test/lint runs to subagents (`code-explorer`, `test-runner`); never dump raw logs or large files into the main context; don't re-read files you already processed — the checkpoint and spec carry the state.
-
-**In supervised mode**, at a phase boundary with heavy accumulated context, ask the user to run `/compact` (after securing state as above). **After any compaction:** read the branch context file before continuing.
+`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and per-branch runtime notes (`context-{branch}.md`, gitignored). Read them when relevant; they're not auto-loaded.

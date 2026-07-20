@@ -1,152 +1,48 @@
 # Workflow Decisions
 
-This file is the **record** of every workflow decision this project has made — a
-single human-readable index of the tunable settings you chose and where each value lives.
-(Not to be confused with `.claude/memory/decisions.md`, which records *architecture*
-decisions about the code itself.)
+The record of this project's tunable workflow settings. (Not `.claude/memory/decisions.md`, which records *architecture* decisions about the code.)
 
-> **How this works.** For speed, each setting's *live* value is written directly
-> into the skill that uses it — **skills do not read this file at runtime.** This
-> file mirrors those values and records the exact location of each one. The two are
-> kept in sync by the `/workflow-decisions` skill:
->
-> - **To change a setting:** run `/workflow-decisions` (optionally naming the setting,
->   e.g. `/workflow-decisions refine sizing`). It edits the live value in the skill(s)
->   *and* updates the matching entry here, in one commit — so they never drift.
-> - **To change it by hand:** edit the skill at the listed **Live in** location,
->   then update the **Current** value in the matching entry here to match.
->
-> Each entry lists **Live in** (the file that actually drives behavior), the
-> **Current** value, and the allowed **Options**.
+Change a setting with `/workflow-decisions` — it edits the live location **and** this record together. Each entry lists **Live in**, **Current**, and **Options**.
 
 Last updated: {{TODAY}}
 
 ---
 
-## Refinement
-
-### Sizing defaults
-How `/refine` scales autonomy, approval, and the refinement tier (model+effort for planning agents and per-ticket review) by assessed ticket size.
-- **Live in:** `.claude/skills/refine/SKILL.md` — §0.2 tier table
-- **Current:**
-
-  | Tier | Autonomy | Approval | Rounds | Refinement tier |
-  |------|----------|----------|--------|-----------------|
-  | trivial | fully-autonomous — no questions | auto-accept | fast-track (1 TP pass) | sonnet-high |
-  | small | fully-autonomous — no questions | auto-accept | 1 | opus-high |
-  | medium | key-questions-only — 1–3 questions | auto-accept | 1 | opus-high |
-  | large | many-questions — interview mode | manual-approval | 3 | best-high |
-
-- **Options:** autonomy ∈ {fully-autonomous, key-questions-only, many-questions} · approval ∈ {auto-accept, manual-approval} · rounds ∈ non-negative integer · tier ∈ {sonnet-medium, sonnet-high, opus-medium, opus-high, best-medium, best-high}
-- **Note:** the tier is assessed automatically and applied without asking; you are only consulted on sizing if you explicitly ask to be. In unsupervised mode no questions are asked at any tier and specs are self-approved.
-
----
-
-## Implementation & Testing
-
-### Testing scope
-Which test levels `/implement` writes and expects.
-- **Live in:** `docs/workflow/quality.md` — "Konfigurierter Scope" line (read by `.claude/skills/implement/SKILL.md`)
+## Testing scope
+- **Live in:** `docs/workflow/quality.md`
 - **Current:** {{TESTING_SCOPE}}
-- **Options:** `Unit only` · `Unit + Integration` · `Unit + Integration + E2E`
+- **Options:** `Unit only` · `Unit + Integration` · `Unit + Integration + E2E` (a ticket may narrow within this)
 
-### Definition of Ready / Definition of Done
-The checklists that gate refinement→implementation and implementation→merge.
-- **Live in:** `docs/workflow/quality.md` — "Definition of Ready" / "Definition of Done" sections
-- **Current:** project defaults (edit the doc directly to adjust criteria)
-
----
-
-## Pull Requests & Review
-
-### Review tier rule
-Which model/effort tier the code / security / architecture reviewers run on.
-- **Live in:** `.claude/skills/pr/SKILL.md` — §1 Pre-flight
-- **Current:** single ticket = the ticket's `routing.refinement` tier · multi-ticket or release PR = opus-medium (security-reviewer bumped to opus-high on security-sensitive paths) · no spec = sonnet-high/opus-high by diff size
-- **Options:** any tier ∈ {sonnet-medium, sonnet-high, opus-medium, opus-high, best-medium, best-high} per case
-
-### Review scope triage
-Threshold below which a small, non-security diff gets code review only (no separate security/architect pass).
-- **Live in:** `.claude/skills/pr/SKILL.md` — §4b Review Scope Triage
-- **Current:** light review under ~200 changed lines AND no security-sensitive files; full review otherwise
-- **Options:** adjust the line threshold; security-sensitive files always force a full review.
-
-### Merge strategy & auto-merge
-How a green, reviewed PR is merged.
-- **Live in:** `.claude/skills/pr/SKILL.md` — §9
-- **Current:** squash + auto-merge (`gh pr merge --squash --auto`), falling back to direct squash merge if auto-merge is disabled on the repo
-- **Options:** merge method (squash / merge / rebase) · auto vs. manual · the ask-before-merge conditions (currently: merge conflicts, major/breaking version, protected branch requiring human approval)
-
-### Deferred-findings policy
-Whether non-blocking review findings (`[SUGGESTION]`, `[INFO]`, `[CONCERN]`, `[ADR NEEDED]`) get auto-fixed or only reported.
-- **Live in:** `.claude/skills/pr/SKILL.md` — §4b Review Scope Triage ("Deferred-findings policy")
-- **Current:** light-review path (small, single-feature diff) auto-fixes `[SUGGESTION]` too; full-review path reports `[SUGGESTION]`/`[INFO]` only; `[CONCERN]`/`[ADR NEEDED]` are always report-only
-- **Options:** `light-autofixes-suggestions` (default, above) · `always-report-only` (never auto-fix beyond MUST FIX/CRITICAL/HIGH/MODERATE, regardless of diff size) · `always-autofix-suggestions` (fix `[SUGGESTION]`/`[INFO]` on every PR, not just the light-review path)
-
----
-
-## Release
-
-### Branching model
-How feature branches and releases flow.
-- **Live in:** `docs/workflow/release.md` — "Branching Model" section
+## Branching model
+- **Live in:** `docs/workflow/lifecycle.md`
 - **Current:** {{BRANCHING_MODEL}}
-- **Options:** `main-only` (features merge into main, releases tagged on main) · `git-flow` (features merge into `develop`; `/release` merges `develop → master` and tags)
+- **Options:** `main-only` · `git-flow` (features → `develop`; `/release` promotes to `main`/`master`)
 
-### Version source of truth
-The file whose version field `/release` bumps.
-- **Live in:** `docs/workflow/release.md` — "Version Source of Truth" section
-- **Current:** see `docs/workflow/release.md` (set during project setup for your language)
+## Version source of truth
+- **Live in:** `docs/workflow/release.md`
+- **Current:** set at init for this language (e.g. `package.json` version, `Cargo.toml`, `pyproject.toml`, a VERSION file)
 
-### Deploy target
-Where the app is deployed and with which platform settings.
-- **Live in:** `docs/workflow/deploy.md` — "Target Environment" / "Platform Settings" sections
+## Deploy target
+- **Live in:** `docs/workflow/deploy.md`
 - **Current:** {{DEPLOY_TARGET}}
-- **Options:** `railway` (preferred — scale-to-zero enabled, European region e.g. `europe-west4`, service URL prefixed with the project name) · `vercel` · `aws` · `other` · `self-hosted` · `manual` · `none`
+- **Options:** `railway` (scale-to-zero, EU region, URL = project name) · `vercel` · `aws` · `other` · `self-hosted` · `none`
 
----
-
-## Integrations
-
-### GitHub integration
-Whether skills create/update GitHub issues, labels, and PRs.
+## GitHub integration
 - **Live in:** `.claude/memory/decisions.md` — "GitHub integration" line
 - **Current:** {{GITHUB_INTEGRATION}}
 - **Options:** `yes` (issues, labels, PRs) · `no` (fully local — skills skip all `gh` calls)
 
----
+## ci-on-claude
+- **Live in:** read by `/commit` (append `[skip ci]` when off) — record here; no repo variable needed
+- **Current:** {{CI_ON_CLAUDE}}  (default `no` for apps, `yes` recommended for cross-platform libraries)
+- **Options:** `no` — Claude's commits carry `[skip ci]`, so GitHub Actions runs only on human commits + releases (0 Actions minutes for Claude's work) · `yes` — CI also runs on Claude's commits (matrix/multi-env local can't reproduce)
 
-## Unsupervised Mode
+## release-runner
+- **Live in:** `/release` skill
+- **Current:** {{RELEASE_RUNNER}}  (default `local`)
+- **Options:** `local` — Claude runs `scripts/release.sh` in-session (no Actions minutes) · `ci` — trigger the GitHub release workflow instead (keeps publish secrets out of the session)
 
-### Default usage threshold
-Rate-limit percentage at which unsupervised work pauses to keep headroom for interactive use.
+## Pause threshold (unsupervised)
 - **Live in:** `.claude/memory/settings.md` (runtime; set via `/unsupervised on [threshold]`)
-- **Current:** none unless set per-session
-- **Options:** integer 10–99, or none.
-
-### Autonomous defaults
-The choices Claude makes for each skill when unsupervised mode is on.
-- **Live in:** `.claude/skills/unsupervised/SKILL.md` — "Autonomous defaults" block
-- **Current:** documented in that skill (refine → autonomous/auto-accept; pr → auto-merge; prioritize → accept recommended slate; commit → auto-fix + commit; model/effort → per-ticket routing, re-armed from the checkpoint)
-
----
-
-## Model & Effort Routing
-
-### Agent tier pins
-Which model/effort each subagent is pinned to (mechanical → haiku/medium; writers → sonnet/medium; product-owner → sonnet/high; RE/tech-planner → effort high, model per ticket; reviewers → per review tier).
-- **Live in:** each agent file's `model:`/`effort:` frontmatter under `.claude/agents/`
-- **Current:** plugin defaults, exactly as listed in the description above
-- **Options:** model ∈ {haiku, sonnet, opus, fable, inherit} · effort ∈ {medium, high} per agent (low/xhigh deliberately unused here)
-
-### Top-tier mapping
-What the `best` tier (route-best-* skills, /consult) resolves to.
-- **Live in:** `.claude/skills/route-best-medium/SKILL.md` + `.claude/skills/route-best-high/SKILL.md` + `.claude/skills/consult/SKILL.md` frontmatter
-- **Current:** `fable` — best-medium = `model: best, effort: medium`; best-high = `model: best, effort: high` (`best` = Fable if available, else latest Opus)
-- **Options:** `fable` (as above) · `opus-compensated` — best-medium = `model: opus, effort: high`; best-high = `model: opus, effort: xhigh`. Switch when Fable access has ended.
-
-### Adaptive routing
-Whether Claude may deviate from planned tiers during execution (see the Adaptive Routing Policy in the project CLAUDE.md).
-- **Live in:** root `CLAUDE.md` — "Adaptive Routing Policy" + `.claude/skills/implement/SKILL.md` — "Adaptive routing during implementation"
-- **Current:** `on` — escalate at medium threshold (consult first), de-escalate at high threshold, gates never adaptive
-- **Options:** `on` · `escalate-only` · `off` (spec routing always applied verbatim)
+- **Current:** 80 (default) where usage is readable (local/VS Code); no guard in cloud — runs into the limit, heartbeat recovers
+- **Options:** integer 10–99

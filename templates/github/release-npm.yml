@@ -1,52 +1,25 @@
+# Release workflow — the FALLBACK path. By default `/release` runs scripts/release.sh
+# LOCALLY (release-runner: local) and this only runs on manual dispatch.
+# Only if release-runner: ci (isolate publish secrets, or need npm provenance/OIDC) —
+# uncomment the tag trigger below so a pushed v* tag runs the publish here instead.
+# NOTE: never enable BOTH local release and the tag trigger — you'd publish twice.
 name: Release
-
 on:
-  push:
-    tags:
-      - "v*"
-
+  workflow_dispatch:
+    inputs:
+      version: { description: "version to release (e.g. 1.2.0)", required: true }
+  # push:
+  #   tags: ["v*"]        # enable ONLY for release-runner: ci
 jobs:
   release:
-    name: Build, Publish, GitHub Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
+    permissions: { contents: write, id-token: write }
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-      - name: Publish to npm
-        run: npm publish --provenance --access public
+        with: { node-version: "22", cache: "npm", registry-url: "https://registry.npmjs.org" }
+      - run: npm ci
+      # Same entrypoint Claude runs locally — parity. VERSION from dispatch input or the tag.
+      - run: bash scripts/release.sh "${{ github.event.inputs.version || github.ref_name }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Extract changelog entry
-        id: changelog
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          NOTES=$(awk "/^## \[?${VERSION}\]?/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.changelog.outputs.notes }}
-          generate_release_notes: false
