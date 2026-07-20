@@ -32,7 +32,13 @@ and not fail on hard tasks.
 6. **Out-of-scope.** Allowed to defer work to a new ticket, but it must be the **exception**
    and **called out in the final report**. Planning defaults to *including* scope; never
    silently drops something important.
-7. **Documentation — minimal and useful.**
+7. **Merging — local git, no formal PRs** (see "Merge policy"): ff-merge without re-checks when
+   the gate already passed on unchanged code; otherwise resolve conflicts locally, re-run the
+   gate, merge. `/pr` only on explicit request.
+8. **Continuity — the repo is the checkpoint** (see "Continuity v2"): state = branch + git log +
+   spec checkboxes; memory file only for Blocked + ship state; usage-guard machinery removed;
+   one heartbeat per cloud unsupervised run.
+9. **Documentation — minimal and useful.**
    - Code: clean and concise. Doc-comments only for function usage/params, class/file usage,
      and genuinely tricky algorithms/decisions. Not everything.
    - Technical doc: one concise, maintained architecture doc (key decisions, algorithms,
@@ -46,8 +52,8 @@ and not fail on hard tasks.
 - Keep/rewrite: `project-init`, `project-onboard`, `draft` (slim), `plan` (was `refine`,
   light), `implement` (inline test-writing; invokes `/verify` at feature-done), `verify`
   (new — the "feature done" QA step: full gate + review + smoke; standalone user-invocable,
-  called by `implement`/`ship`), `commit`, `pr` (lean), `release`, `ship` (orchestrator),
-  `resume` (slim).
+  called by `implement`/`ship`), `commit`, `pr` (optional utility — explicit request only, not
+  in the default path), `release`, `ship` (orchestrator), `resume` (slim, repo-reconstructing).
 - Utilities: `unsupervised`, `consult`, `workflow-update`, `workflow-decisions` (kept — see
   settings list).
 - **Remove:** 6× `route-*`, `prioritize`, `brainstorm` (→ inline ship behavior).
@@ -115,16 +121,22 @@ spawns 5–7 → 0–1 — remaining spawns are cheap Haiku runners by design; n
   (full gate + review + smoke per QA flow). `pr` (lean: no CI polling, `[skip ci]`-aware squash
   message, review by judgment — per CI Usage Concept). `/commit` appends `[skip ci]` per the
   `ci-on-claude` decision. Remove `prioritize`; de-skill `brainstorm`; slim `draft`.
-- **P4 — `/ship` orchestrator.** Input-adaptive (specs | topic | both) → batch all questions
-  up front → autonomous plan→implement→test→review→smoke→docs→release→report, with
-  out-of-scope deferrals surfaced in the report.
-- **P5 — Docs model + context trim.** Inline minimal doc-comments policy; one concise
+- **P4 — `/ship` orchestrator + local merges.** Input-adaptive (specs | topic | both) → batch all
+  questions up front → autonomous plan→implement→verify(smoke)→docs→**local merge per Merge
+  policy**→release→report, with out-of-scope deferrals surfaced in the report. `/pr` demoted to
+  an optional utility (explicit request only).
+- **P5 — Continuity v2.** Repo-as-checkpoint: strip routine checkpoint writes from all skills
+  (memory file only for Blocked + ship state); `/resume` reconstructs from branch+spec+git log;
+  remove usage-guard machinery (script, thresholds, markers, statusline cache role); simplify
+  `unsupervised` (flag + defaults + one heartbeat per cloud run, armed at start / deleted at
+  end); simplify `claude-loop.sh` (no marker files); session-start/stop hooks keyed on the spec.
+- **P6 — Docs model + context trim.** Inline minimal doc-comments policy; one concise
   maintained architecture doc (updated in a light end-of-ship pass + during `implement` when
   structure changes); minimal user docs (favor self-explanatory UI + in-app hints). Trim root
   CLAUDE.md 164→~90 and **add directory-scoped CLAUDE.md files** (`src/`, `tests/`, and deeper
   where a dir has real conventions) so specialized guidance loads only when working there.
   `/workflow-decisions` kept (see settings list below).
-- **P6 — Delivery.** Update project-init/onboard/workflow-update to install/reconcile the
+- **P7 — Delivery.** Update project-init/onboard/workflow-update to install/reconcile the
   leaner set (remove deleted skills/agents on update). Version bump + migration note.
 
 (`/verify` = the "feature done" QA step, designed in "QA / Verify Flow".)
@@ -227,10 +239,11 @@ Actions only fires for human commits, opt-in library matrix, and release fallbac
   feature-done/PR/release and what the CI wrapper calls). Both defined at init; parity anchor
   for local and CI alike.
 
-**Distributed across phases:** canonical entrypoints (`ci.sh` fast/full, `release.sh`) → P6
+**Distributed across phases:** canonical entrypoints (`ci.sh` fast/full, `release.sh`) → P7
 (templates/init/onboard) + P3 (commit/implement/verify call them); `[skip ci]` handling → P3
-(`/commit`) + P4 (`/pr` squash message); monitored release fallback → P3/P4; `ci-on-claude` +
-`release-runner` decisions → P6 (workflow-decisions). Not a standalone phase.
+(`/commit`, local merge commits) + P4 (optional `/pr` squash message); monitored release
+fallback → P3/P4; `ci-on-claude` + `release-runner` decisions → P7 (workflow-decisions).
+Not a standalone phase.
 
 ## QA / Verify Flow (designed)
 
@@ -254,6 +267,9 @@ deployable build artifact + integration/e2e are NOT run here — they're deferre
    drives the app on a **local/test instance** (browser/CLI, test data, step budget) and **reports
    only the steps that FAIL** — expected vs observed + a screenshot — staying silent on passes
    (keeps the report and the main context small). Main session acts on the reported failures.
+   - **Blackbox + reusable:** the smoke-tester receives ONLY the distilled step list — never the
+     spec file, acceptance criteria, or implementation context. The steps are **stored in the
+     spec** so they can be re-run later (regression check, or by the user manually).
    - **Never prod.** Run locally if at all possible. If the app genuinely can't run locally (needs
      cloud services/hardware), do NOT skip — agree a **project-specific strategy with the user** (a
      debug/staging deployment or preview env), decided per project and documented (`deploy.md`).
@@ -264,23 +280,63 @@ deployable build artifact + integration/e2e are NOT run here — they're deferre
    - Criteria↔tests↔behavior: each acceptance criterion is demonstrated by a passing automated
      test *or* a smoke step; a criterion with neither is flagged.
 
-**PR — branch done.** Re-run **all automated tests**. **Skip when HEAD is unchanged since the last
-green full run** (e.g. a single-ticket branch whose feature-done run already covered this exact
-commit). Many tickets on one branch (main-only model) is fine — the boundary is "branch done". No
-manual smoke here.
+**Merge — branch done.** Local git merge per the **Merge policy**: fast-forward + HEAD unchanged
+since the last green full run → merge, **no re-run**; otherwise resolve conflicts locally, re-run
+the full gate, merge. Many tickets on one branch (main-only model) is fine — the boundary is
+"branch done". No manual smoke here. No PR unless explicitly requested.
 
 **Release — develop+release branch model.** Re-run **all automated tests** on the release
 promotion. **No manual smoke** unless the user explicitly requests it — smoke is a new-feature
 check, not a release gate.
 
 **Skip principle (no redundant runs):** the full automated suite runs at each boundary
-(feature-done, PR, release) but is skipped whenever HEAD hasn't changed since the last green full
+(feature-done, merge, release) but is skipped whenever HEAD hasn't changed since the last green full
 run. Cheap per-subtask fast-gate always runs.
+
+## Continuity v2 — checkpoints, unsupervised & resume (designed)
+
+**Problems today:** env-specific mechanisms that each work in only some environments (local /
+cloud / docker / VS Code); constant permission prompts from trigger create/delete churn;
+checkpoint writes that cost time yet are rarely needed; a usage-guard that cannot even read
+usage in cloud (fails open = dead weight).
+
+**Core principle: the repo IS the checkpoint.** Every subtask already ends in a green commit
+that ticks the spec checkbox (same commit). So durable state = **branch + git log + spec
+checkboxes** — identical in every environment, zero extra writes, zero extra latency.
+
+1. **No routine checkpoint files.** The `.claude/memory/context-*` file is written ONLY for:
+   - `## Blocked` (human needed — reason + what's required),
+   - `/ship` orchestration state (ticket order + batched answers), updated per ticket, not per
+     subtask.
+   Everything else is reconstructed from the repo. (Smoke instructions live in the spec.)
+2. **`/resume` = reconstruct, everywhere the same:** current branch → in-progress spec →
+   compare checkboxes vs `git log` (git wins) → continue at the first unchecked subtask. No
+   tier re-arm (routing gone), **no subagent-recovery ledger** (the old long-running RE/TP/
+   test-writer agents are gone; the new Haiku runner/smoke agents are short-lived and
+   idempotent — if one died, just re-run it).
+3. **Session-start hook stays** (env-agnostic, cheap): in-progress spec on this branch →
+   auto-resume in unsupervised mode, suggest `/resume` otherwise. Stop hook keys on the same
+   single source of truth (unsupervised + unchecked boxes → don't stop).
+4. **Usage-guard machinery REMOVED entirely** — `usage-guard.sh`, thresholds, `--wait/--check`
+   modes, wait/offer markers, statusline usage-cache integration. Rationale: can't read usage
+   in cloud (never fires), marginal value locally, large complexity. Unsupervised becomes just:
+   flag on → no questions, autonomous defaults, keep going, `## Blocked` on true blockers.
+5. **Trigger churn → near zero.** The old prompts came mostly from `/pr`'s per-wake `send_later`
+   check-ins — those die with the CI-wait removal (local gates, local merges). What remains:
+   - **Cloud unsupervised runs only:** arm ONE recovery routine at run start, delete it at run
+     end/`off`/blocked — 2 trigger operations per run total (vs. per-event). With the shipped
+     server-level `permissions.allow` this should not prompt; where the host still prompts,
+     it's now once per run, not constant.
+   - Local / VS Code / docker: no triggers at all — recovery = session-start hook + user poke
+     (or `claude-loop.sh` for fully headless terminals, simplified: no marker files, it just
+     restarts and the hook resumes from the repo).
+6. **One continuity story for every environment:** state in the repo (works everywhere) +
+   env-appropriate wake-up (cloud: heartbeat; interactive: hook + user; headless: loop). No
+   mechanism pretends to work where it can't.
 
 ## Parked
 
-- Nothing — CI usage and the QA/verify flow are both designed. (`/verify` is the "feature done"
-  step above; no separate parked design remains.)
+- Nothing — CI usage, QA/verify, merge policy, and continuity are all designed.
 
 ## Resolved sub-questions
 
@@ -298,9 +354,10 @@ tier pins (now fixed), deferred-findings policy.
 **Removed** (now fixed defaults, not tunable):
 - **Session model** — just use whatever the user has enabled; not a workflow setting.
 - **Consult** — always `best` model / high effort; no mapping to configure.
-- **Merge strategy** — fixed: **squash + auto-merge** on a green local gate, keeping the
-  ask-before-merge safety conditions (merge conflict, major/breaking version, protected
-  branch requiring human approval → ask first in supervised mode).
+- **Merge strategy** — fixed: **local git merge per the Merge policy** (ff without re-checks
+  when green-on-unchanged-code; else resolve + re-gate + merge). Safety asks kept in supervised
+  mode (major/breaking version, protected branch). When a PR *is* explicitly used: squash +
+  auto-merge.
 - **Reviewer** — Claude's judgment, always available (best/high, sparing); no toggle.
 
 **Kept (the real settings — mostly project-setup values):**
@@ -311,20 +368,35 @@ tier pins (now fixed), deferred-findings policy.
 | Version source of truth | per-language version location | release.md |
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
-| Unsupervised threshold + autonomous defaults | usage cap + autonomous behavior | settings.md / unsupervised skill |
+| Unsupervised mode | on/off flag — no questions, autonomous defaults, keep going (no usage threshold anymore — usage-guard removed) | settings.md / unsupervised skill |
 | **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries). Implemented purely in `/commit`: off → append `[skip ci]`, on → don't. No repo variable, no workflow logic | local decision, read by `/commit` |
 | **release-runner** (new) | `local` (default — Claude releases in-session) / `ci` (isolate publish secrets to Actions) | release skill / decisions |
 
-## Suggestions from the review (proposed, not yet decided)
+## Review suggestions — resolved
 
-1. **`pr-mode: pr | direct` setting.** For solo apps on main-only, the PR itself is mostly
-   ceremony: review is local, CI is skipped, merge is squash-now. A `direct` mode (commit to
-   main, no PR) would cut a whole class of `gh` API calls and waits — aligned with "rely on
-   GitHub less". Default `pr` (libraries/collab; keeps history + PR record); `direct` opt-in
-   per project at init. Costs: no PR-level record/rollback point; slightly weaker audit trail.
-2. **Smoke-instructions as a saved artifact.** Store the feature's smoke steps in the spec file
-   (checked off by the smoke-tester run). Costs nothing, gives a re-runnable manual-test record
-   for later regressions and for the user to run by hand if they want.
-3. **`gh` budget rule.** One place (CLAUDE.md) states: batch `gh` reads, never poll, prefer
-   local git for anything git can answer — makes the "less GitHub" goal an explicit rule the
-   model follows everywhere rather than an emergent property.
+1. **ACCEPTED, extended → local merges, no formal PRs (see "Merge policy").** Merging happens
+   with plain git locally; a PR is only created when explicitly wanted (external review /
+   collaboration). `/pr` becomes an optional utility, out of the default path.
+2. **ACCEPTED with blackbox constraint.** Smoke instructions are stored in the spec file for
+   later reuse — but the **smoke-tester never sees the spec** (blackbox: it receives only the
+   distilled step list; no acceptance criteria, no implementation context).
+3. **REJECTED** — no `gh` budget rule in CLAUDE.md (don't re-inflate it; the new flow barely
+   touches `gh` anyway).
+
+## Merge policy (decided)
+
+Multiple Claude sessions may work concurrently on different branches. Merging to the
+integration branch is **local git, no formal PR**:
+
+- **Fast-forward possible AND the full gate already passed on exactly this code** (HEAD
+  unchanged since the last green full run) → merge with plain git (`git merge --ff-only`),
+  **skip re-running quality checks**. A ff-merge moves existing commits, so their `[skip ci]`
+  markers ride along automatically — no extra CI handling.
+- **Not fast-forwardable / code changed since the green run** → resolve conflicts locally,
+  **re-run the full gate**, then merge. A non-ff merge commit gets the `[skip ci]` marker per
+  the `ci-on-claude` decision (same rule as `/commit`).
+- `/pr` remains available on explicit request (collab, external review, protected repos) —
+  it is no longer part of `/ship`'s default path.
+
+This removes PR creation/merge round-trips, most remaining `gh` API usage, and the PR-wait
+machinery from the default flow entirely.
