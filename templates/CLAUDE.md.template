@@ -70,6 +70,10 @@ Multiple tasks in one message: work through them in order; in unsupervised mode 
 
 Default is **local git, no formal PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts locally, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only when you want external review or the repo requires it.
 
+## GitHub via `gh`
+
+The `gh` CLI is authenticated and available **in every session, including cloud/web ones**. Whenever a plain-git operation fails at something GitHub-side — a proxy rejecting `git push` of tags or to a protected branch, a ref you can't create with git — **fall back to `gh` instead of giving up**: `gh api` for refs/tags (`gh api repos/{owner}/{repo}/git/refs -f ref=refs/tags/vX -f sha=…`), `gh release`, `gh pr`, `gh run`, etc. One gotcha in cloud sessions: the git remote may be a proxy URL `gh` can't parse, so pass **`-R {owner}/{repo}`** explicitly on `gh` subcommands (e.g. `gh release create v1.0.0 -R owner/repo …`).
+
 ## Documentation policy
 
 Keep it minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions — not everything. Maintain one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints; a little markdown for key concepts + setup.
