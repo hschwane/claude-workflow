@@ -1,48 +1,44 @@
 #!/usr/bin/env bash
-# Surface in-progress work at session start.
-# Called on SessionStart. Stdout becomes context that Claude can see and act on.
-# Note: CLAUDE.md is always loaded automatically — do NOT re-print it here (wastes tokens).
+# Surface in-progress work at session start — env-agnostic (local / cloud / docker / VS Code).
+# State lives in the REPO: an in-progress spec + its unchecked subtask boxes + git log.
+# The branch memory file is used only for ## Blocked and ## Ship (orchestration) notes.
+# Stdout becomes context Claude can act on. CLAUDE.md is auto-loaded — don't reprint it.
 set -euo pipefail
 
-# Hooks run in the session cwd, which is not necessarily the project root
-MEM="${CLAUDE_PROJECT_DIR:-.}/.claude/memory"
-AUTO_MARKER="$MEM/auto-start.marker"
+ROOT="${CLAUDE_PROJECT_DIR:-.}"
+MEM="$ROOT/.claude/memory"
+branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || true)
+CTX="$MEM/context-${branch}.md"
 
-# Determine branch-scoped context file, with fallback to legacy context.md
-branch_context() {
-  local branch
-  branch=$(git -C "${CLAUDE_PROJECT_DIR:-.}" branch --show-current 2>/dev/null | sed 's|/|-|g')
-  if [ -n "$branch" ] && [ -f "$MEM/context-${branch}.md" ]; then
-    echo "$MEM/context-${branch}.md"
-  elif [ -f "$MEM/context.md" ]; then
-    echo "$MEM/context.md"
-  else
-    echo ""
-  fi
-}
+# Unsupervised? (drives auto-resume vs suggest — no marker files needed)
+UNSUP=no
+[ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=yes
 
-CONTEXT_FILE=$(branch_context)
-
-# No in-progress work anywhere → nothing to do
-if [ -z "$CONTEXT_FILE" ] || ! grep -q "^## In Progress" "$CONTEXT_FILE" 2>/dev/null; then
+# A blocker always takes priority — surface it, never auto-resume past it.
+if [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; then
+  echo "=== BLOCKED WORK ON THIS BRANCH ==="
+  grep -A 6 "^## Blocked" "$CTX" | head -8 || true
+  echo "Resolve the blocker, then /resume. ==="
   exit 0
 fi
 
-if [ -f "$AUTO_MARKER" ]; then
-  # Session was started automatically by claude-loop.sh → force resume
-  rm -f "$AUTO_MARKER"
-  echo "=== AUTO-RESUME REQUIRED ==="
-  echo "Auto-started session. Execute /resume immediately — do not wait for user input."
-  echo ""
-  grep -A 20 "^## In Progress" "$CONTEXT_FILE" | head -20 || true
-  echo "==========================="
-else
-  # Manually-started session → suggest, don't force
-  echo "=== IN-PROGRESS WORK FOUND ==="
-  echo "There is a checkpoint from a previous session. Run /resume to continue, or start something new."
-  echo ""
-  grep -A 10 "^## In Progress" "$CONTEXT_FILE" | head -10 || true
-  echo "=============================="
+# In-progress spec on this branch = a spec still marked in-progress with unchecked boxes.
+INPROG=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/null | head -1 || true)
+HAS_SHIP=no
+[ -f "$CTX" ] && grep -q "^## Ship" "$CTX" 2>/dev/null && HAS_SHIP=yes
+
+if [ -z "$INPROG" ] && [ "$HAS_SHIP" = no ]; then
+  exit 0   # nothing in flight
 fi
 
+if [ "$UNSUP" = yes ]; then
+  echo "=== AUTO-RESUME REQUIRED ==="
+  echo "Unsupervised mode + in-progress work found. Execute /resume immediately — do not wait for input."
+else
+  echo "=== IN-PROGRESS WORK FOUND ==="
+  echo "Run /resume to continue, or start something new."
+fi
+[ -n "$INPROG" ] && echo "  spec: ${INPROG#$ROOT/}"
+[ "$HAS_SHIP" = yes ] && { echo "  ship state:"; grep -A 8 "^## Ship" "$CTX" | head -10 || true; }
+echo "==========================="
 exit 0

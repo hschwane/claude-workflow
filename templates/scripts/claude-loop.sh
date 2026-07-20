@@ -1,170 +1,47 @@
 #!/usr/bin/env bash
-# OPTIONAL headless fallback for unsupervised mode.
+# OPTIONAL headless fallback for unsupervised mode (terminals / servers with no
+# session that can stay open). Cloud sessions don't need this — they use the
+# recovery heartbeat. Interactive terminals/VS Code don't either — just leave the
+# session open; the Stop hook keeps Claude going.
 #
-# The primary unsupervised design is in-session: the Stop hook keeps Claude
-# working and the usage guard pauses/resumes inside the open session (works in
-# the terminal AND the VS Code extension — just leave the session open).
-# Use this script only when no session can stay open (e.g. overnight on a
-# server, or to recover unattended after a crash / hard rate limit).
+# This loop restarts a headless Claude that resumes from the REPO (branch + in-progress
+# spec + git log) via the SessionStart hook (which auto-resumes when unsupervised: true).
+# It stops when there's no in-progress work or a ## Blocked note appears.
 #
-# Runs Claude headless in a loop, resuming from the checkpoint each time.
-# Respects the usage threshold from .claude/memory/settings.md (waits via
-# usage-guard.sh before each session). Any genuine blocker is written to
-# .claude/memory/context.md as "## Blocked" and this script exits.
-#
-# Usage:
-#   ./scripts/claude-loop.sh                  # default: 60min reset wait, 20 sessions max
-#   ./scripts/claude-loop.sh 60               # reset wait in minutes
-#   ./scripts/claude-loop.sh 60 20            # reset minutes + max session count
-#
-# Environment:
-#   CLAUDE_LOOP_PERMISSIONS  Extra permission flags passed to claude.
-#                            Default: "--dangerously-skip-permissions"
-#                            (required for unattended runs — tool calls would
-#                            otherwise hang on permission prompts. Only use in
-#                            a trusted repository, ideally in a container/VM.)
-#
-# Prerequisites:
-#   - In-progress work in .claude/memory/context.md (set up via /unsupervised on, then start task)
-#   - claude CLI available in PATH
-
+# Usage:  ./scripts/claude-loop.sh [reset_wait_minutes] [max_sessions]   (defaults: 60, 20)
+# Env:    CLAUDE_LOOP_PERMISSIONS  (default: --dangerously-skip-permissions; trusted repos only)
 set -euo pipefail
 
 RESET_MINUTES=${1:-60}
 MAX_SESSIONS=${2:-20}
-SESSION_TIMEOUT="2h"   # kill a session that hangs
-LOG_FILE=".claude/memory/unsupervised.log"
-AUTO_MARKER=".claude/memory/auto-start.marker"
-LOOP_MARKER=".claude/memory/loop-mode.marker"
-PERMISSION_FLAGS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
+LOG=".claude/memory/unsupervised.log"
+PERMS=${CLAUDE_LOOP_PERMISSIONS:-"--dangerously-skip-permissions"}
+mkdir -p .claude/memory
 
-# Remove markers on exit: the loop marker so in-session --wait logic applies to
-# manual sessions, and the auto-start marker so an interrupted loop doesn't make
-# the next manual session force an unrequested /resume
-trap 'rm -f "$LOOP_MARKER" "$AUTO_MARKER"' EXIT
+branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g' || true)
+CTX=".claude/memory/context-${branch}.md"
 
-# Determine branch-scoped context file (written by skills; falls back to legacy context.md)
-_branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g')
-if [ -n "$_branch" ] && [ -f ".claude/memory/context-${_branch}.md" ]; then
-  CONTEXT_FILE=".claude/memory/context-${_branch}.md"
-elif [ -f ".claude/memory/context.md" ]; then
-  CONTEXT_FILE=".claude/memory/context.md"
-else
-  CONTEXT_FILE=".claude/memory/context.md"   # preflight will catch the missing file
-fi
-
-RESUME_PROMPT="Unsupervised mode: continue the in-progress work recorded in ${CONTEXT_FILE}. Follow the /resume skill: read the checkpoint, verify the git state, and continue from next_step. Do not ask questions; apply autonomous defaults. If blocked, write a '## Blocked' section to the context file and stop. When everything is complete, clear the '## In Progress' section."
-
-log() {
-  local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-  echo "$msg"
-  echo "$msg" >> "$LOG_FILE"
+in_progress() {
+  # in-progress spec anywhere, or a ## Ship orchestration note
+  grep -rlq "^status:[[:space:]]*in-progress" docs/specs/ 2>/dev/null && return 0
+  [ -f "$CTX" ] && grep -q "^## Ship" "$CTX" 2>/dev/null && return 0
+  return 1
 }
 
-has_in_progress() {
-  grep -q "^## In Progress" "$CONTEXT_FILE" 2>/dev/null
-}
-
-has_blocked() {
-  grep -q "^## Blocked" "$CONTEXT_FILE" 2>/dev/null
-}
-
-# ── Preflight ──────────────────────────────────────────────────────────────────
-
-if ! command -v claude &>/dev/null; then
-  echo "Error: 'claude' CLI not found in PATH." >&2
-  exit 1
-fi
-
-# timeout(1) is GNU coreutils — absent on stock macOS. Without this check every
-# session would instantly exit 127 and the loop would spin uselessly for hours.
-if command -v timeout &>/dev/null; then
-  run_session() { timeout "$SESSION_TIMEOUT" claude -p "$RESUME_PROMPT" $PERMISSION_FLAGS; }
-else
-  echo "Warning: 'timeout' not found — sessions run without the ${SESSION_TIMEOUT} hang killer." >&2
-  run_session() { claude -p "$RESUME_PROMPT" $PERMISSION_FLAGS; }
-fi
-
-if [ ! -f "$CONTEXT_FILE" ]; then
-  echo "Error: $CONTEXT_FILE not found. Run /unsupervised on and start a task first." >&2
-  exit 1
-fi
-
-if ! has_in_progress; then
-  echo "No in-progress work found in $CONTEXT_FILE. Nothing to do." >&2
-  exit 0
-fi
-
-mkdir -p ".claude/memory"
-log "Unsupervised loop started. Reset: ${RESET_MINUTES}min, max sessions: ${MAX_SESSIONS}."
-log "Permissions: $PERMISSION_FLAGS"
-log "Log: $LOG_FILE"
-echo ""
-
-# ── Main loop ─────────────────────────────────────────────────────────────────
-
-SESSION=0
-while [ $SESSION -lt $MAX_SESSIONS ]; do
-  SESSION=$((SESSION + 1))
-
-  # Respect the usage threshold before starting a session
-  if [ -x ".claude/hooks/usage-guard.sh" ] || [ -f ".claude/hooks/usage-guard.sh" ]; then
-    while true; do
-      GUARD_OUT=$(bash .claude/hooks/usage-guard.sh --wait 2>/dev/null || true)
-      echo "$GUARD_OUT" | grep -q "RESUME_OK" && break
-      log "Usage threshold active — waiting. ($GUARD_OUT)"
-      sleep 120
-    done
+for i in $(seq 1 "$MAX_SESSIONS"); do
+  if [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; then
+    echo "$(date -u +%FT%TZ) blocked — stopping. See $CTX" | tee -a "$LOG"; exit 0
   fi
-
-  log "Session $SESSION / $MAX_SESSIONS starting..."
-
-  # Signal to session-start.sh that this is an auto-started session → force /resume
-  # Loop marker stays for the session duration so the usage threshold handler knows to stop
-  # cleanly (instead of waiting in-session) — the loop will restart with a fresh context window.
-  touch "$AUTO_MARKER"
-  touch "$LOOP_MARKER"
-
-  # Headless run (-p): claude executes one autonomous session and exits.
-  # Each session starts FRESH on purpose — all needed state lives in the
-  # checkpoint (.claude/memory/context.md), which the SessionStart hook
-  # injects. Fresh sessions are deterministic, work on the first run, and
-  # don't re-load a huge prior conversation right after a rate limit.
-  EXIT=0
-  run_session 2>&1 | tee -a "$LOG_FILE" || EXIT=$?
-
-  # ── Evaluate outcome ────────────────────────────────────────────────────────
-
-  if has_blocked; then
-    log "BLOCKED — human input required. Stopping loop."
-    echo ""
-    echo "══════════════════════════════════════"
-    echo "  BLOCKED — action required:"
-    grep -A 10 "^## Blocked" "$CONTEXT_FILE" || true
-    echo "══════════════════════════════════════"
-    exit 2
+  if ! in_progress; then
+    echo "$(date -u +%FT%TZ) no in-progress work — done." | tee -a "$LOG"; exit 0
   fi
-
-  if ! has_in_progress; then
-    log "All tasks complete. Unsupervised loop finished."
-    echo ""
-    echo "══════════════════════════════════════"
-    echo "  DONE — no in-progress work remains."
-    echo "══════════════════════════════════════"
-    exit 0
-  fi
-
-  # Still in progress — session ended due to rate limit, error, or timeout
-  if [ $EXIT -eq 124 ]; then
-    log "Session timed out (>${SESSION_TIMEOUT}). Restarting immediately."
-  else
-    log "Session ended (exit $EXIT). Waiting ${RESET_MINUTES}min for rate limit reset..."
-    sleep $((RESET_MINUTES * 60))
-    log "Reset wait complete."
+  echo "$(date -u +%FT%TZ) session $i/$MAX_SESSIONS: resuming" | tee -a "$LOG"
+  # SessionStart hook sees unsupervised:true + in-progress work → auto-resume.
+  timeout 2h claude $PERMS -p "/resume" >>"$LOG" 2>&1 || true
+  # If we exited but work remains, the session likely hit the rate limit — wait for reset.
+  if in_progress; then
+    echo "$(date -u +%FT%TZ) work remains — waiting ${RESET_MINUTES}m for reset" | tee -a "$LOG"
+    sleep $(( RESET_MINUTES * 60 ))
   fi
 done
-
-log "Max sessions ($MAX_SESSIONS) reached without completing the task."
-echo ""
-echo "Max retries reached. Check $CONTEXT_FILE for current status."
-exit 1
+echo "$(date -u +%FT%TZ) reached max sessions ($MAX_SESSIONS)." | tee -a "$LOG"
