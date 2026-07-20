@@ -210,17 +210,22 @@ deployable build artifact + integration/e2e are NOT run here — they're deferre
 1. **`runner`:** format + lint + compile + **all automated tests** (now including integration/e2e
    + the deployable build).
 2. **Review** — self-review (default) or `reviewer` agent (best/high, critical only); Claude's judgment.
-3. **Manual smoke test — new features only.** Main session writes explicit **UI/CLI-level test
-   instructions** (steps + expected observable result per step, derived from the acceptance
-   criteria) → hands to the **`smoke-tester` (Haiku/high)**, which drives the app on a **local/test
-   instance** (browser/CLI, test data, step budget), captures a screenshot/output per step, and
-   reports observed-vs-expected. Main session judges the match (cheap: short results vs criteria).
-   - **Dual signal:** if the agent can't follow clear steps, that flags a likely **usability**
-     problem (novice would struggle too). Caveat: a failure can also be an agent limitation on a
-     usable app — so "investigate the screenshots," not an automatic fail.
+3. **Manual smoke test — new features only.** Main session writes the **fewest UI/CLI-level steps
+   that meaningfully validate the new feature** (each step: action + **expected observable
+   result**), from the acceptance criteria — *as few as possible, as many as needed*; breadth is
+   the automated tests' job, not this. Hands them to the **`smoke-tester` (Haiku/high)**, which
+   drives the app on a **local/test instance** (browser/CLI, test data, step budget) and **reports
+   only the steps that FAIL** — expected vs observed + a screenshot — staying silent on passes
+   (keeps the report and the main context small). Main session acts on the reported failures.
+   - **Never prod.** Run locally if at all possible. If the app genuinely can't run locally (needs
+     cloud services/hardware), do NOT skip — agree a **project-specific strategy with the user** (a
+     debug/staging deployment or preview env), decided per project and documented (`deploy.md`).
+   - **Dual signal:** if the agent can't complete clear steps, that flags a likely **usability**
+     problem (a novice would struggle too) — though a failure can also be an agent limitation on a
+     usable app, so the per-failure screenshot lets the main session tell them apart.
    - **Regression rule:** any bug found → fix → **add an automated test** so it can't recur.
-   - This is the criteria↔tests↔behavior check: each acceptance criterion is demonstrated by a
-     passing automated test *or* a smoke step; a criterion with neither is flagged.
+   - Criteria↔tests↔behavior: each acceptance criterion is demonstrated by a passing automated
+     test *or* a smoke step; a criterion with neither is flagged.
 
 **PR — branch done.** Re-run **all automated tests**. **Skip when HEAD is unchanged since the last
 green full run** (e.g. a single-ticket branch whose feature-done run already covered this exact
