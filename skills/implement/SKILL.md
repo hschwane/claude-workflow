@@ -1,12 +1,12 @@
 ---
 name: implement
-description: Implement a ready spec — tests first in an isolated subagent, then code per subtask with a commit after each
+description: Implement a ready spec — write tests and code per subtask, fast-gate + commit each, then run /verify at feature-done
 argument-hint: "FEAT-001 | BUG-042 | <github-issue-number>"
 ---
 
 # Implement
 
-Implements a ready spec using a two-phase sequential approach: first write failing tests in an isolated context (no access to impl code), then implement to make them pass. Commits after every subtask and saves progress checkpoints for resumability.
+Implements a ready spec subtask by subtask: write the code and its tests together, run the fast gate, commit (green commits only), tick the spec checkbox. When all subtasks are done, run `/verify`. State lives in the repo (branch + spec checkboxes + git log) — no separate checkpoint bookkeeping.
 
 ## Usage
 ```
@@ -17,169 +17,65 @@ Implements a ready spec using a two-phase sequential approach: first write faili
 
 ## Instructions
 
-### 0. Pre-flight: Check DoR
-Find the spec file:
-- By ID: search `docs/specs/ready/` for a file matching the ID
-- By GitHub issue: `gh issue view {number}` to find linked spec
-- If found in `backlog/` (not `ready/`): print "This spec is not ready. Run /refine FEAT-001 first." and stop.
+### 0. Pre-flight
+Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` for its linked spec. If it's still in `docs/specs/backlog/`, print "Not planned yet — run /plan {id} first" and stop.
 
-Read the spec file. Verify the Definition of Ready checklist:
-- [ ] User Story is clear
-- [ ] Acceptance criteria are testable (no vague terms like "should work")
-- [ ] Interface definitions are present and complete
-- [ ] All subtasks are listed
-- [ ] No open questions remain
-- [ ] RE sign-off ✓ and TP sign-off ✓
+Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing.
 
-If DoR is not met: list what's missing and stop. Suggest `/refine {id}`.
-
-### 0.5 Apply Routing
-
-Read the spec's `routing:` block and invoke the route skill named by `routing.implementation` (e.g. `route-sonnet-medium`) — it sets model + effort for the rest of this turn and records the tier in the checkpoint. If the block is missing or empty (older spec), invoke `route-sonnet-medium` and note it.
-
-**Re-arm rule:** the tier reverts on every new turn. At the start of ANY later turn that continues this ticket (scheduled wakeup, return from a CI wait, `/resume`), re-invoke the route skill from the checkpoint's `tier:` line before doing work.
-
-### 1. Set Up Branch
-Check current branch. If not on a feature branch for this spec, branch from the integration branch (`develop` if it exists — git flow; otherwise `main`/`master`):
+### 1. Branch
+If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else `main`/`master`):
 ```
-git checkout {develop|main}
-git pull
+git checkout {develop|main} && git pull
 git checkout -b feature/{lowercase-id}-{kebab-title}
 ```
-Example: `feature/feat-001-oauth-login`
+Set the spec frontmatter `status: in-progress`. If `github_issue` is set and `.claude/memory/decisions.md` does not say `GitHub integration: no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
 
-Update spec frontmatter: `status: ready` → `status: in-progress`. File stays in `docs/specs/ready/`.
+Multiple sessions may run on different branches concurrently — that's fine; each owns its branch.
 
-If the spec has `github_issue` set and `.claude/memory/decisions.md` does NOT contain `GitHub integration: no`:
-- `gh issue edit {github_issue} --remove-label ready --add-label in-progress`
-- `gh issue comment {github_issue} --body "🔧 Implementation started on branch \`{branch}\`."`
+### 2. Implement each subtask (in order)
 
-### 2. Save Initial Checkpoint
-Determine the context file path: run `git branch --show-current | sed 's|/|-|g'` to get `{branch}`, then write to `.claude/memory/context-{branch}.md` (keep it minimal — subtask progress lives in the spec file's checkboxes, not here):
-```markdown
-## In Progress
-task: {SPEC_ID} - {title}
-phase: implement
-branch: {branch}
-spec_file: {spec_path}
-tier: {routing.implementation — kept current by the route skills; /resume re-arms from this line}
-last_completed: "Started implementation"
-next_step: "Phase 1: Write failing tests"
-saved_at: {timestamp}
-```
+For each subtask:
 
-### 3. PHASE 1 — Test Writer (isolated subagent)
+**a) Write the code** to the spec's interface definitions (the contract — don't change them) and the project conventions (`src/CLAUDE.md` if present, else root `CLAUDE.md`; mirror existing patterns).
 
-**Record before dispatch:** add a `subagents:` entry to the checkpoint (`agent: test-writer`, `for: "Phase 1 tests"`, `output:` the test file/dir it will write, `status: dispatched`) before invoking it. If the turn is interrupted here, `/resume` step 4a checks that output: absent or partial → restart the test-writer; complete but uncommitted → verify and commit. Clear the entry (or mark `done`) once the tests are committed in this step.
+**b) Write its tests** — in the main session, scoped to *this* subtask's acceptance criteria. Test the **important behaviors**, not coverage for its own sake (see `docs/workflow/quality.md` for the project's test scope). Tests assert behavior, not implementation details.
 
-Invoke the `test-writer` subagent, passing the spec's `routing.test_writing` model as the per-invocation `model` parameter (its effort is pinned `medium`). Pass it ONLY:
-- The spec's **Acceptance Criteria** section
-- The spec's **Interface Definitions** section
-- The spec's **Subtasks** list (for the gap check in Step 3 of the test-writer)
-- 1-2 representative existing test files (for framework/style reference only — NOT for copying implementations)
-- The project's test runner / tech stack from CLAUDE.md
-- `TESTING_SCOPE`: read the "Konfigurierter Scope:" line from `docs/workflow/quality.md`, or the `Testing:` field from `.claude/memory/decisions.md`
+**c) Fast gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + the new & adjacent unit tests). It digests output so raw logs stay out of this context. Fix anything red before committing — **never commit on a red gate.**
 
-**Do NOT provide the subagent with any existing implementation code or the full codebase.** The isolation is the point: tests must encode the spec, not the implementation.
-
-The agent will write a complete test suite covering every acceptance criterion and place the tests in the correct location.
-
-After the subagent writes the tests:
-- Verify the test files are syntactically valid (run type-check if applicable)
-- Run the tests — they should FAIL (that's correct — there's no implementation yet)
-  - If any tests PASS: warn the user that those might be testing existing code, not the new spec
-- Commit the new test files: `git add -A && git commit -m "test({scope}): add tests for {title}"`
-
-Update checkpoint: `last_completed: "Phase 1 complete — tests written and committed"`
-
-### 4. PHASE 2 — Implement (main context, sequential)
-
-Now implement each subtask in order. For each subtask:
-
-**a) Read the subtask** from the spec. Understand what it requires.
-
-**b) Implement** — write the code for this subtask. Follow:
-- The interface definitions from the spec (these are the contract, don't change them)
-- Project conventions from `src/CLAUDE.md` if it exists, otherwise from root `CLAUDE.md`
-- Existing patterns in the codebase (check similar modules)
-
-**c) Run ONLY this subtask's tests:**
-- Identify which test cases correspond to this subtask (by acceptance criterion reference)
-- Run them: the relevant test file/suite
-
-If tests fail: fix the implementation. Do not proceed to the next subtask until these tests pass.
-
-**d) Commit and push the subtask:**
+**d) Commit** (green only) and push:
 ```
 git add -A
-git commit -m "{type}({scope}): {subtask description}"
+git commit -m "{feat|fix}({scope}): {subtask description}  [skip ci]"
 git push -u origin {branch}
 ```
-Use `feat` for features, `fix` for bugs. Pushing the feature branch after every commit is fine and serves as a backup — the quality gate (CI + reviews) happens when merging via `/pr`, not on push.
+Append `[skip ci]` **unless** the project's `ci-on-claude` decision is `yes` (libraries) — then omit it so CI runs on the push. (When GitHub integration is off, the marker is harmless.) Pushing per subtask is a cheap backup; the gate already ran locally.
 
-**e) Update progress** (two small edits, ~50 tokens total):
-1. Tick the subtask's checkbox in the spec file (`- [ ] #N:` → `- [x] #N:`) — **the spec is the single source of truth for remaining work**
-2. Update only the changed lines in the branch context file (`.claude/memory/context-{branch}.md`): `last_completed`, `next_step`, `saved_at`
+**e) Tick the box** — `- [ ] #N` → `- [x] #N` in the spec. The spec's checkboxes + git log ARE the progress record; `/resume` reconstructs from them. Don't maintain a separate checkpoint.
 
-This ensures `/resume` can pick up from exactly the right subtask (it derives remaining work from the spec's unchecked boxes).
+**If you get genuinely stuck** (same failure twice, or an architecture/security call): `/consult` before grinding. If it needs a human, write `## Blocked` to `.claude/memory/context-{branch}.md` (reason + what's required) and stop.
 
-**Adaptive routing during implementation** — the essentials are below (the project CLAUDE.md may carry the full Adaptive Routing Policy, but this skill is self-contained; follow these rules even if that section is absent):
+### 3. Feature done → verify
 
-- **Escalate — medium threshold.** Not at first friction and never on gut feeling, but on clear signals: the same subtask failed twice with the same class of error, the TP plan demonstrably doesn't fit reality, or the work turns out architecture-/security-relevant beyond the spec. Then: **first invoke `/consult`** with the concrete question — the advisor usually unblocks on the top tier and steps back down. Only if the *remaining execution itself* needs more capability: invoke the route skill one notch up (sonnet-medium → sonnet-high → opus-medium → opus-high; ceiling `best-medium`) and record `actual: {tier} — escalated: {reason}` in the spec's routing block.
-- **De-escalate — high threshold.** Only at a subtask boundary, only when the remaining work is clearly mechanical (plan fully made, repetitive application), one notch down, floor `sonnet-medium`.
-- Announce every switch in one line with its reason. At most ~2 unplanned switches per turn, and only at phase boundaries — model switches invalidate the prompt cache.
+When every subtask box is ticked, run **`/verify`** (full gate + review + manual smoke for new features — see that skill). Fix anything it surfaces (and per the QA rule, turn any smoke-found bug into an automated test). Re-run `/verify` until clean.
 
-**Context hygiene:** delegate bulky reading and test runs to subagents (`code-explorer`, `test-runner`) instead of pulling raw output into this context; don't re-read large files already processed; keep the checkpoint and spec checkboxes current after every subtask so automatic context compaction never loses state.
+### 4. Documentation (minimal, per policy)
 
-### 5. Final Verification
-After all subtasks are complete:
+Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
+- **Technical:** keep `docs/dev/architecture.md` / ADRs accurate if structure, algorithms, APIs, or the data model changed. A pure bug fix usually needs nothing — but check.
+- **User docs (`docs/user/`):** only if user-facing behavior changed (new/changed command, endpoint, UI, config). Prefer self-explanatory UI + in-app hints over prose.
+- **Doc-comments:** only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions.
 
-**a) Run ALL tests** (not just the ones for this spec): invoke the `test-runner` subagent to run the full suite — it returns a condensed failure report instead of flooding the main context with test output.
-If any tests fail: fix based on the report (read the failing test files directly if needed), then re-run via `test-runner` until green.
+Commit with `[skip ci]` per the same rule as 2d.
 
-**b) Run linter:**
-- TypeScript: `npx eslint . && npx tsc --noEmit`
-- Python: `ruff check . && mypy .`
-- Rust: `cargo clippy && cargo fmt --check`
-- C++: `cmake --build build && clang-tidy ...`
+### 5. Complete
+- Spec frontmatter `status: done`; `git mv docs/specs/ready/{file} docs/specs/completed/{file}`.
+- If `github_issue` set and integration is on: comment "✅ implemented on `{branch}`".
+- Commit (`docs(specs): complete {id}  [skip ci]`).
+- If a `## Blocked`/`## In Progress` note was written for this branch, clear it.
 
-Fix any issues and commit: `git add -A && git commit -m "fix({scope}): address linter findings"`
-
-### 6. Update Documentation
-Decide the docs scope first:
-- **Technical docs — always in scope**: `docs/dev/architecture.md`, ADRs, API/interface docs. Every implementation must leave the technical docs accurate (for a pure bug fix the agent may conclude nothing needs changing, but it must check).
-- **User docs (`docs/user/`) — only when user-facing behavior changed**: new or changed CLI commands, endpoints, UI, configuration options, or visible behavior. For internal refactors and invisible bug fixes, leave user docs out of scope entirely — don't pass them as input.
-
-Invoke the `documentation-writer` subagent with:
-- The spec (acceptance criteria + interface definitions)
-- The implemented interfaces (read the actual source files)
-- Current state of in-scope docs only (`docs/dev/architecture.md` always; `docs/user/` only if user-facing)
-
-The agent edits the documentation files itself. Review its changes with `git diff` and adjust if needed.
-
-Commit: `git add docs/ && git commit -m "docs({scope}): update docs for {title}"`
-
-### 7. Complete
-
-Move the spec to completed:
-- Update frontmatter: `status: in-progress` → `status: done`
-- `git mv docs/specs/ready/{filename} docs/specs/completed/{filename}`
-- If `github_issue` is set and decisions.md does NOT contain `GitHub integration: no`:
-  - `gh issue comment {github_issue} --body "✅ Implementation complete on branch \`{branch}\`. PR incoming."`
-- `git add docs/specs/ && git commit -m "docs(specs): complete {id}"`
-
-Clear `## In Progress` from the branch context file (`.claude/memory/context-{branch}.md`).
-
-Invoke `route-sonnet-medium` — implementation is done; whatever follows in this turn (opening the PR, waiting on CI, orchestration) must not keep running on the implementation tier.
-
-Report:
+Merging is a separate step — the caller (`/ship`) or the user handles it per the **Merge policy** (local git, no formal PR by default). Report:
 ```
-Implementation complete ✓
-Spec: {id} — {title}
-Commits: {N} subtasks + 1 test + 1 docs
-Branch: {branch}
-All tests: pass
-Linter: clean
-
-Next: /pr   to create a pull request
+Implemented ✓  {id} — {title}
+Branch: {branch}   Subtasks: {N}   Gate: green   Verify: clean
+Next: merge to {integration branch} (local, per Merge policy) — or /ship continues.
 ```

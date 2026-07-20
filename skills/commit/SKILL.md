@@ -35,24 +35,14 @@ If this outputs **nothing** — every changed file is under `docs/specs/` — ta
 
 **Only use this path if you are 100% certain every changed file is under `docs/specs/`.** If there is any doubt, run the full quality gates.
 
-### 2. Quality Gates (run in order, stop on failure)
+### 2. Quality Gate — the canonical entrypoint
+Run the project's **canonical fast gate** via the `runner` agent: `scripts/ci.sh fast` (format + lint + typecheck/compile + affected unit tests). This is the *same* command CI would run, so "passes locally" means "would pass in CI" — no drift. The runner digests output.
 
-**a) Linter** — detect language from staged files and run:
-- TypeScript/JS: `npx eslint --fix {files}` then `npx prettier --write {files}`
-- Python: `ruff check --fix {files}` then `ruff format {files}`
-- Rust: `cargo fmt`
-- C++: `clang-format -i {files}`
-- Shell: `shfmt -w {files}`
+- If it's red: fix and re-run. **Do NOT commit on a red gate.**
+- If `scripts/ci.sh` doesn't exist yet (older project): fall back to detecting and running the language's format+lint+typecheck directly, and note that the project should add a canonical entrypoint (`/project-onboard` or `/workflow-update` installs one).
+- If a tool is genuinely missing (not installed): the runner reports it; skip that check with a visible warning, never silently. A missing tool is an environment gap, not broken code.
 
-**b) Type-check** (if applicable):
-- TypeScript: `npx tsc --noEmit`
-- Python: `mypy {changed-files}`
-
-If any gate fails and auto-fix was not possible: report the errors and stop. Do NOT commit broken code.
-
-**If a gate's tool is not available** (e.g. `npx eslint` fails because node_modules is not installed, or `ruff`/`mypy` is missing): skip that gate, print a clear warning ("⚠ eslint not available — lint gate skipped"), and continue with the commit. A missing tool is an environment gap, not broken code — but it must be visible, never silent.
-
-After auto-fixes (eslint --fix, prettier, ruff format, etc.): re-stage the modified files with `git add` so the fixes are included in the commit.
+Re-stage any files the gate auto-fixed (`git add`) so the fixes are in the commit.
 
 ### 3. Generate Commit Message
 If no manual message was provided, analyze the staged diff and generate a conventional commit message:
@@ -75,13 +65,15 @@ Rules:
 - max 72 characters on first line
 - If multiple concerns: pick the primary one. If truly mixed, suggest splitting.
 
-### 4. Execute Commit
+### 4. Execute Commit — with the CI-skip marker
+Append `[skip ci]` to the message **unless** the project's `ci-on-claude` decision is `yes` (read `docs/workflow/decisions.md` / `.claude/memory/decisions.md`) — then omit it so CI runs on Claude's push. This is how Claude's own commits avoid spending Actions minutes (Claude already ran the identical `ci.sh`); human commits, which carry no marker, still trigger CI. When GitHub integration is off, the marker is harmless.
 ```
-git commit -m "{generated-message}"
+git commit -m "{message}  [skip ci]"      # omit the marker when ci-on-claude: yes
 ```
+(A spec-only commit from step 1b uses `docs(specs): …  [skip ci]` and needs no gate.)
 
-### 5. Push (feature branches)
-If on a feature/fix/chore branch: push it (`git push -u origin {branch}`). Pushing work branches after every commit is allowed and encouraged (backup, visibility) — the quality gate applies when merging via `/pr`. Never push directly to `develop`, `main`, or `master` — **exceptions**: `/release` performs the release merge, the spec-only fast path (step 1b) allows pushing spec-only commits to any branch, and `/pr` step 10b allows committing a trivial post-merge CI hotfix directly to the base branch.
+### 5. Push
+Feature/fix branches: push (`git push -u origin {branch}`) — cheap backup, the gate already ran. Direct commits to `develop`/`main`/`master` are fine for spec-only changes and for local merges per the **Merge policy** (`/ship` and `/release` do this); otherwise work on a branch.
 
 ### 6. Report
-Print the commit hash and message. Suggest next step if obvious (e.g., "Next: /pr to create a pull request").
+Print the commit hash and message.
