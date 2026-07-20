@@ -50,8 +50,12 @@ and not fail on hard tasks.
 - **Remove:** 6× `route-*`, `prioritize`, `brainstorm` (→ inline ship behavior),
   and probably `workflow-decisions` (few settings left; fold into README).
 
-**Agents: 12 → 4**
+**Agents: 12 → 5**
 - `code-explorer` (Haiku) — bulk read → digest.
+- `smoke-tester` (Haiku/high) — drives the app from explicit prose test instructions
+  (browser/CLI), captures a screenshot/output per step, reports observed-vs-expected. No
+  decisions — executes + reports; main session judges the match. Used only at feature-done for
+  new features (see QA flow).
 - `runner` (Haiku/medium) — **was `test-runner`, generalized.** Executes a **predefined project
   entrypoint** and reports pass/fail + key output lines: `scripts/ci.sh` for the quality gate
   (lint/typecheck/format/tests/build), `scripts/release.sh` for a scripted release/deploy
@@ -66,10 +70,9 @@ and not fail on hard tasks.
 - **Remove:** `test-writer`, `requirements-engineer`, `tech-planner`, `documentation-writer`,
   `product-owner`, `workflow-coach`. Their functions move inline (session model).
 
-**Verification:** local quality gate (`/commit`) is the immediate safety net. A dedicated
-`/verify` skill (run scoped tests + a minimal real-run smoke check, report observed behavior)
-is **parked pending proper design** — see "Parked". Interim: `implement`/`ship` run the scoped
-test suite locally + a light smoke check inline until `/verify` is designed.
+**Verification:** a layered QA funnel — per-subtask fast gate (`runner`), full automated tests +
+review + a Haiku-driven manual smoke test at feature-done (`/verify`), re-run at PR/release with a
+no-change skip. Every smoke-found bug becomes an automated test. Full design in "QA / Verify Flow".
 
 **Retired concepts:** tiers/routing, per-ticket flows (4-tier triage), 3-reviewer gate,
 mandatory TDD isolation agent, prioritize/brainstorm as skills.
@@ -101,7 +104,7 @@ work, no CI polling waits, ~half the instruction text loaded.
   `pr` (conditional single review, CI decoupled per Parked). Remove `prioritize`; de-skill
   `brainstorm`; slim `draft`.
 - **P4 — `/ship` orchestrator.** Input-adaptive (specs | topic | both) → batch all questions
-  up front → autonomous plan→implement→test→review→docs→(interim verify)→release→report, with
+  up front → autonomous plan→implement→test→review→smoke→docs→release→report, with
   out-of-scope deferrals surfaced in the report.
 - **P5 — Docs model + context trim.** Inline minimal doc-comments policy; one concise
   maintained architecture doc (updated in a light end-of-ship pass + during `implement` when
@@ -112,7 +115,7 @@ work, no CI polling waits, ~half the instruction text loaded.
 - **P6 — Delivery.** Update project-init/onboard/workflow-update to install/reconcile the
   leaner set (remove deleted skills/agents on update). Version bump + migration note.
 
-(`/verify` is no longer a build phase — moved to Parked for proper design.)
+(`/verify` = the "feature done" QA step, designed in "QA / Verify Flow".)
 
 ## CI Usage Concept (designed)
 
@@ -192,13 +195,50 @@ call the same entrypoint.
 + P3 (commit/implement call it); no-wait PR + monitored release → P3/P4; toggle → P6
 (workflow-decisions). Not a standalone phase.
 
-## Parked (need proper design before building)
+## QA / Verify Flow (designed)
 
-- **`/verify` skill.** Design how it exercises a change: automated scoped tests first
-  (primary proof — cheaper than manual clicking), then a *minimal* real-run smoke check
-  (one CLI call / endpoint hit / single UI path via the pre-installed browser), and how it
-  reports observed behavior + decides what to exercise per ticket. Until then, `implement`
-  and `ship` do the interim inline verification (run tests + light smoke).
+Layered funnel, cheap→expensive. Automated tests carry the breadth; the manual smoke test is a
+*discovery* tool run once per new feature, and everything it finds gets codified into automated
+tests — so the manual surface shrinks over time.
+
+**Per subtask — fast gate (`runner`, Haiku).** format + lint + compile/typecheck + the new &
+adjacent unit tests. The agent digests output so it never floods the main context. Keeps every
+commit green (load-bearing for autonomous `/resume` — never build on a broken checkpoint). The
+deployable build artifact + integration/e2e are NOT run here — they're deferred to feature-done.
+
+**Feature done — full verification** (the `/verify` step; end of `/implement`, per ticket in `/ship`):
+1. **`runner`:** format + lint + compile + **all automated tests** (now including integration/e2e
+   + the deployable build).
+2. **Review** — self-review (default) or `reviewer` agent (best/high, critical only); Claude's judgment.
+3. **Manual smoke test — new features only.** Main session writes explicit **UI/CLI-level test
+   instructions** (steps + expected observable result per step, derived from the acceptance
+   criteria) → hands to the **`smoke-tester` (Haiku/high)**, which drives the app on a **local/test
+   instance** (browser/CLI, test data, step budget), captures a screenshot/output per step, and
+   reports observed-vs-expected. Main session judges the match (cheap: short results vs criteria).
+   - **Dual signal:** if the agent can't follow clear steps, that flags a likely **usability**
+     problem (novice would struggle too). Caveat: a failure can also be an agent limitation on a
+     usable app — so "investigate the screenshots," not an automatic fail.
+   - **Regression rule:** any bug found → fix → **add an automated test** so it can't recur.
+   - This is the criteria↔tests↔behavior check: each acceptance criterion is demonstrated by a
+     passing automated test *or* a smoke step; a criterion with neither is flagged.
+
+**PR — branch done.** Re-run **all automated tests**. **Skip when HEAD is unchanged since the last
+green full run** (e.g. a single-ticket branch whose feature-done run already covered this exact
+commit). Many tickets on one branch (main-only model) is fine — the boundary is "branch done". No
+manual smoke here.
+
+**Release — develop+release branch model.** Re-run **all automated tests** on the release
+promotion. **No manual smoke** unless the user explicitly requests it — smoke is a new-feature
+check, not a release gate.
+
+**Skip principle (no redundant runs):** the full automated suite runs at each boundary
+(feature-done, PR, release) but is skipped whenever HEAD hasn't changed since the last green full
+run. Cheap per-subtask fast-gate always runs.
+
+## Parked
+
+- Nothing — CI usage and the QA/verify flow are both designed. (`/verify` is the "feature done"
+  step above; no separate parked design remains.)
 
 ## Resolved sub-questions
 
