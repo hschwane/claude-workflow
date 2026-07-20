@@ -12,8 +12,8 @@ and not fail on hard tasks.
    - **Haiku subagents** for high-IO / low-judgment work (bulk reading, running tests,
      mechanical scaffolding).
 2. **CI — DESIGNED** (see "CI Usage Concept"). CI defines the canonical checks; Claude runs the
-   *same* checks locally. GitHub Actions runs only on manual/human commits and releases — skipped
-   on Claude's commits (detected by the `Claude-Session:` trailer) unless `ci-on-claude` is set
+   *same* checks locally. GitHub Actions runs only on manual/human commits and releases — Claude's
+   commits carry a native `[skip ci]` marker (appended by `/commit`) unless `ci-on-claude` is on
    (recommended for libraries). No non-blocking CI. Claude's normal work = 0 Actions minutes.
 3. **Review.** **Claude decides per ticket**: either a **self-review** (adopting a reviewer's
    perspective in the main context) or spawn the **independent `reviewer` agent (best model,
@@ -42,20 +42,28 @@ and not fail on hard tasks.
 
 ## Target architecture (much simpler)
 
-**Skills: ~22 → ~11**
+**Skills: 22 → ~15**
 - Keep/rewrite: `project-init`, `project-onboard`, `draft` (slim), `plan` (was `refine`,
-  light), `implement` (inline tests + verify), `verify` (new), `commit`, `pr` (lean),
-  `release`, `ship` (orchestrator), `resume` (slim).
-- Utilities: `unsupervised`, `consult`, `workflow-update`.
-- **Remove:** 6× `route-*`, `prioritize`, `brainstorm` (→ inline ship behavior),
-  and probably `workflow-decisions` (few settings left; fold into README).
+  light), `implement` (inline test-writing; invokes `/verify` at feature-done), `verify`
+  (new — the "feature done" QA step: full gate + review + smoke; standalone user-invocable,
+  called by `implement`/`ship`), `commit`, `pr` (lean), `release`, `ship` (orchestrator),
+  `resume` (slim).
+- Utilities: `unsupervised`, `consult`, `workflow-update`, `workflow-decisions` (kept — see
+  settings list).
+- **Remove:** 6× `route-*`, `prioritize`, `brainstorm` (→ inline ship behavior).
 
 **Agents: 12 → 5**
 - `code-explorer` (Haiku) — bulk read → digest.
 - `smoke-tester` (Haiku/high) — drives the app from explicit prose test instructions
-  (browser/CLI), captures a screenshot/output per step, reports observed-vs-expected. No
-  decisions — executes + reports; main session judges the match. Used only at feature-done for
-  new features (see QA flow).
+  (browser/CLI), captures a screenshot/output per step, reports **failures only**. No
+  decisions — executes + reports; main session judges. Used only at feature-done for new
+  features (see QA flow). *Validated:* Haiku 4.5 supports computer use and outperforms
+  Sonnet 4 on computer-use evals; scripted, verifiable browser steps are exactly its sweet
+  spot ([Anthropic docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool),
+  [analysis](https://caylent.com/blog/claude-haiku-4-5-deep-dive-cost-capabilities-and-the-multi-agent-opportunity)).
+  Env note: browser driving needs Playwright/Chromium (pre-installed in cloud sessions; local
+  sessions may need `npx playwright install chromium`) — fall back to CLI/API-level smoke when
+  no browser is available.
 - `runner` (Haiku/medium) — **was `test-runner`, generalized.** Executes a **predefined project
   entrypoint** and reports pass/fail + key output lines: `scripts/ci.sh` for the quality gate
   (lint/typecheck/format/tests/build), `scripts/release.sh` for a scripted release/deploy
@@ -86,23 +94,27 @@ mandatory TDD isolation agent, prioritize/brainstorm as skills.
 | Wall-clock | −50…−70% | −30…−50% |
 | Tokens/$ | −60…−75% | −35…−55% |
 | Quality | ~flat (evidence replaces ceremony) | slight risk on very large diffs → mitigated by conditional reviewer + `/verify` + `/consult` |
-| Simplicity | half the skills, a third of the agents, one model | same |
+| Simplicity | 22→15 skills, 12→5 agents, one model | same |
 
-Drivers: no cache-invalidating model switches (~14/ticket → 0), spawns 5–7 → 0–1 for small
-work, no CI polling waits, ~half the instruction text loaded.
+Drivers: no cache-invalidating model switches (~14/ticket → 0); **expensive** (session/best-tier)
+spawns 5–7 → 0–1 — remaining spawns are cheap Haiku runners by design; no CI polling waits;
+~half the instruction text loaded.
 
 ## Execution phases (each independently releasable)
 
 - **P1 — Rip out routing.** Delete 6 `route-*` skills; remove `routing:` spec blocks, `tier:`
   checkpoint lines, step-down/re-arm rules from refine/implement/pr/ship/resume/unsupervised.
   Set model policy: session model + `/consult`(best/high) + Haiku agents. *Big win, low risk.*
-- **P2 — Prune agents.** Remove test-writer, RE, tech-planner, doc-writer, product-owner,
-  workflow-coach; fold functions inline. Update all skill references. Reduce reviewers to one
-  conditional `reviewer`.
-- **P3 — Simplify core flows.** `refine`→`plan` (light, no over-scoping, no triage, surfaces
-  questions, defaults to in-scope). `implement` (inline scoped tests, no isolation agent).
-  `pr` (conditional single review, CI decoupled per Parked). Remove `prioritize`; de-skill
-  `brainstorm`; slim `draft`.
+- **P2 — Reshape agents (12 → 5).** Remove test-writer, RE, tech-planner, doc-writer,
+  product-owner, workflow-coach; fold functions inline. Generalize `test-runner` → `runner`
+  (entrypoint executor); **create `smoke-tester`** (Haiku/high); merge 3 reviewers → one
+  `reviewer` (best/high). Update all skill references.
+- **P3 — Simplify core flows + build `/verify`.** `refine`→`plan` (light, no over-scoping, no
+  triage, surfaces questions, defaults to in-scope; produces observable acceptance criteria).
+  `implement` (inline scoped test-writing, per-subtask fast gate via `runner`). **New `/verify`**
+  (full gate + review + smoke per QA flow). `pr` (lean: no CI polling, `[skip ci]`-aware squash
+  message, review by judgment — per CI Usage Concept). `/commit` appends `[skip ci]` per the
+  `ci-on-claude` decision. Remove `prioritize`; de-skill `brainstorm`; slim `draft`.
 - **P4 — `/ship` orchestrator.** Input-adaptive (specs | topic | both) → batch all questions
   up front → autonomous plan→implement→test→review→smoke→docs→release→report, with
   out-of-scope deferrals surfaced in the report.
@@ -131,14 +143,22 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
    lint + typecheck + tests (+ build). **The CI workflow calls it AND Claude's local gate calls
    it.** Same command → no drift, no ad-hoc "looks fine", closes the self-grading gap.
 
-2. **Who triggers a paid CI run:**
-   - **Manual/human commit** (no `Claude-Session:` trailer) → **CI runs** — guards changes that
-     skipped the local gate.
-   - **Claude's commit** (carries the `Claude-Session:` trailer) → **CI skipped** by default —
-     Claude already ran the identical canonical checks locally.
-   - Detection is by the **commit-message trailer, NOT the actor** — Claude pushes via the
-     user's `GH_TOKEN`, so `github.actor` is identical for human and Claude. Workflow `if:`
-     skips when the head commit contains the marker, unless the opt-in variable is set.
+2. **Who triggers a paid CI run — via GitHub's native `[skip ci]`:**
+   - **Claude's commit** → `/commit` **appends `[skip ci]`** to the commit message (when
+     `ci-on-claude` is off) → GitHub natively skips push/pull_request workflows; the run never
+     starts (true zero minutes). Verified: native keywords `[skip ci]`/`[skip actions]` work for
+     `push` and `pull_request` events ([GitHub docs](https://docs.github.com/actions/managing-workflow-runs/skipping-workflow-runs),
+     [changelog](https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/)).
+   - **Manual/human commit** (no marker) → **CI runs** — guards changes that skipped the local gate.
+   - **`ci-on-claude: on`** (libraries) → `/commit` simply **doesn't append** the marker → CI runs
+     on Claude's work too. The setting is a **local decision read by `/commit`** — no repo
+     variable, no workflow `if:` logic needed at all. (Fallback if conditional-run-with-record is
+     ever wanted: `vars` context in job `if:` is confirmed to work —
+     [docs](https://docs.github.com/en/actions/reference/workflows-and-actions/variables).)
+   - Detection can't use the actor — Claude pushes via the user's `GH_TOKEN`, so `github.actor`
+     is identical for human and Claude. The commit message is the only reliable channel, and
+     `/commit` must append the marker **itself, deterministically** (never rely on a harness
+     adding trailers — local Claude Code sessions don't).
 
 3. **Local by default; init recommends exceptions.** Everything runs locally by default
    (`ci-on-claude: off`, `release-runner: local`). **At project creation Claude assesses the
@@ -186,14 +206,31 @@ isn't even delivered by webhook; a post-merge failure means you already shipped)
 releases run in-session); manual changes stay protected by CI; libraries opt into matrix;
 Actions only fires for human commits, opt-in library matrix, and release fallback.
 
-**Implementation caveats (nail during build):** Claude's squash/merge commit to main must carry
-the trailer so the main push also skips; the release workflow must be a separate tag trigger so
-the skip never touches it; the canonical check script is the parity anchor — CI and local must
-call the same entrypoint.
+**Implementation caveats (nail during build):**
+- **No required status checks** on repos using this scheme: a workflow skipped by `[skip ci]` or
+  paths-filters leaves its checks **stuck "Pending" — a PR requiring them can never merge**
+  (confirmed: [GitHub docs](https://docs.github.com/actions/managing-workflow-runs/skipping-workflow-runs)).
+  Branch protection must not mark the CI job as required; the local gate is the gate.
+  `project-init`/`onboard` should check & warn.
+- **Release workflow is `workflow_dispatch`-ONLY when `release-runner: local`** — if it also
+  triggered on tag pushes, Claude's local release (which pushes the tag) would fire it and
+  **publish twice**. Tag trigger only when `release-runner: ci`. This also sidesteps any skip-
+  keyword ambiguity around tag pushes.
+- **Squash merges:** `/pr` must set the squash commit message explicitly (subject/body) so the
+  `[skip ci]` marker is present (or absent, for `ci-on-claude: on`) on the merge commit landing
+  on main — never rely on GitHub's auto-generated message.
+- **Mixed pushes:** skip detection keys on the pushed HEAD commit — avoid pushing a batch where
+  Claude's marked commit sits under a human commit or vice versa; in practice each party pushes
+  its own work immediately, so this stays theoretical.
+- **Canonical entrypoint has two modes:** `ci.sh fast` (format+lint+typecheck+affected unit
+  tests — the per-subtask gate) and `ci.sh full` (everything incl. integration/e2e + build —
+  feature-done/PR/release and what the CI wrapper calls). Both defined at init; parity anchor
+  for local and CI alike.
 
-**Distributed across phases:** canonical script + `ci-on-claude` variable → P6 (templates/init)
-+ P3 (commit/implement call it); no-wait PR + monitored release → P3/P4; toggle → P6
-(workflow-decisions). Not a standalone phase.
+**Distributed across phases:** canonical entrypoints (`ci.sh` fast/full, `release.sh`) → P6
+(templates/init/onboard) + P3 (commit/implement/verify call them); `[skip ci]` handling → P3
+(`/commit`) + P4 (`/pr` squash message); monitored release fallback → P3/P4; `ci-on-claude` +
+`release-runner` decisions → P6 (workflow-decisions). Not a standalone phase.
 
 ## QA / Verify Flow (designed)
 
@@ -253,7 +290,7 @@ run. Cheap per-subtask fast-gate always runs.
 - **Architecture doc — light end-of-ship pass** + updated during `implement` when structure
   changes.
 
-## Workflow settings after simplification (~16 → ~7)
+## Workflow settings after simplification (~16 → ~8)
 
 **Removed** (feature gone): refine sizing tiers, review tier rule, adaptive routing, agent
 tier pins (now fixed), deferred-findings policy.
@@ -275,5 +312,19 @@ tier pins (now fixed), deferred-findings policy.
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
 | Unsupervised threshold + autonomous defaults | usage cap + autonomous behavior | settings.md / unsupervised skill |
-| **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries) | GitHub repo variable, read by the CI workflow |
+| **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries). Implemented purely in `/commit`: off → append `[skip ci]`, on → don't. No repo variable, no workflow logic | local decision, read by `/commit` |
 | **release-runner** (new) | `local` (default — Claude releases in-session) / `ci` (isolate publish secrets to Actions) | release skill / decisions |
+
+## Suggestions from the review (proposed, not yet decided)
+
+1. **`pr-mode: pr | direct` setting.** For solo apps on main-only, the PR itself is mostly
+   ceremony: review is local, CI is skipped, merge is squash-now. A `direct` mode (commit to
+   main, no PR) would cut a whole class of `gh` API calls and waits — aligned with "rely on
+   GitHub less". Default `pr` (libraries/collab; keeps history + PR record); `direct` opt-in
+   per project at init. Costs: no PR-level record/rollback point; slightly weaker audit trail.
+2. **Smoke-instructions as a saved artifact.** Store the feature's smoke steps in the spec file
+   (checked off by the smoke-tester run). Costs nothing, gives a re-runnable manual-test record
+   for later regressions and for the user to run by hand if they want.
+3. **`gh` budget rule.** One place (CLAUDE.md) states: batch `gh` reads, never poll, prefer
+   local git for anything git can answer — makes the "less GitHub" goal an explicit rule the
+   model follows everywhere rather than an emergent property.
