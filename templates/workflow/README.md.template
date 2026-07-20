@@ -26,7 +26,7 @@ IDEA → [/draft] → BACKLOG → [/plan] → READY → [/implement] → IN-PROG
 | `/workflow-decisions [setting]` | Config | View/change a workflow setting; syncs the skill + `decisions.md` |
 | `/workflow-update` | Maintenance | Update workflow plugin to latest version |
 
-Questions about the process? Just ask — the `workflow-coach` agent answers from these docs without loading them into your session.
+Questions about the process? These docs cover the lifecycle, quality gates, and settings.
 
 ## Configuration
 
@@ -46,7 +46,5 @@ Specs live in `docs/specs/`:
 | Auto-format | Every file edit | Hook |
 | Tests | Per subtask (during implement) | Claude locally |
 | CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
-| Code review | After CI passes | `code-reviewer` agent |
-| Security review | After CI passes | `security-reviewer` agent |
-| Architect review | After CI passes (structural changes) | `architect-reviewer` agent |
-| Documentation | After all tests green | `documentation-writer` agent |
+| Review | At /verify, critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
+| Documentation | Inline during /implement (minimal per policy) | main session |

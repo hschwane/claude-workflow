@@ -37,7 +37,7 @@ This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI
 /draft → /plan → /implement → /pr → /release
 ```
 
-See [docs/workflow/README.md](docs/workflow/README.md) for the full lifecycle, or just ask — the `workflow-coach` agent answers process questions.
+See [docs/workflow/README.md](docs/workflow/README.md) for the full lifecycle, or ask directly.
 
 ## License
 

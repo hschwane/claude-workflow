@@ -31,10 +31,8 @@ A feature is done only when ALL of these are true:
 | Subtask tests | Per subtask during implement | Claude (local) |
 | Linter | Per subtask during implement | Claude (local) |
 | CI: lint + typecheck + tests + security + build | Every PR | GitHub Actions |
-| Code review | After CI passes | `code-reviewer` agent |
-| Security review | After CI passes | `security-reviewer` agent |
-| Architect review | After CI passes (structural changes) | `architect-reviewer` agent |
-| Documentation | After all tests green | `documentation-writer` agent |
+| Review | At /verify, critical diffs only | inline self-review, or the `reviewer` agent (best/high) |
+| Documentation | Inline during /implement (minimal per policy) | main session |
 
 ## Test Strategy
 

@@ -63,4 +63,4 @@ Use what you learn to jump straight to the right area instead of grepping blind.
 - Max ~400 words plus code signatures. Every line must earn its place — the briefing is consumed by another agent's limited context.
 - Always include `file:line` references so the main thread can jump straight to the code.
 - Report what you did NOT find too ("no existing OAuth utilities") — ruling things out is valuable.
-- Never modify anything. Never propose an implementation plan — that's the tech-planner's job, or the caller's. You report facts about the code.
+- Never modify anything. Never propose an implementation plan — that's the caller's job. You report facts about the code.
