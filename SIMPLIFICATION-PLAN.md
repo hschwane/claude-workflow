@@ -127,8 +127,8 @@ spawns 5–7 → 0–1 — remaining spawns are cheap Haiku runners by design; n
   an optional utility (explicit request only).
 - **P5 — Continuity v2.** Repo-as-checkpoint: strip routine checkpoint writes from all skills
   (memory file only for Blocked + ship state); `/resume` reconstructs from branch+spec+git log;
-  replace usage-guard with the **minimal dual-signal guard** (real usage locally, env-var work
-  budget in cloud/docker; clean-stop on trip); simplify `unsupervised` (flag + defaults + one
+  replace usage-guard with the **minimal 80% guard** (real usage only — statusline JSON /
+  credentials file; no guard in cloud, run into the limit); simplify `unsupervised` (flag + defaults + one
   heartbeat per cloud run, armed at start / deleted at end); simplify `claude-loop.sh` (no
   marker files); session-start/stop hooks keyed on the spec.
 - **P6 — Docs model + context trim.** Inline minimal doc-comments policy; one concise
@@ -318,19 +318,25 @@ checkboxes** — identical in every environment, zero extra writes, zero extra l
 3. **Session-start hook stays** (env-agnostic, cheap): in-progress spec on this branch →
    auto-resume in unsupervised mode, suggest `/resume` otherwise. Stop hook keys on the same
    single source of truth (unsupervised + unchecked boxes → don't stop).
-4. **Usage-guard → MINIMAL dual-signal guard** (replaces the ~300-line machinery: no `--wait/
-   --check` modes, no wait/offer markers, no statusline-cache coupling). One PostToolUse hook,
-   ~50-60 lines, two signal sources:
-   - **Real usage where readable** (local terminal/VS Code: OAuth credentials file exists) —
-     threshold check as today, threshold via one setting.
-   - **Deterministic work budget everywhere else** (cloud/docker: usage is unreadable — no
-     credentials file, statusline never runs headless): count tool calls + elapsed session time
-     in a small counter file; budgets from **env vars set in the environment config**
-     (e.g. `WORKFLOW_BUDGET_MINUTES`, `WORKFLOW_BUDGET_CALLS`), tunable per environment.
-   - **On trip (same everywhere):** finish the atomic step, commit, end the turn cleanly. Cloud:
-     the heartbeat resumes later (fires hourly; retries if still rate-limited). Local: continue
-     when usage recovers / user pokes. No in-session wait loops.
-   Because the repo is the checkpoint, a missed pause costs at most the current subtask.
+4. **Usage-guard → MINIMAL 80% guard, real usage only** (replaces the ~300-line machinery: no
+   `--wait/--check` modes, no wait/offer markers). One PostToolUse hook, ~40 lines:
+   - **Where usage is readable → pause at 80%** (fixed default, one optional override). Two
+     readable sources, in order: (1) the **statusline stdin JSON** — Claude Code ≥2.1 passes
+     `rate_limits.five_hour/.seven_day` (`used_percentage`, `resets_at`) to the statusline
+     command on every tick, zero API calls (official; Pro/Max) — statusline.sh caches it,
+     guard reads the cache; (2) fallback: the OAuth usage endpoint via
+     `~/.claude/.credentials.json` where that file exists. Covers local terminal + VS Code.
+     Correct across parallel sessions (account-level numbers).
+   - **Where usage is NOT readable (cloud/docker) → no guard: run into the limit.** Verified
+     in a live cloud session: token FDs are not inherited by hooks/Bash children, no
+     credentials file, no rate-limit data in transcripts/harness state, and the statusline is
+     not invoked headless. NO deterministic-budget proxy (rejected: blind to parallel
+     sessions). The kill is acceptable because the repo is the checkpoint (max loss: current
+     subtask) and the cloud heartbeat resumes after the limit clears.
+   - **On trip (readable envs):** finish the atomic step, commit, end the turn cleanly; resume
+     when usage recovers or the user pokes. No in-session wait loops.
+   - **Future slot:** if a supported cloud channel appears (e.g. `rate_limits` in hook input or
+     a `claude usage --json`), plug it into the same guard — the design has the slot ready.
    Unsupervised itself stays simple: flag on → no questions, autonomous defaults, keep going,
    `## Blocked` on true blockers.
 5. **Trigger churn → near zero.** The old prompts came mostly from `/pr`'s per-wake `send_later`
@@ -381,7 +387,7 @@ tier pins (now fixed), deferred-findings policy.
 | Deploy target | railway / vercel / aws / … | deploy.md |
 | GitHub integration | yes / no (skip `gh` when no) | memory/decisions.md |
 | Unsupervised mode | on/off flag — no questions, autonomous defaults, keep going | settings.md / unsupervised skill |
-| Pause budget | usage threshold % (local, real usage) + work budget (cloud: `WORKFLOW_BUDGET_MINUTES`/`_CALLS` env vars in the environment config) | guard hook / env config |
+| Pause threshold | 80% default where real usage is readable (statusline JSON / credentials file); no guard in cloud — run into the limit, heartbeat resumes | guard hook |
 | **ci-on-claude** (new) | yes / no — also run GitHub CI on Claude's own commits (default off for apps, on for libraries). Implemented purely in `/commit`: off → append `[skip ci]`, on → don't. No repo variable, no workflow logic | local decision, read by `/commit` |
 | **release-runner** (new) | `local` (default — Claude releases in-session) / `ci` (isolate publish secrets to Actions) | release skill / decisions |
 
