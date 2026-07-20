@@ -29,8 +29,12 @@ Confirm the resolved list with the user (unless unsupervised). This is the one p
 
 Be on the integration branch (`develop` if it exists, else `main`/`master`) — if on a feature branch, stop and say so.
 
-### 1. Plan — all questions up front
-Run `/plan` **once with every ticket** that isn't already `ready` (skip ones already in `docs/specs/ready/`). This batches all `[USER]` questions across all tickets into a single round at the start. Answer them (unsupervised: reasonable defaults, noted). After this point the run is autonomous — the user can walk away.
+### 1. Plan — every question, once, up front (the AFK gate)
+Run `/plan` **once with every ticket** that isn't already `ready` (skip ones already in `docs/specs/ready/`). `/plan` in multi-ticket mode gathers `[USER]` questions across **all** tickets and asks them together **before any implementation starts**.
+
+**This is the only point in the whole run where `/ship` asks the user anything.** So be thorough here: surface every decision that could otherwise interrupt implementation later — scope boundaries, ambiguous requirements, design/tech forks, anything you'd want confirmed. Ask them all now, in as few `AskUserQuestion` rounds as needed (the tool caps at ~4 per call, so several consecutive rounds is fine — just keep them all at the front so the user answers in one sitting).
+
+Once these are answered (together with the ticket-list confirmation in step 0), **the user can walk away.** From here the run is fully autonomous **regardless of supervised/unsupervised mode** — steps 2–4 never ask another question.
 
 Record the resolved plan (ticket order + the batched answers) in **`.claude/memory/context-ship.md`** under `## Ship` — a **fixed, branch-independent** file, because a ship run spans many feature branches. This is the only orchestration state kept (per-ticket detail lives in the specs). Update it as tickets complete; delete it (or clear `## Ship`) when the whole run is done or write `## Blocked` there on a hard blocker.
 
@@ -42,7 +46,7 @@ For each ticket:
 
 No CI waits, no PR round-trips — nothing to idle on, so tickets flow one after another. (Use `/pr` instead of the local merge only if the user asked for PRs / the repo requires them.)
 
-If a ticket hits a genuine blocker: unsupervised → write `## Blocked` (ticket + reason) and move to the next independent ticket if any; supervised → surface it. Deferred/out-of-scope work is allowed but exceptional — capture it as a new backlog draft and remember it for the report.
+**No more questions after step 1 — the user is AFK.** For any decision that comes up mid-implementation, apply a reasonable default (note the assumption in the spec/report) or `/consult` if it's genuinely hard — never stop to ask. If a ticket hits a **genuine blocker** (needs a human decision or missing credentials): write `## Blocked` (ticket + reason) to `context-ship.md`, **skip that ticket, and continue with the next independent one** — don't halt the whole run and don't ask. This holds in supervised mode too: once the up-front batch is answered, `/ship` behaves autonomously to the end. Deferred/out-of-scope work is allowed but exceptional — capture it as a new backlog draft and remember it for the report.
 
 ### 3. Release
 On the integration branch: `/release {bump_type}` — bump version + changelog (main session), then the `runner` executes the full gate + `scripts/release.sh` (build/publish/deploy) locally; Actions release only as fallback. Do **not** re-run the manual smoke here (it's a new-feature check, already done per ticket) unless the user asked.
