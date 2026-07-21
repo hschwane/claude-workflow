@@ -79,6 +79,8 @@ Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
 
 **Preferences folder:** create `.claude/preferences/` and copy `templates/preferences/{README.md, INDEX.md.template→INDEX.md, example.md.template→example.md}`. Ensure the root `CLAUDE.md` has the one-line **Preferences** pointer (from `templates/CLAUDE.md.template`) so `INDEX.md` is discoverable for ad-hoc work.
 
+**Install matching library preferences:** consult `templates/preferences/LIBRARY.md` and, from the codebase analysis, detect which library preferences fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below). Skip any the user declines; skip all if none match.
+
 **Canonical scripts (the parity anchor — `/commit`, `/verify`, `/release` and CI all call these):**
 - Copy `templates/scripts/ci.sh` → `scripts/ci.sh` and **fill the `{{...}}` placeholders** with this project's *existing* commands (detect from package.json scripts / Makefile / pyproject / Cargo — reuse what the project already uses for format/lint/typecheck/test/build). `fast` = format-check + lint + typecheck + unit; `full` = + integration/e2e + build.
 - Copy `templates/scripts/release.sh` → `scripts/release.sh` and fill in the project's build/publish/deploy steps.

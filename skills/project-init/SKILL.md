@@ -157,6 +157,7 @@ Then determine:
 - `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`
 - `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
 - `TARGET_DIR`: the absolute path to the new project directory.
+- `LIBRARY_PREFERENCES`: consult `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md` and build a comma-separated list of every library preference whose "install when" matches this project — `railway` if DEPLOY=railway; `plots-graphs` if the app renders charts/graphs/data-viz; `maps` if it shows an interactive map; `web-app-pwa` if it's a web app / PWA; `telegram-bots` if it's a Telegram bot (plus any others added to LIBRARY.md later). Empty if none match. The scaffolder installs each (file + INDEX row) so `/plan` picks them up.
 
 Invoke the `project-scaffolder` agent with this prompt (fill in every `{…}` placeholder):
 
@@ -177,6 +178,7 @@ BRANCHING_MODEL: {main-only | git-flow}
 GITHUB_REPO: {yes-public | yes-private | no}
 PLUGIN_SOURCE_DIR: {absolute path determined above}
 TARGET_DIR: {absolute path to the new project directory}
+LIBRARY_PREFERENCES: {comma list computed from LIBRARY.md, or empty}
 GITIGNORE_TEMPLATE: {typescript | python | rust | cpp}
 CI_LANGUAGE_TEMPLATE: {typescript | python | rust | cpp}
 RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}

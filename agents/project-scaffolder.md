@@ -30,6 +30,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
 | `TARGET_DIR` | Absolute path to the new project directory |
+| `LIBRARY_PREFERENCES` | comma list of library preference filenames to install (e.g. `railway, maps, telegram-bots`), or empty |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
@@ -108,11 +109,15 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
-**If `DEPLOY` is `railway`:**
-- Copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
-- Copy `{PLUGIN_SOURCE_DIR}/templates/preferences/railway.md` → `{TARGET_DIR}/.claude/preferences/railway.md` and add a row to `{TARGET_DIR}/.claude/preferences/INDEX.md`:
-  `| Railway deploy, railway.json, deployment/hosting | .claude/preferences/railway.md |`
-  This carries the standing Railway details (scale-to-zero, EU region, URL=project name, watch-path rationale, healthcheck) **and the rule that Railway-specifics go behind an interface** for portability. `/plan` picks it up whenever a ticket touches deployment or Railway features.
+**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
+
+**Library preferences — install the ones listed in `LIBRARY_PREFERENCES`:**
+`LIBRARY_PREFERENCES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
+- Copy `{PLUGIN_SOURCE_DIR}/templates/preferences/<name>.md` → `{TARGET_DIR}/.claude/preferences/<name>.md`.
+- Append its row to `{TARGET_DIR}/.claude/preferences/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md`:
+  `| <trigger row> | .claude/preferences/<name>.md |`
+
+These carry the maintainer's standing "how I like X done" rules (Railway details + interface-for-portability, map caching/clustering/tooltips, chart UX, Telegram-bot structure, PWA version+update). `/plan` picks the matching one up when a ticket touches that area. If the list is empty, skip.
 
 ## Step D: Docs Templates
 

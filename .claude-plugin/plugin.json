@@ -1,7 +1,7 @@
 {
   "name": "claude-workflow",
   "displayName": "Claude Workflow",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Professional AI-assisted software development workflow: draft \u2192 plan \u2192 implement \u2192 verify \u2192 merge \u2192 release",
   "author": {
     "name": "Hendrik Schwanekamp",

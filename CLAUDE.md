@@ -35,7 +35,7 @@ templates/                   ← files copied into projects by project-init / pr
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
   memory/                    ← .gitignore for runtime memory files
-  preferences/               ← INDEX.md + README + example: on-demand per-tech/feature preferences
+  preferences/               ← on-demand per-tech/feature preferences: README + INDEX + example, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots) installed into projects on match
   scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```
 
