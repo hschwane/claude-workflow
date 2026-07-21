@@ -3,29 +3,17 @@
 ## Target Environment
 {{DEPLOY_TARGET}}
 <!-- Examples: Railway, Vercel, AWS EC2, Kubernetes, Fly.io, VPS via SSH -->
-<!-- Preferred default: Railway, configured with
-     - scale-to-zero enabled (app sleeps when idle — must tolerate cold starts)
-     - a European region (e.g. europe-west4)
-     - the service URL prefixed with the project name (e.g. <project-name>.up.railway.app —
-       choose the subdomain when generating the domain)
--->
+<!-- Railway is the preferred default. When deploying on Railway, the specifics
+     (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the
+     rule that Railway-specific features live behind a project-defined interface for
+     portability) live in the standing preference `.claude/preferences/railway.md` —
+     keep them there, not duplicated here. -->
 
 ## Platform Settings
 {{PLATFORM_SETTINGS}}
-<!-- Record region, scaling (scale-to-zero?), domain/URL, and other platform config here -->
-
-<!-- Railway watch paths (config-as-code):
-     `railway.json` at the repo root pins `build.watchPatterns` so only real app
-     changes trigger a redeploy. The workflow commits docs/spec changes constantly
-     (every /plan, /draft, and the changelog on /release), so without this each of
-     those commits to the deploy branch would rebuild and redeploy the app.
-     Default watched: everything EXCEPT docs/, tests/, .claude/, .github/, and *.md.
-     Because it lives in the repo, this can never drift from the Railway dashboard —
-     config-as-code overrides the UI.
-     If this app SERVES markdown or files from those paths as runtime content
-     (e.g. a docs site that renders docs/**, or tests fixtures served live), remove
-     the matching `!` line from railway.json so those changes still deploy, and note
-     the exception here. -->
+<!-- Record region, scaling (scale-to-zero?), domain/URL, and other platform config here.
+     On Railway, `railway.json` at the repo root pins these as config-as-code
+     (see .claude/preferences/railway.md). -->
 
 <!-- Watch-path exceptions (if any): none — using default railway.json patterns -->
 

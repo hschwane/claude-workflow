@@ -25,7 +25,7 @@ Last updated: {{TODAY}}
 ## Deploy target
 - **Live in:** `docs/workflow/deploy.md`
 - **Current:** {{DEPLOY_TARGET}}
-- **Options:** `railway` (scale-to-zero, EU region, URL = project name) · `vercel` · `aws` · `other` · `self-hosted` · `none`
+- **Options:** `railway` (preferred; details in `.claude/preferences/railway.md`) · `vercel` · `aws` · `other` · `self-hosted` · `none`
 
 ## GitHub integration
 - **Live in:** `.claude/memory/decisions.md` — "GitHub integration" line

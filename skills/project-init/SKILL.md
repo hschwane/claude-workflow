@@ -134,11 +134,7 @@ Ask (in chat — plain message, wait for the reply) — **pre-select values infe
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 
-   Railway is the preferred deploy target. When chosen, record these defaults in `docs/workflow/deploy.md` (deviate only if the project can't tolerate them):
-   - **Scale to zero** enabled — the app sleeps when idle, so it must tolerate cold starts
-   - **European region** (e.g. `europe-west4`)
-   - **Service URL prefixed with the project name** — choose the subdomain when generating the domain, e.g. `<project-name>.up.railway.app`
-   - **Watch paths (config-as-code)** — the scaffolder writes `railway.json` (from `templates/configs/railway.json`) at the repo root. Its `build.watchPatterns` stop the workflow's constant docs/spec commits (`/plan`, `/draft`, `/release` changelog) from triggering redeploys: it watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown. Committing this to the repo means the setting can never silently drift from the Railway dashboard. If the app **serves** files from those paths as runtime content, note the exception in `docs/workflow/deploy.md` and drop the matching `!` line.
+   Railway is the preferred deploy target. When chosen, the scaffolder installs the Railway deployment **preference** (`.claude/preferences/railway.md`) and `railway.json` — that preference file holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — just record the chosen target in `docs/workflow/deploy.md`.
 3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
 
 **Then set two CI/release decisions — recommend by project type, confirm (don't belabor):**
