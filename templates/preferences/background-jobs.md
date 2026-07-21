@@ -1,9 +1,20 @@
 # Background jobs, scheduling & resilience
 
-Standing preferences for scheduled/periodic work, retries, and graceful process lifecycle in a backend/service. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
+Standing preferences for scheduled/periodic work, retries, and graceful process lifecycle in a **backend/service**. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
 
-## Timers/schedules survive a restart
-- Persist scheduled work (a DB row: what, when, for whom) alongside the in-memory timer handle. On boot, **`rearmAll()`** — reload persisted schedules and re-arm their timers — so a process restart never silently drops pending work.
+**Scope: backend only.** This does not apply to frontend/client code, and not to a backend with no scheduled/periodic/retry work at all — a stateless request/response API needs none of this. Skip anything below that doesn't apply, and say why (see the preferences README on treating these as recommendations, not rules).
+
+## Deployment-aware triggering (required whenever more than one deploy target is realistic)
+**How** a job gets triggered depends on the deployment:
+- **Scale-to-zero (e.g. Railway with `sleepApplication`)** — the process is asleep between requests, so an **in-process scheduler (`setInterval`/cron-in-code) will not fire**. Trigger jobs from the **outside**: an external cron/scheduler service hits an authenticated HTTP endpoint (e.g. `POST /tasks/run-due`), which wakes the app, runs due work, and lets it sleep again.
+- **Always-on (VPS, container without scale-to-zero, local dev)** — a plain **in-process scheduler** is simpler and sufficient; no external wakeup needed.
+
+**If the project might deploy either way** (or the deploy target could change later — see `railway.md`'s portability rule), put the trigger mechanism behind an interface with an implementation per mode, selected by a config variable (mirroring the Telegram polling/webhook pattern in `telegram-bots.md`): the job *logic* (what runs, retry/backoff, persistence) stays identical; only *what calls it* changes. Don't hard-wire an in-process scheduler into a project that might later move to scale-to-zero, or vice versa.
+
+## Schedules survive a restart
+- Persist scheduled work as data (a DB row: what, when, for whom) — never only as an in-memory timer. How that persisted state gets acted on again follows the triggering mode above:
+  - **Always-on / in-process scheduler:** pair the persisted row with an in-memory timer handle; on boot, **`rearmAll()`** — reload persisted schedules and re-arm their timers — so a restart never silently drops pending work.
+  - **External-trigger / scale-to-zero:** there's no long-lived in-memory timer to lose — each wakeup just **queries what's due** from the persisted state. The persistence *is* the survival mechanism; no `rearmAll()` needed.
 
 ## Bounded retries
 - Failed operations that should retry get a **bounded** retry policy: fixed or backoff delays, a **persisted attempt count**, and a max-attempts cutoff after which it stops and surfaces the failure instead of retrying forever.

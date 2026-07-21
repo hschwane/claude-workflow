@@ -2,6 +2,8 @@
 
 Small, focused preference files for specific **technologies, project types, or features** — the standing "how I like X done" notes that would bloat the root `CLAUDE.md` if they were always loaded.
 
+**These are recommendations, not rules to apply blindly.** A matching preference is a strong default worth starting from — not a mandate to force onto a project it doesn't fit. When a trigger matches, judge the guidance against this project's actual scale and constraints: adapt what fits, and deliberately reject (with a stated reason) whatever genuinely doesn't — e.g. a 150-line script doesn't need `service-architecture.md`'s full layering, and a background job on an always-on deploy doesn't need `background-jobs.md`'s scale-to-zero wakeup path. `/plan` records that judgment call in the spec, not just a bare file reference.
+
 ## How it works (progressive disclosure — two levels)
 
 - Each preference is its own file here, e.g. `railway.md`, `react.md`, `stripe.md`.

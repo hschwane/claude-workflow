@@ -2,6 +2,8 @@
 
 Ready-made standing preferences shipped with the workflow — the maintainer's cross-project "how I like X done" notes, extracted from real projects. `/project-init` and `/project-onboard` install the ones that match a project into its `.claude/preferences/` (copy the file + add the INDEX row); you can also copy any by hand. They are **not** all installed everywhere — only the matching ones, so a project's index stays small.
 
+Installing a file doesn't mean applying it verbatim — see the note in `README.md`: these are recommendations `/plan` adapts to the project or deliberately rejects with a reason, never blind rules.
+
 | Preference file | Install when the project… | INDEX trigger row (left cell) |
 |---|---|---|
 | `railway.md` | deploys on Railway | `Railway deploy, railway.json, deployment/hosting` |
