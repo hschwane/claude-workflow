@@ -30,10 +30,11 @@ Escalate **only for genuinely critical changes** (security-sensitive, structural
 
 ### 3. Manual smoke test (new features only; skip for pure refactors/bugfixes already covered by tests)
 
-**Map each acceptance criterion to how it's demonstrated:**
-- Already covered by a passing automated test → done, cite it.
-- Not covered → it needs a smoke step.
-- Can't be demonstrated by either → flag it (coverage gap).
+**Every acceptance criterion must actually be met — this is the gate against a half-built ticket.** Map each one:
+- Implemented + covered by a passing automated test → done, cite it.
+- Implemented but not test-covered → needs a smoke step to demonstrate it.
+- **Not implemented / stubbed / "deferred" / silently narrowed → verify FAILS.** This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it.
+- Implemented and clearly correct but genuinely impossible to demonstrate by test or smoke (rare) → note it explicitly with why.
 
 **Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Each step = an action + its **expected observable result**, derived from the criteria. Breadth is the automated tests' job; don't re-test everything here.
 
@@ -49,7 +50,7 @@ Escalate **only for genuinely critical changes** (security-sensitive, structural
 ```
 Verify ✓  {id}
 Gate: green (full)   Review: {self | reviewer agent | consult}   Smoke: {N steps, all pass | M failed→fixed | n/a}
-Criteria: {all demonstrated | list any flagged as undemonstrated}
+Criteria: {ALL met and demonstrated | FAIL — unmet: <list> → back to /implement}
 {bugs found → tests added: …}
 ```
 If something can't be made green/clean and needs a human, write `## Blocked` and stop.

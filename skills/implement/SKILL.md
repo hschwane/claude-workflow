@@ -52,6 +52,8 @@ Append `[skip ci]` **unless** the project's `ci-on-claude` decision is `yes` (li
 
 **e) Tick the box** — `- [ ] #N` → `- [x] #N` in the spec. The spec's checkboxes + git log ARE the progress record; `/resume` reconstructs from them. Don't maintain a separate checkpoint.
 
+**Implement every subtask — do not scope out the hard ones.** The spec's subtasks and acceptance criteria are the contract; a ticket is not done until they are all met. When a subtask turns out difficult, large, or messier than expected, that is **not** a reason to defer it, stub it, mark it "out of scope for later", or quietly narrow what you build — that is exactly the work. Do it fully; `/consult` if you're stuck; if it genuinely needs a human decision or a missing credential, write `## Blocked` (reason + what's required) and stop. Never trade "done" for "done except the hard/core part."
+
 **If you get genuinely stuck** (same failure twice, or an architecture/security call): `/consult` before grinding. If it needs a human, write `## Blocked` to `.claude/memory/context-{branch}.md` (reason + what's required) and stop.
 
 ### 3. Feature done → verify

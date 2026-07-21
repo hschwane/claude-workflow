@@ -66,6 +66,10 @@ Use these automatically when they fit — don't ask first. Anything that reads m
 
 Multiple tasks in one message: work through them in order; in unsupervised mode apply autonomous defaults and don't stop between them. `/ship` is the built-in orchestrator for a full cycle.
 
+## Scope — build the whole ticket
+
+A ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — the core functionality, the hard part, a criterion, or the error/edge handling those criteria imply. Difficulty or size is not a reason to cut scope; that *is* the work — do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras the ticket never asked for. If a ticket is too big, say so and split it explicitly with the user — never quietly ship the easy half.
+
 ## Merging
 
 Default is **local git, no formal PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts locally, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only when you want external review or the repo requires it.

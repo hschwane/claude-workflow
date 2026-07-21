@@ -29,10 +29,15 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
 - **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the project default (`docs/workflow/quality.md`). Quality over quantity — the important behaviors.
 
-### 3. Scope discipline
-- **Default to including** what the ticket implies. Do **not** silently declare things out of scope.
-- Deferring work to a separate ticket is allowed but should be the **exception** — when you do, create the follow-up draft in `backlog/` and **note the deferral** so it surfaces in the final report (e.g. `/ship`'s report).
-- Genuine unknowns become `[USER]` questions (below), not silent assumptions.
+### 3. Scope discipline — never defer the core
+
+The acceptance criteria must cover the ticket's **full intent**, not a convenient subset. The goal of the ticket is in scope, period.
+
+- **NEVER defer, cut, or mark "out of scope" anything the ticket's goal requires** — the core functionality, the hard part, an acceptance criterion, the error/edge handling those criteria imply, or "the rest of the feature." Difficulty, size, or effort is **not** a reason to scope something out. If it's what the ticket is for, it's in.
+- "Out of scope" means **only** genuinely separable work the ticket never asked for — an unrelated enhancement, a nice-to-have that no criterion depends on. If in doubt, it's **in** scope.
+- If a ticket is genuinely too big to do in one go, do **not** silently narrow it. Say so during the up-front question batch and let the user decide how to split it — an explicit split, not a quiet deferral of the important half.
+- Any deferral that does happen (rare, peripheral only) → create the follow-up draft in `backlog/` and note it so it surfaces in the report. Never a silent drop.
+- Genuine unknowns become `[USER]` questions (below), not silent assumptions or scope cuts.
 
 ### 4. Questions — batched up front
 If resolving the spec needs the user's input, collect every `[USER]` question.
