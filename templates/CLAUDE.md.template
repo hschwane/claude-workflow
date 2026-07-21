@@ -82,6 +82,10 @@ The `gh` CLI is authenticated and available **in every session, including cloud/
 
 Keep it minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions — not everything. Maintain one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints; a little markdown for key concepts + setup.
 
+## Asking the user
+
+When you need input or a decision from the user, **ask in a plain chat message and wait for their reply** — do **not** use the `AskUserQuestion` tool. The user answers in chat. Batch related questions into one message as a short numbered list so they can answer everything in a single reply (this is how skills "ask up front"). In unsupervised mode, don't ask at all — apply the autonomous defaults and note assumptions.
+
 ## Session Behavior
 
 - Session-start says `=== AUTO-RESUME REQUIRED ===` → run `/resume` immediately.
@@ -90,7 +94,7 @@ Keep it minimal and useful. Doc-comments only for function usage/params, class/f
 
 **State lives in the repo** — the branch, the in-progress spec's unchecked subtask boxes, and `git log`. There is no checkpoint file to maintain; `/resume` reconstructs from these. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
-When `unsupervised: true`: never use `AskUserQuestion` (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes. A usage-guard pause (local, at threshold) → finish the atomic step, commit, end the turn — you resume when usage recovers. In cloud, the recovery heartbeat resumes a rate-limit kill automatically.
+When `unsupervised: true`: never ask the user at all (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes. A usage-guard pause (local, at threshold) → finish the atomic step, commit, end the turn — you resume when usage recovers. In cloud, the recovery heartbeat resumes a rate-limit kill automatically.
 
 ## Memory
 

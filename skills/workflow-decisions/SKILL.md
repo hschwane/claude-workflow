@@ -36,7 +36,7 @@ projects. If the user declines, stop.
 ### 2. Resolve intent → a concrete change
 
 - **No argument** — present the settings from `decisions.md` grouped by area and ask
-  (AskUserQuestion) which one to change. Then ask for the new value, offering the documented
+  (in a chat message) which one to change. Then ask for the new value, offering the documented
   **Options** as choices.
 - **A setting name** (`testing scope`, `branching`, `deploy target`, `ci-on-claude`, `release-runner`, …) —
   show its current value and ask for the new one (offer the **Options**).

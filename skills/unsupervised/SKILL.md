@@ -46,7 +46,7 @@ Remove the `unsupervised:`/`usage_threshold:` lines from settings.md. If a `reco
 Print unsupervised state + threshold from settings.md, then `bash .claude/hooks/usage-guard.sh --status`.
 
 ## Autonomous defaults (when `unsupervised: true`)
-- **Never** use `AskUserQuestion` — apply the most reasonable default and note assumptions.
+- **Never** ask the user — apply the most reasonable default and note assumptions.
 - `/plan` — reasonable defaults for open questions, noted in the spec; default to in-scope.
 - `/implement` — proceed through subtasks; `/consult` when genuinely stuck rather than asking.
 - **Merge** — local git per the Merge policy (no PR).

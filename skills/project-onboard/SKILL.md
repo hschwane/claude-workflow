@@ -39,7 +39,7 @@ Invoke the `code-explorer` subagent to explore the project:
 ### 2. Present Findings and Ask Configuration Questions
 Show the analysis summary to the user.
 
-Ask (AskUserQuestion):
+Ask (in chat — plain message, wait for the reply):
 1. **Confirm tech stack** — "I detected {stack}. Is this correct?"
 2. **GitHub** — "Does this project use GitHub? [yes/no]"
 3. **Existing tests** — "I found {test info}. Should the workflow integrate with them? [yes / no, set up fresh]"

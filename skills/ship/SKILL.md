@@ -32,7 +32,7 @@ Be on the integration branch (`develop` if it exists, else `main`/`master`) — 
 ### 1. Plan — every question, once, up front (the AFK gate)
 Run `/plan` **once with every ticket** that isn't already `ready` (skip ones already in `docs/specs/ready/`). `/plan` in multi-ticket mode gathers `[USER]` questions across **all** tickets and asks them together **before any implementation starts**.
 
-**This is the only point in the whole run where `/ship` asks the user anything.** So be thorough here: surface every decision that could otherwise interrupt implementation later — scope boundaries, ambiguous requirements, design/tech forks, anything you'd want confirmed. Ask them all now, in as few `AskUserQuestion` rounds as needed (the tool caps at ~4 per call, so several consecutive rounds is fine — just keep them all at the front so the user answers in one sitting).
+**This is the only point in the whole run where `/ship` asks the user anything.** So be thorough here: surface every decision that could otherwise interrupt implementation later — scope boundaries, ambiguous requirements, design/tech forks, anything you'd want confirmed. Ask them all now, in one chat message (a numbered list) up front so the user answers in one reply.
 
 Once these are answered (together with the ticket-list confirmation in step 0), **the user can walk away.** From here the run is fully autonomous **regardless of supervised/unsupervised mode** — steps 2–4 never ask another question.
 

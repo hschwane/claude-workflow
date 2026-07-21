@@ -24,7 +24,7 @@ Creates a new software project from scratch with the full claude-workflow infras
   - `node --version` and `npx --version` — needed for the JS/TS gates (`eslint`, `prettier`, `tsc`)
   - `python --version` (fall back to `python3 --version`, or `py --version` on Windows) — needed for the Python gates (`ruff`, `mypy`)
   - These are only relevant for the project's chosen language. If the stack is Rust/C++/other and neither runtime is present, that's fine — just note it. If the runtime for the chosen language is missing, print a clear warning (e.g. "⚠ node not found — JS/TS lint/type-check gates in /commit will be skipped until it's installed") and continue.
-- Ask (AskUserQuestion): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
+- Ask (in chat — plain message, wait for the reply): "Create a GitHub repository? [yes — public / yes — private / no, local only]"
 
 ### 0.1 Design-Phase Model Note (Supervised Mode Only)
 
@@ -36,7 +36,7 @@ Continue immediately on the current model unless the user switches.
 
 ### 0.5 Design Document Review (Optional)
 
-Ask (AskUserQuestion): "Do you have any design documents, requirements, or notes to share before we start? (PRD, concept notes, wireframe descriptions, feature lists — anything goes.)"
+Ask (in chat — plain message, wait for the reply): "Do you have any design documents, requirements, or notes to share before we start? (PRD, concept notes, wireframe descriptions, feature lists — anything goes.)"
 
 If the user shares documents:
 
@@ -65,7 +65,7 @@ If the user shares documents:
 Keep a mental note of which values came from the document so the user can always see what was derived vs. what they still need to decide.
 
 ### 1. Project Basics
-Ask the user (AskUserQuestion) — **skip questions already resolved in step 0.5; for pre-filled values, confirm rather than ask fresh**:
+Ask the user (in chat — plain message, wait for the reply) — **skip questions already resolved in step 0.5; for pre-filled values, confirm rather than ask fresh**:
 1. **Project name** (if not in args and not in design doc)
 2. **Short description** (one sentence)
 3. **Project type**: Web API / Web Frontend / CLI tool / Library / Desktop App / Other
@@ -78,7 +78,7 @@ Tell the user: "Let me help you define the product vision — this guides planni
 
 **If vision elements were extracted from the design document in step 0.5, pre-fill the corresponding questions and ask the user to confirm or refine rather than asking from scratch.**
 
-Ask (AskUserQuestion):
+Ask (in chat — plain message, wait for the reply):
 1. "Who are the primary users of this project? What's their technical level?"
 2. "What core problem does it solve? How do users deal with this today?"
 3. "What's the main value proposition — what makes this better than alternatives?"
@@ -127,7 +127,7 @@ Based on language and architecture, ask:
 3. **Monorepo?**: No (single package) / Yes (workspaces)
 
 ### 5. Release & Deploy Setup
-Ask (AskUserQuestion) — **pre-select values inferred from the design document (step 0.5) and ask user to confirm or change**:
+Ask (in chat — plain message, wait for the reply) — **pre-select values inferred from the design document (step 0.5) and ask user to confirm or change**:
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 
@@ -205,7 +205,7 @@ The scaffolder created `docs/workflow/decisions.md` — the record of every tuna
 setting (testing scope, branching, deploy target, ci-on-claude, release-runner, pause threshold).
 It ships with sensible defaults. Show the user the settings it lists.
 
-Ask (AskUserQuestion): "Want to tune any workflow defaults now, or keep them? [Keep defaults / Adjust a setting]"
+Ask (in chat — plain message, wait for the reply): "Want to tune any workflow defaults now, or keep them? [Keep defaults / Adjust a setting]"
 
 - **Keep defaults**: continue.
 - **Adjust a setting**: run the `/workflow-decisions` procedure now for the chosen setting — it
@@ -240,7 +240,7 @@ Explain the four-phase approach to the user, then generate and review the backlo
 **Present milestone by milestone.** For each:
 1. State the milestone name (`tech-backbone` / `WS` / `MVP` / `1.0.0`) and its one-sentence goal.
 2. List all proposed items with a brief rationale for each.
-3. Ask (AskUserQuestion): "{milestone} items — what would you like to do? [Accept all / Let me choose / Add or change items / Skip]"
+3. Ask (in chat — plain message, wait for the reply): "{milestone} items — what would you like to do? [Accept all / Let me choose / Add or change items / Skip]"
    - **Accept all**: proceed.
    - **Let me choose**: user selects which items to keep; optionally adds new ones.
    - **Add or change items**: accept additions/modifications, then confirm.

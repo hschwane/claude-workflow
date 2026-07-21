@@ -42,8 +42,8 @@ The acceptance criteria must cover the ticket's **full intent**, not a convenien
 ### 4. Questions — batched up front
 If resolving the spec needs the user's input, collect every `[USER]` question.
 
-- **Single-ticket** mode: ask now (AskUserQuestion).
-- **Multi-ticket** mode: **plan all tickets first, collecting questions across all of them, then ask the whole set together** in as few `AskUserQuestion` rounds as needed (~4 per call → several consecutive rounds is fine), before returning. Be thorough — surface every decision that would otherwise need the user *later* (scope boundaries, ambiguous acceptance criteria, design/tech forks), because after this batch the caller (e.g. `/ship`) runs autonomously and won't ask again. Then finish every spec. The user answers once and walks away.
+- **Single-ticket** mode: ask now in chat (plain message).
+- **Multi-ticket** mode: **plan all tickets first, collecting questions across all of them, then ask the whole set together** in one chat message (a numbered list), before returning. Be thorough — surface every decision that would otherwise need the user *later* (scope boundaries, ambiguous acceptance criteria, design/tech forks), because after this batch the caller (e.g. `/ship`) runs autonomously and won't ask again. Then finish every spec. The user answers once and walks away.
 - **Unsupervised** mode: don't ask — apply the most reasonable default, note the assumption in the spec, and continue.
 
 ### 5. Mark ready

@@ -52,7 +52,7 @@ If a target version was specified as an argument: use that instead of latest.
 Check for breaking changes: if the changelog or commit list contains `BREAKING`, `[BREAKING]`, or a conventional-commit `!` marker (e.g. `feat!:`), highlight them prominently.
 
 ### 4. Confirm
-Ask the user (via AskUserQuestion):
+Ask the user (ask in chat):
 - "Update from {current} to {target}? [yes / choose different version / cancel]"
 
 If breaking changes exist, show them explicitly and ask separately: "This update has breaking changes. Review them above. Continue?"
@@ -105,7 +105,7 @@ Report how many tuned settings were re-applied so the user can confirm nothing w
 
 The project's root `CLAUDE.md` is **never overwritten** (it holds project-specific content: title, description, architecture summary, custom conventions). But the template also carries **workflow-owned sections** that describe how the *plugin* behaves — and those go stale when the plugin updates. These sections are plugin-owned, not project-specific:
 
-> `## Quick Reference` · `## Models` · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Scope — build the whole ticket` · `## Merging` · `## GitHub via `gh`` · `## Documentation policy` · `## Session Behavior` · `## Memory`
+> `## Quick Reference` · `## Models` · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Scope — build the whole ticket` · `## Merging` · `## GitHub via `gh`` · `## Documentation policy` · `## Asking the user` · `## Session Behavior` · `## Memory`
 
 (These changed in 2.x — old projects may still have `## Model & Effort Routing`, `## Multi-Task Sessions`, `## Context Management`. Those are now **retired**: remove them, and insert the new sections in template order.)
 
