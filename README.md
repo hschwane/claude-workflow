@@ -136,10 +136,10 @@ Both models: **push your feature branch freely** (backups). The gate is the loca
 
 ## Unsupervised Mode & Resume Logic
 
-Two **independent** toggles govern autonomous work — flipping one never touches the other:
+Two toggles govern autonomous work — independent, **except that unsupervised implies auto-resume**:
 
-- **`/unsupervised on`** controls *how* Claude works: never asks questions, applies autonomous defaults, keeps working until done or genuinely blocked, and pauses proactively at the usage threshold (default 90%) where usage is readable. Supervised (the default) keeps asking questions and runs to the hard limit with no proactive pause.
-- **`/auto-resume on`** controls *whether* an interrupted run wakes itself once the limit resets — in **either** mode. Turn it on when you're around too: the session runs to the limit, then recovers and continues on its own. In supervised mode a recovered run does the mechanical work and records `## Blocked` with a question when a real decision is needed, so you see it on return.
+- **`/unsupervised on`** controls *how* Claude works: never asks questions, applies autonomous defaults, keeps working until done or genuinely blocked, and pauses proactively at the usage threshold (default 90%) where usage is readable. Supervised (the default) keeps asking questions and runs to the hard limit with no proactive pause. Turning it on **also turns on `/auto-resume`** if it isn't already — an autonomous run must be able to recover from a limit kill; turning it off leaves auto-resume on.
+- **`/auto-resume on`** controls *whether* an interrupted run wakes itself once the limit resets — in **either** mode, and toggleable entirely on its own. Turn it on when you're around too: the session runs to the limit, then recovers and continues. In supervised mode a recovered run does the mechanical work and records `## Blocked` with a question when a real decision is needed, so you see it on return.
 
 **State is the repo — there is no checkpoint file to maintain.** The branch names the ticket, the in-progress spec's unchecked subtask boxes name the remaining work, and `git log` is the record of what landed. `/resume` reconstructs from these (git wins on disagreement), so it behaves identically in local, cloud, docker, and VS Code sessions. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
