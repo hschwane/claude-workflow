@@ -20,6 +20,7 @@ Picks up interrupted work. There is no separate checkpoint to trust — **the re
 - The in-progress spec: the one with `status: in-progress` (search `docs/specs/`), or the one matching the branch id.
 - Branch blocker: `.claude/memory/context-{branch}.md` with `## Blocked` → tell the user and stop (don't work around a human-needed blocker).
 - If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs, and stop.
+- **Auto-resume:** if `.claude/memory/settings.md` has `auto_resume: true` and there IS work to continue and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`). This is what re-arms after each firing.
 
 ### 2. Reconcile against reality (git wins)
 Read the spec's subtask checkboxes and compare to `git log --oneline -15` on this branch. **If they disagree, trust git** and fix the boxes: a subtask with a matching commit is done even if unchecked; an unchecked box with no commit is the next work. This self-corrects a crash mid-subtask.
@@ -30,4 +31,4 @@ Resume at the **first unchecked subtask** (or the current phase): keep implement
 Any short-lived agent that was mid-run when the session died (a `runner` or `smoke-tester`) simply gets re-run — they're idempotent, there's nothing to recover.
 
 ### 4. When done
-Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete.
+Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, delete it now — nothing left to recover (the `auto_resume` setting stays on; see `/auto-resume`).

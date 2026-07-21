@@ -68,7 +68,8 @@ The development lifecycle:
 | `/pr [base]` | **Optional** — open a PR for external review or a repo that requires it. The default flow merges locally with plain git (no PR) |
 | `/resume` | Continue interrupted work by reconstructing state from the repo (branch + in-progress spec's unchecked boxes + git log) — works the same in every environment |
 | `/consult "question"` | Ask the advisor: one elevated turn (best/high) with full context, records the decision in `.claude/memory/decisions.md` |
-| `/unsupervised on [80]\|off` | Toggle autonomous mode — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
+| `/unsupervised on [90]\|off` | Toggle autonomous mode (no questions + proactive 90% pause) — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
+| `/auto-resume on\|off` | Toggle auto-recovery after a session/rate-limit reset — **independent** of unsupervised; works in supervised too |
 | `/workflow-decisions [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
 
 ## Agents
@@ -135,7 +136,10 @@ Both models: **push your feature branch freely** (backups). The gate is the loca
 
 ## Unsupervised Mode & Resume Logic
 
-Unsupervised mode lets a long task run without a human: `/unsupervised on` → Claude never asks questions, applies autonomous defaults, and keeps working until done or genuinely blocked.
+Two **independent** toggles govern autonomous work — flipping one never touches the other:
+
+- **`/unsupervised on`** controls *how* Claude works: never asks questions, applies autonomous defaults, keeps working until done or genuinely blocked, and pauses proactively at the usage threshold (default 90%) where usage is readable. Supervised (the default) keeps asking questions and runs to the hard limit with no proactive pause.
+- **`/auto-resume on`** controls *whether* an interrupted run wakes itself once the limit resets — in **either** mode. Turn it on when you're around too: the session runs to the limit, then recovers and continues on its own. In supervised mode a recovered run does the mechanical work and records `## Blocked` with a question when a real decision is needed, so you see it on return.
 
 **State is the repo — there is no checkpoint file to maintain.** The branch names the ticket, the in-progress spec's unchecked subtask boxes name the remaining work, and `git log` is the record of what landed. `/resume` reconstructs from these (git wins on disagreement), so it behaves identically in local, cloud, docker, and VS Code sessions. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
@@ -145,14 +149,14 @@ The moving parts:
 |-------|------|
 | `session-start.sh` (SessionStart hook) | Detects an in-progress spec; in unsupervised mode emits an AUTO-RESUME directive, else suggests `/resume` |
 | `completeness-check.sh` (Stop hook) | In unsupervised mode, blocks stopping while the in-progress spec has unchecked boxes (loop-guarded via `stop_hook_active`) |
-| `usage-guard.sh` (PostToolUse hook) | Where usage is readable, pauses at the threshold (default 80%) so you keep headroom |
+| `usage-guard.sh` (PostToolUse hook) | In unsupervised mode only, where usage is readable, pauses at the threshold (default 90%) so you keep headroom. Supervised runs to the hard limit |
 | `statusline.sh` (status line) | Shows usage and caches the official `rate_limits` data for the guard |
-| recovery heartbeat (cloud) | One recurring Routine armed by `/unsupervised on` — resumes a rate-limit kill after reset, self-deletes when done |
-| `scripts/claude-loop.sh` | **Optional** headless fallback for terminal-only/overnight runs |
+| recovery heartbeat (cloud) | One recurring Routine armed by `/auto-resume` when work is in flight — resumes a limit kill after reset, self-deletes when done; the setting persists |
+| `scripts/claude-loop.sh` | **Optional** headless auto-resume for terminal-only/overnight runs (local counterpart of the heartbeat) |
 
-**Pausing at the usage threshold** (local terminal / VS Code, where usage is readable via the statusline `rate_limits` field or the OAuth endpoint): at 80% Claude finishes the current atomic step, commits, and ends the turn; it resumes when usage recovers. **In cloud/docker, usage cannot be read** (no credentials file, no headless statusline), so there is no pre-emptive pause — the session runs into the limit and the **recovery heartbeat** resumes it after reset. Because the repo is the checkpoint, a kill costs at most the current subtask.
+**Pausing at the usage threshold** (unsupervised mode, local terminal / VS Code, where usage is readable via the statusline `rate_limits` field or the OAuth endpoint): at 90% Claude finishes the current atomic step, commits, and ends the turn; it resumes when usage recovers (automatically if `/auto-resume` is on). **In cloud/docker, usage cannot be read** (no credentials file, no headless statusline), and supervised mode has no pre-emptive pause anywhere — the session runs into the limit; if `/auto-resume` is on, the **recovery heartbeat** resumes it after reset. Because the repo is the checkpoint, a kill costs at most the current subtask.
 
-**If the session dies** (crash, hard rate limit, closed laptop): reopen it — the SessionStart hook auto-resumes from the repo (cloud does this via the heartbeat automatically). For fully unattended terminal recovery there is `./scripts/claude-loop.sh`, which restarts headless sessions that resume from the repo and exits on `## Blocked` or completion. It uses `--dangerously-skip-permissions` by default (`CLAUDE_LOOP_PERMISSIONS` to override) — trusted repos only, ideally containerized.
+**If the session dies** (crash, hard rate limit, closed laptop) and `/auto-resume` is on: in cloud the heartbeat resumes from the repo automatically; locally, reopening the session triggers the SessionStart hook, or `./scripts/claude-loop.sh` restarts headless sessions that resume from the repo and exit on `## Blocked` or completion. The loop uses `--dangerously-skip-permissions` by default (`CLAUDE_LOOP_PERMISSIONS` to override) — trusted repos only, ideally containerized. A fully-killed local process with no loop running still needs you to reopen it — that's the one environment the heartbeat can't cover.
 
 ## Languages Supported
 
@@ -191,7 +195,7 @@ templates/
 ├── gitignore/                ← per-language .gitignore templates
 ├── hooks/                    ← hooks.json (→ project .claude/settings.json) + hook scripts
 ├── memory/                   ← .gitignore for runtime memory files
-└── scripts/                  ← claude-loop.sh (unsupervised mode supervisor)
+└── scripts/                  ← claude-loop.sh (local auto-resume supervisor)
 ```
 
 ## Requirements

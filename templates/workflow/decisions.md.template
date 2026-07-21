@@ -44,5 +44,10 @@ Last updated: {{TODAY}}
 
 ## Pause threshold (unsupervised)
 - **Live in:** `.claude/memory/settings.md` (runtime; set via `/unsupervised on [threshold]`)
-- **Current:** 80 (default) where usage is readable (local/VS Code); no guard in cloud — runs into the limit, heartbeat recovers
+- **Current:** 90 (default) where usage is readable (local/VS Code); no guard in cloud or in supervised mode — runs into the limit, and `/auto-resume` (if on) recovers
 - **Options:** integer 10–99
+
+## Auto-resume (recover after a limit)
+- **Live in:** `.claude/memory/settings.md` (runtime; set via `/auto-resume on|off`) — **independent of unsupervised**
+- **Current:** off by default; when on, an interrupted run wakes itself after the limit resets and continues (cloud: recovery heartbeat; local: SessionStart/`claude-loop.sh`)
+- **Options:** `on` · `off`

@@ -58,10 +58,10 @@ Create `.claude/` directory with:
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
 │   ├── completeness-check.sh  ← Stop hook: keeps unsupervised work going
 │   ├── session-start.sh   ← shows in-progress work / auto-resume directive
-│   ├── usage-guard.sh     ← 80% usage pause for unsupervised (where usage is readable)
+│   ├── usage-guard.sh     ← 90% usage pause for unsupervised (where usage is readable)
 │   └── statusline.sh      ← status line + usage cache for the guard
 ├── agents/                ← copy all agent .md files
-├── skills/                ← copy all skill directories (each as {name}/SKILL.md)
+├── skills/                ← copy all skill directories (each as {name}/SKILL.md), incl. /auto-resume
 ├── workflow-source.json
 └── memory/
     ├── decisions.md

@@ -36,6 +36,8 @@ Run `/plan` **once with every ticket** that isn't already `ready` (skip ones alr
 
 Once these are answered (together with the ticket-list confirmation in step 0), **the user can walk away.** From here the run is fully autonomous **regardless of supervised/unsupervised mode** — steps 2–4 never ask another question.
 
+If `.claude/memory/settings.md` has `auto_resume: true` and this is a cloud session, ensure the recovery heartbeat is armed now (idempotent — see `/auto-resume`) so a limit kill anywhere in the run is recovered automatically.
+
 Record the resolved plan (ticket order + the batched answers) in **`.claude/memory/context-ship.md`** under `## Ship` — a **fixed, branch-independent** file, because a ship run spans many feature branches. This is the only orchestration state kept (per-ticket detail lives in the specs). Update it as tickets complete; delete it (or clear `## Ship`) when the whole run is done or write `## Blocked` there on a hard blocker.
 
 ### 2. Per ticket, in priority order
@@ -61,3 +63,5 @@ Blocked: {list or none}
 Released + deployed: {result / URL}
 ```
 Surface **every** deferral and blocker here — that is how out-of-scope decisions stay visible.
+
+When the run is complete (or fully `## Blocked`), clear the `## Ship` note and — if a `auto-resume: {branch}` heartbeat is armed — delete it; nothing is left to recover (the `auto_resume` setting stays on for the next run; see `/auto-resume`).

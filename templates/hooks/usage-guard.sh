@@ -7,8 +7,8 @@
 #      statusline stdin JSON (rate_limits.five_hour/.seven_day). Local terminal / VS Code.
 #   2. OAuth usage endpoint via ~/.claude/.credentials.json (where that file exists).
 # In cloud/docker neither exists (verified: no credentials file, statusline not invoked
-# headless) → the guard is a no-op and the session runs into the limit; the recovery
-# heartbeat resumes it after reset, and repo-as-checkpoint caps the loss at one subtask.
+# headless) → the guard is a no-op and the session runs into the limit; if /auto-resume is
+# on the heartbeat resumes it after reset, and repo-as-checkpoint caps the loss at one subtask.
 #
 # Modes:  (default) PostToolUse hook — exit 2 with a pause instruction when >= threshold.
 #         --status  print current usage + threshold (for /unsupervised).
@@ -20,7 +20,7 @@ MODE="${1:-hook}"
 
 get_setting() { [ -f "$SETTINGS" ] && sed -nE "s/^$1:[[:space:]]*([^[:space:]]+).*/\1/p" "$SETTINGS" | head -1; }
 UNSUP=$(get_setting unsupervised)
-THRESHOLD=$(get_setting usage_threshold); case "${THRESHOLD:-}" in ''|*[!0-9]*) THRESHOLD=80;; esac
+THRESHOLD=$(get_setting usage_threshold); case "${THRESHOLD:-}" in ''|*[!0-9]*) THRESHOLD=90;; esac
 
 num() { grep -o "\"$1\"[[:space:]]*:[[:space:]]*[0-9.]*" | head -1 | sed 's/.*:[[:space:]]*//'; }
 

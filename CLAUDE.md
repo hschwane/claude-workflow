@@ -57,7 +57,8 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/ship` | The orchestrator: spec list OR topic → plan → implement → verify → merge → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) or a `"topic"` |
 | `/resume` | Resume interrupted work by reconstructing state from the branch + spec checkboxes + git log |
 | `/consult` | Top-tier advisor: one elevated turn (best/high) with full context, then back to the session model |
-| `/unsupervised` | Toggle unsupervised mode (no questions, loop-safe) |
+| `/unsupervised` | Toggle unsupervised mode (no questions, autonomous defaults, proactive 90% pause) |
+| `/auto-resume` | Toggle auto-recovery after a limit reset (independent of unsupervised; cloud heartbeat / local loop) |
 | `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
 | `/workflow-update` | Update plugin files to a newer version |
 

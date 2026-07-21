@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# OPTIONAL headless fallback for unsupervised mode (terminals / servers with no
-# session that can stay open). Cloud sessions don't need this — they use the
-# recovery heartbeat. Interactive terminals/VS Code don't either — just leave the
-# session open; the Stop hook keeps Claude going.
+# OPTIONAL headless auto-resume for terminals / servers with no session that can
+# stay open — the LOCAL counterpart of /auto-resume (cloud uses the recovery
+# heartbeat instead; interactive terminals/VS Code can just leave the session open).
+# Works whether or not unsupervised is on — it drives `/resume` directly.
 #
 # This loop restarts a headless Claude that resumes from the REPO (branch + in-progress
-# spec + git log) via the SessionStart hook (which auto-resumes when unsupervised: true).
-# It stops when there's no in-progress work or a ## Blocked note appears.
+# spec + git log) by running `/resume` each session. It stops when there's no in-progress
+# work or a ## Blocked note appears.
 #
 # Usage:  ./scripts/claude-loop.sh [reset_wait_minutes] [max_sessions]   (defaults: 60, 20)
 # Env:    CLAUDE_LOOP_PERMISSIONS  (default: --dangerously-skip-permissions; trusted repos only)
@@ -36,7 +36,7 @@ for i in $(seq 1 "$MAX_SESSIONS"); do
     echo "$(date -u +%FT%TZ) no in-progress work — done." | tee -a "$LOG"; exit 0
   fi
   echo "$(date -u +%FT%TZ) session $i/$MAX_SESSIONS: resuming" | tee -a "$LOG"
-  # SessionStart hook sees unsupervised:true + in-progress work → auto-resume.
+  # Drive /resume directly — reconstructs state from the repo regardless of mode.
   timeout 2h claude $PERMS -p "/resume" >>"$LOG" 2>&1 || true
   # If we exited but work remains, the session likely hit the rate limit — wait for reset.
   if in_progress; then

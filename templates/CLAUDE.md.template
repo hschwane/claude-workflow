@@ -15,7 +15,8 @@
 | `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: plan → implement → verify → merge → release |
 | `/resume` | Continue interrupted work (reconstructs state from the repo) |
 | `/consult "question"` | One elevated turn (best/high) on a hard call |
-| `/unsupervised on\|off` | Toggle autonomous mode |
+| `/unsupervised on\|off` | Toggle autonomous mode (no questions + proactive 90% pause) |
+| `/auto-resume on\|off` | Toggle auto-recovery after a limit reset (independent of unsupervised) |
 | `/pr [base]` | (optional) Open a PR — only when you want external review |
 | `/workflow-decisions [setting]` | View/change a workflow setting |
 | `/workflow-update` | Update the workflow plugin |
@@ -64,6 +65,8 @@ Use these automatically when they fit — don't ask first. Anything that reads m
 | "ship a version", "build these tickets", "work toward <topic>" | `/ship` |
 | "resume / continue / I was interrupted" | `/resume` |
 | "I'm stuck", a hard architecture/security call | `/consult` |
+| "work on its own / stop asking me" | `/unsupervised on` |
+| "keep going after the limit resets", "finish it while I'm away" | `/auto-resume on` |
 | "open a PR / submit for review" | `/pr` (optional — default merges locally) |
 
 Multiple tasks in one message: work through them in order; in unsupervised mode apply autonomous defaults and don't stop between them. `/ship` is the built-in orchestrator for a full cycle.
@@ -96,7 +99,9 @@ When you need input or a decision from the user, **ask in a plain chat message a
 
 **State lives in the repo** — the branch, the in-progress spec's unchecked subtask boxes, and `git log`. There is no checkpoint file to maintain; `/resume` reconstructs from these. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
-When `unsupervised: true`: never ask the user at all (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes. A usage-guard pause (local, at threshold) → finish the atomic step, commit, end the turn — you resume when usage recovers. In cloud, the recovery heartbeat resumes a rate-limit kill automatically.
+**Two independent toggles** (both in `.claude/memory/settings.md`, never coupled):
+- **`unsupervised`** (`/unsupervised`) — *how* Claude works. When `true`: never ask the user (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes and post a short report. A usage-guard pause (local, at the threshold — default 90%) → finish the atomic step, commit, end the turn. Supervised (default) still asks questions and runs to the hard limit with no proactive pause.
+- **`auto_resume`** (`/auto-resume`) — *whether* an interrupted run wakes itself after the limit resets, in **either** mode. In cloud a recovery heartbeat (a recurring Routine bound to the session) resumes a rate-limit kill automatically; locally the SessionStart hook / `scripts/claude-loop.sh` drives `/resume` on the next start. The heartbeat is armed when multi-step work begins (`/implement`, `/ship`, `/resume`) and self-deletes when the work is done or blocked — the setting persists. In supervised mode a heartbeat-driven resume does the mechanical work and writes `## Blocked` with a question when a real decision is needed. Toggling `unsupervised` never arms or removes the heartbeat, and toggling `auto_resume` never changes whether Claude asks questions.
 
 ## Memory
 

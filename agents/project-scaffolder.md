@@ -164,7 +164,7 @@ Write to `{TARGET_DIR}/README.md`.
 
 **Copy hooks:** `{PLUGIN_SOURCE_DIR}/templates/hooks/*.sh` → `{TARGET_DIR}/.claude/hooks/`
 
-**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge the `hooks`, `statusLine`, and `permissions` keys — preserve any existing `statusLine`, and for `permissions.allow` union every template entry with the project's existing ones (add any that are absent; never remove existing allow entries). The `permissions.allow` block pre-approves the Claude Code Remote tools (recovery heartbeat, PR-subscription for optional `/pr`) so cloud unsupervised runs don't hit approval prompts.
+**Settings:** copy `{PLUGIN_SOURCE_DIR}/templates/hooks/hooks.json` → `{TARGET_DIR}/.claude/settings.json`. If `.claude/settings.json` already exists, merge the `hooks`, `statusLine`, and `permissions` keys — preserve any existing `statusLine`, and for `permissions.allow` union every template entry with the project's existing ones (add any that are absent; never remove existing allow entries). The `permissions.allow` block pre-approves the Claude Code Remote tools (`/auto-resume` recovery heartbeat, PR-subscription for optional `/pr`) so cloud auto-resume / unsupervised runs don't hit approval prompts.
 
 **workflow-source.json:**
 ```json

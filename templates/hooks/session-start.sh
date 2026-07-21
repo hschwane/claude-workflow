@@ -11,9 +11,12 @@ branch=$(git -C "$ROOT" branch --show-current 2>/dev/null | sed 's|/|-|g' || tru
 CTX="$MEM/context-${branch}.md"
 SHIP="$MEM/context-ship.md"   # /ship orchestration state — branch-independent (a ship spans many branches)
 
-# Unsupervised? (drives auto-resume vs suggest — no marker files needed)
+# Unsupervised? (drives auto-run /resume vs suggest — no marker files needed)
 UNSUP=no
 [ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=yes
+# Auto-resume? (independent of unsupervised — governs the recovery heartbeat)
+AUTORES=no
+[ -f "$MEM/settings.md" ] && grep -qi '^auto_resume:[[:space:]]*true' "$MEM/settings.md" && AUTORES=yes
 
 # A blocker always takes priority — surface it, never auto-resume past it.
 BLK=""
@@ -44,5 +47,6 @@ else
 fi
 [ -n "$INPROG" ] && echo "  spec: ${INPROG#$ROOT/}"
 [ "$HAS_SHIP" = yes ] && { echo "  ship state:"; grep -A 8 "^## Ship" "$SHIP" | head -10 || true; }
+[ "$AUTORES" = yes ] && echo "Auto-resume is ON — ensure the recovery heartbeat is armed (see /auto-resume)."
 echo "==========================="
 exit 0
