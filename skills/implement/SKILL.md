@@ -20,9 +20,7 @@ Implements a ready spec subtask by subtask: write the code and its tests togethe
 ### 0. Pre-flight
 Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` for its linked spec. If it's still in `docs/specs/backlog/`, print "Not planned yet — run /plan {id} first" and stop.
 
-Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing.
-
-**Check preferences:** read `.claude/preferences/INDEX.md` (and user-global `~/.claude/preferences/INDEX.md` if present); load any preference file whose trigger matches this ticket's tech/feature and follow it. (`/plan` already folded matching preferences into the spec; re-check here in case you're implementing without a fresh plan.)
+Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing. Any preferences that apply were already referenced + folded into the spec by `/plan` — follow the spec; if it lists applied preference files, read those and honor them.
 
 ### 1. Branch
 If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else `main`/`master`):

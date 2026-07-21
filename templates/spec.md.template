@@ -30,6 +30,9 @@ As a [user], I want [goal], so that [benefit].
 // interfaces / signatures
 ```
 
+<!-- Applied preferences: <.claude/preferences/x.md, …>   (added by /plan when a preference matched; /implement re-reads these) -->
+
+
 ## Subtasks
 <!-- Ordered; each a green-committable unit. -->
 - [ ] #1: [title] — [what]
