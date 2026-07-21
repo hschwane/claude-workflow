@@ -19,3 +19,11 @@ Standing preferences for any browser-delivered app (SPA or installable PWA).
 ## General
 - Design offline-tolerant where it's cheap: cache the shell and the last-known data, show a clear offline indicator rather than a broken screen.
 - Keep the installable manifest (name, icons, theme color, display mode) accurate — it's the app's identity on the home screen.
+
+## Local persisted client state (localStorage / IndexedDB)
+- **Version it**: store a `SETTINGS_VERSION` (and, if the shape can change in incompatible ways, a `MIN_COMPATIBLE_VERSION`) alongside the data. On load, **merge** stored values into the current defaults field-by-field rather than overwriting — new fields silently get sane defaults, no reset/data loss on upgrade.
+- **Validate on read**: run anything read back from local storage through a type guard before use; drop/ignore entries that fail validation (manual edits, corruption, an old shape) instead of crashing or propagating bad data.
+- Writes should fail silently (try/catch) on quota exhaustion — don't let a full storage quota break the app.
+
+## "Data changed on the server" signal
+- For any endpoint serving semi-static data (not just map tiles — any list/config/content that changes occasionally), have it return an **`X-Data-Version`** header (e.g. the source file's mtime) or an **ETag**. The client stores the last-seen version and shows a lightweight **"data as of … · refresh"** affordance when it differs, instead of polling or silently refetching. Keeps the UI honest about staleness without constant background traffic.
