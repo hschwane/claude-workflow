@@ -79,6 +79,8 @@ scripts/ci.sh, scripts/release.sh, scripts/claude-loop.sh
                            never remove existing ones
 ```
 
+**Preferences:** `.claude/preferences/` is **project-owned** (the user's `INDEX.md` rows + preference files) — never overwrite it. If it's **missing** (project predates this feature), create it from `{UPDATE_DIR}/templates/preferences/` (README, `INDEX.md`, example) and ensure the root `CLAUDE.md` has the one-line Preferences pointer from the new `CLAUDE.md.template`. Never edit the user's existing `INDEX.md` rows or preference files. (Refresh `README.md` — it's plugin-owned guidance.)
+
 **Never touch** (project-specific files):
 - `CLAUDE.md` — **except** the plugin-owned workflow sections, refreshed in step 5c; the title, description, `## Architecture`, and any project-authored sections are never modified
 - `CONTRIBUTING.md`
@@ -113,7 +115,7 @@ Reconcile them without disturbing the rest:
 
 1. Read the new `{UPDATE_DIR}/templates/CLAUDE.md.template` and the project's current `CLAUDE.md`.
 2. For each workflow-owned section: if the project's differs from the template's (ignoring `{{PLACEHOLDER}}` fills), **replace just that section** (match a top-level `## ` heading at column 0; replace to the next such heading — ignoring any `##` inside a fenced code block). Insert sections that are **absent** in template order; **delete** retired sections listed above.
-3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, project-authored sections. If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
+3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, and any project-authored sections. (The one-line Preferences pointer near Architecture is plugin-owned prose and may be refreshed; the user's actual preferences live in the separately-protected `.claude/preferences/`.) If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
 4. If `CLAUDE.md` changed, stage it in step 7's commit.
 
 So skills/agents mirror wholesale, decisions replay their tuned values, and CLAUDE.md's workflow sections refresh — the update reaches existing projects, not just new ones.

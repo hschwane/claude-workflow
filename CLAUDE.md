@@ -35,7 +35,8 @@ templates/                   ← files copied into projects by project-init / pr
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
   memory/                    ← .gitignore for runtime memory files
-  scripts/                   ← claude-loop.sh (unsupervised mode supervisor)
+  preferences/               ← INDEX.md + README + example: on-demand per-tech/feature preferences
+  scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```
 
 Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `hooks/hooks.json`) so the plugin itself does not activate hooks whose scripts only exist after project-init/onboard copies them into a project's `.claude/hooks/`.

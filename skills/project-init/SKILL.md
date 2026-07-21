@@ -87,6 +87,9 @@ Ask (in chat — plain message, wait for the reply):
 
 Write `docs/VISION.md` from `templates/vision.md.template`, filled with the user's answers.
 
+### 2.5 Apply global preferences
+Read the user-global preferences index `~/.claude/preferences/INDEX.md` (if it exists). For every trigger matching this project's **type, language, deploy target, or planned tech**, read that preference file and **apply it to the decisions below** (architecture, tech stack, release/deploy). After scaffolding, **copy the matching global preference files into the new project's `.claude/preferences/`** and add their rows to the project `INDEX.md`, so they persist with the project (important: `~/.claude/` is ephemeral in cloud sessions). If the folder doesn't exist, skip.
+
 ### 3. Architecture Decision
 Based on project type and language, present an opinionated recommendation. **Consider any architectural ideas or technology preferences from the design document when making the recommendation.**
 

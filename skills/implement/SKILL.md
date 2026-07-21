@@ -22,6 +22,8 @@ Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` 
 
 Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing.
 
+**Check preferences:** read `.claude/preferences/INDEX.md` (and user-global `~/.claude/preferences/INDEX.md` if present); load any preference file whose trigger matches this ticket's tech/feature and follow it. (`/plan` already folded matching preferences into the spec; re-check here in case you're implementing without a fresh plan.)
+
 ### 1. Branch
 If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else `main`/`master`):
 ```

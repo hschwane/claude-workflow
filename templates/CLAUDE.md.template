@@ -28,6 +28,8 @@ Tech stack: {{TECH_STACK}}
 
 Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (lifecycle, quality, decisions, deploy).
 
+**Preferences:** standing per-technology / per-feature preferences live in `.claude/preferences/` (this project) and, for cross-project ones, `~/.claude/preferences/` (user-global) — each indexed by an `INDEX.md` trigger→file table that is **not** auto-loaded. The workflow skills consult the index at the moments it matters (`/plan`, `/implement`, `/project-init`/`/project-onboard`) and load only the matching file. For **ad-hoc work touching a specialized area**, read `INDEX.md` yourself first. Add one by asking Claude to "remember a preference for X". (Note: `~/.claude/` is ephemeral in cloud sessions — put anything that must survive into the project's `.claude/preferences/`.)
+
 ## Models
 
 **The session runs on whatever model you picked** — the workflow never switches it. Two levers only:

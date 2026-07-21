@@ -19,6 +19,8 @@ Turns a raw draft into a spec an implementer can build from — in a single ligh
 ### 1. Gather context (once)
 Read: the draft spec(s) from `docs/specs/backlog/`, `docs/VISION.md` (if present), root `CLAUDE.md`, and `docs/dev/architecture.md` (if present). For anything touching unfamiliar code, invoke the `code-explorer` agent for a briefing (relevant files, interfaces, patterns, pitfalls) instead of reading widely yourself.
 
+**Check preferences:** read the preferences index(es) — the project's `.claude/preferences/INDEX.md` and, if present, the user-global `~/.claude/preferences/INDEX.md` (cross-project prefs like "Railway", "React"). For every trigger that matches a ticket's technology/feature, read that preference file and **fold its guidance into the spec** (acceptance criteria, approach, constraints). Load only the matching files — that's the point of the index. (Project-level wins over global on conflict.)
+
 ### 2. Write the spec
 
 For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) with:

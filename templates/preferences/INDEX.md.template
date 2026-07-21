@@ -1,0 +1,11 @@
+# Preferences index
+
+Trigger → file map for `.claude/preferences/`. Skills read THIS file (not the preference bodies) at plan / implement / scaffold time; a preference body is read only when its trigger matches the work. Keep each row to one concrete line.
+
+| When the task involves… | Read |
+|---|---|
+<!-- add rows, e.g.:
+| Railway deploy, railway.json, scale-to-zero | .claude/preferences/railway.md |
+| React components, frontend, JSX | .claude/preferences/react.md |
+| Stripe, payments, webhooks | .claude/preferences/stripe.md |
+-->

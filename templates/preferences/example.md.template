@@ -1,0 +1,14 @@
+# Example preference — DELETE or replace me
+
+This is a format example. A real preference file is short and specific — the standing rules you'd otherwise repeat every time you touch this technology/feature.
+
+Trigger (add to `.claude/preferences/INDEX.md`):
+`| Railway deploy, railway.json, scale-to-zero | .claude/preferences/railway.md |`
+
+Example content for a `railway.md`:
+
+- Prefer Railway with **scale-to-zero**, a **European region** (e.g. `europe-west4`), and the service URL prefixed with the project name.
+- `railway.json` `build.watchPatterns` must exclude `docs/`, `tests/`, `.claude/`, `.github/`, and markdown so doc/spec commits don't trigger redeploys.
+- Verify a deploy is healthy via the Railway MCP before considering a release done.
+
+Replace this file with your own preferences, and delete this example once you have real ones.
