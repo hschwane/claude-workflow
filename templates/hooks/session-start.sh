@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Surface in-progress work at session start — env-agnostic (local / cloud / docker / VS Code).
 # State lives in the REPO: an in-progress spec + its unchecked subtask boxes + git log.
-# The branch memory file is used only for ## Blocked and ## Ship (orchestration) notes.
+# The branch memory file is used only for ## Blocked, ## Ship (orchestration), and ## Working
+# (ad-hoc work with no spec) notes.
 # Stdout becomes context Claude can act on. CLAUDE.md is auto-loaded — don't reprint it.
 set -euo pipefail
 
@@ -29,12 +30,14 @@ if [ -n "$BLK" ]; then
   exit 0
 fi
 
-# In flight = an in-progress spec anywhere, OR an active /ship run.
+# In flight = an in-progress spec anywhere, OR an active /ship run, OR an ad-hoc ## Working note.
 INPROG=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/null | head -1 || true)
 HAS_SHIP=no
 [ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null && HAS_SHIP=yes
+HAS_WORKING=no
+[ -f "$CTX" ] && grep -q "^## Working" "$CTX" 2>/dev/null && HAS_WORKING=yes
 
-if [ -z "$INPROG" ] && [ "$HAS_SHIP" = no ]; then
+if [ -z "$INPROG" ] && [ "$HAS_SHIP" = no ] && [ "$HAS_WORKING" = no ]; then
   exit 0   # nothing in flight
 fi
 
@@ -47,6 +50,7 @@ else
 fi
 [ -n "$INPROG" ] && echo "  spec: ${INPROG#$ROOT/}"
 [ "$HAS_SHIP" = yes ] && { echo "  ship state:"; grep -A 8 "^## Ship" "$SHIP" | head -10 || true; }
+[ "$HAS_WORKING" = yes ] && { echo "  ad-hoc work (## Working):"; grep -A 6 "^## Working" "$CTX" | head -8 || true; }
 [ "$AUTORES" = yes ] && echo "Auto-resume is ON — ensure the recovery heartbeat is armed (see /auto-resume)."
 echo "==========================="
 exit 0

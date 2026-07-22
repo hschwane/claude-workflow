@@ -19,7 +19,8 @@ Picks up interrupted work. There is no separate checkpoint to trust — **the re
 - **Ship run?** Check the fixed **`.claude/memory/context-ship.md`** first: a `## Ship` section means a `/ship` orchestration is active — resume it from the first unfinished ticket (may need to switch branches / do a pending merge). A `## Blocked` there → surface it and stop.
 - The in-progress spec: the one with `status: in-progress` (search `docs/specs/`), or the one matching the branch id.
 - Branch blocker: `.claude/memory/context-{branch}.md` with `## Blocked` → tell the user and stop (don't work around a human-needed blocker).
-- If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs, and stop.
+- **Ad-hoc work** (no spec, no ship run): check `.claude/memory/context-{branch}.md` for a **`## Working`** note. This is the fallback checkpoint for a plain manual prompt that wasn't routed through `/implement`/`/ship` — see §3 for how to continue from it.
+- If there's no in-progress spec, no ship state, no `## Working` note, and no branch work: say "nothing in progress", list any `status: ready` specs. If a `auto-resume: {branch}` heartbeat is armed, delete it (nothing left to protect) — then stop.
 - **Auto-resume:** if `.claude/memory/settings.md` has `auto_resume: true` and there IS work to continue and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`). This is what re-arms after each firing.
 
 ### 2. Reconcile against reality (git wins)
@@ -30,5 +31,7 @@ Resume at the **first unchecked subtask** (or the current phase): keep implement
 
 Any short-lived agent that was mid-run when the session died (a `runner` or `smoke-tester`) simply gets re-run — they're idempotent, there's nothing to recover.
 
+**Continuing from a `## Working` note (ad-hoc work, no spec):** this is inherently fuzzier than resuming a spec — there are no acceptance criteria or checkboxes, just the note's description plus whatever the repo shows. Read the note, then `git status`/`git diff`/`git log` on this branch since it was written to see what's actually landed. If that's enough to confidently know what's left, continue it. **If it isn't** — the note is vague, or describes non-repo work (answering a question, analysis) with no file changes to pick up from — **don't guess**: either write `## Blocked` with what's unclear and stop, or if there's genuinely nothing resumable (a conversation, not a task with an artifact), say so plainly in the note and stop rather than fabricating continuation. This is a known, honest limit of ad-hoc recovery — it does not have the guardrails a spec gives it.
+
 ### 4. When done
-Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, delete it now — nothing left to recover (the `auto_resume` setting stays on; see `/auto-resume`).
+Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked`/`## Working` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, delete it now — nothing left to recover (the `auto_resume` setting stays on; see `/auto-resume`).
