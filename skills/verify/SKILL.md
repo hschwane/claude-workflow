@@ -36,7 +36,13 @@ Escalate **only for genuinely critical changes** (security-sensitive, structural
 - **Not implemented / stubbed / "deferred" / silently narrowed → verify FAILS.** This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it.
 - Implemented and clearly correct but genuinely impossible to demonstrate by test or smoke (rare) → note it explicitly with why.
 
-**Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Each step = an action + its **expected observable result**, derived from the criteria. Breadth is the automated tests' job; don't re-test everything here.
+**Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Breadth is the automated tests' job; don't re-test everything here.
+
+**Each step must be a concrete, executable test case — not a goal.** The agent is blackbox: it never sees the spec, the criteria, or the code, so anything you leave implicit is simply lost, and a vague step comes back as "could not complete" (or a false pass). Every step needs:
+- an **exact action** with the **literal inputs** — the precise URL/route or command, the exact values to type, which control to click by its visible label, the test credentials to use. Not "log in" but "open `http://localhost:3000/login`, type `test@example.com` / `pw123`, click **Sign in**".
+- an **exact, observable expected result** — a specific visible string, element, route, status code, or output. Not "it works" or "the dashboard loads" but "lands on `/dashboard` and shows the text **Welcome, test**". If a human couldn't tell pass from fail by reading your step, the agent can't either.
+
+Derive these concretes from the acceptance criteria yourself (that's your job as the sighted caller); hand the agent only the resolved, unambiguous steps.
 
 **You (the main session) prepare the environment — the smoke-tester never sets anything up.** Bring up the app on a **local/test instance with test data — never production**, run any needed migrations/seeds yourself, and confirm it's reachable. If it genuinely can't run locally (needs cloud services/hardware), do not skip: agree a project-specific strategy with the user (debug/staging deploy) and record it in `deploy.md`. In unsupervised mode with no such strategy on record, note it as a blocker rather than testing against prod. Use a throwaway/test database, not a dev DB you care about.
 

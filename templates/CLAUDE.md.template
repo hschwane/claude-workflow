@@ -46,7 +46,7 @@ Use these automatically when they fit — don't ask first. Anything that reads m
 |-------|----------|
 | `code-explorer` (Haiku) | Any codebase question needing >3-4 files, or "where is X?" — prefer it over the built-in Explore; it reads this project's docs to orient itself |
 | `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes/judges |
-| `smoke-tester` (Sonnet/low) | Manually exercise a running app from explicit prose steps (blackbox — no spec/code) — reports failing steps only. Reach for it whenever a manual check is worth it: verifying a spec at feature-done, a pre-PR sanity pass, or confirming any user-facing change works for real — not only in `/verify` |
+| `smoke-tester` (Sonnet/low) | Manually exercise a running app from explicit prose steps (blackbox — no spec/code) — reports failing steps only. Reach for it whenever a manual check is worth it: verifying a spec at feature-done, a pre-PR sanity pass, or confirming any user-facing change works for real — not only in `/verify`. **It can't see the spec or code, so hand it concrete, executable steps** — exact action + literal inputs (URL, values, control label, test creds) and an exact observable expected result; a vague step comes back as "could not complete" |
 | `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
 
 **A subagent can fail — never proceed on a missing result.** Just re-run it (the agents are idempotent — they run a script or drive the app; nothing to recover). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).

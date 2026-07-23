@@ -27,7 +27,7 @@ The default flow **merges locally** with plain git (see the Merge policy in `CLA
 ### 3. Review
 - **Default: rely on the local `/verify` already done** — self-review + smoke happened there.
 - For a genuinely critical change, spawn the `reviewer` agent (best/high) on `git diff origin/{base}...HEAD`, or `/consult` a specific concern. Address `[MUST FIX]` findings, push, re-verify. `[CONSIDER]`/`[ADR NEEDED]` are report-only.
-- If the PR carries **user-facing behavior that no smoke test exercised** (e.g. `/verify` ran but the change is worth showing a reviewer working), it's worth a quick blackbox pass: bring up a local/test instance and hand the `smoke-tester` a few steps, so the PR body can state it was manually confirmed. Skip for pure internal/refactor changes already covered by the gate.
+- If the PR carries **user-facing behavior that no smoke test exercised** (e.g. `/verify` ran but the change is worth showing a reviewer working), it's worth a quick blackbox pass: bring up a local/test instance and hand the `smoke-tester` a few **concrete, executable steps** (exact action + literal inputs + exact observable expected result — it can't see the spec/code), so the PR body can state it was manually confirmed. Skip for pure internal/refactor changes already covered by the gate.
 
 ### 4. CI (only if it actually runs)
 Claude's commits carry `[skip ci]`, so **CI usually does not run on this PR** — don't wait for checks that will never report (a skipped required check sits Pending forever). Only when the project is `ci-on-claude: yes` **and** CI is running: arm `subscribe_pr_activity` once and end the turn; act on failures when the webhook wakes you. Never sleep-poll `gh pr checks`.
