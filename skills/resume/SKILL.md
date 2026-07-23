@@ -19,7 +19,7 @@ Picks up interrupted work. There is no separate checkpoint to trust — **the re
 - **Ship run?** Check the fixed **`.claude/memory/context-ship.md`** first: a `## Ship` section means a `/ship` orchestration is active — resume it from the first unfinished ticket (may need to switch branches / do a pending merge). A `## Blocked` there → surface it and stop.
 - The in-progress spec: the one with `status: in-progress` (search `docs/specs/`), or the one matching the branch id.
 - Branch blocker: `.claude/memory/context-{branch}.md` with `## Blocked` → tell the user and stop (don't work around a human-needed blocker).
-- If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs. If a `auto-resume: {branch}` heartbeat is armed, delete it (nothing left to protect) — then stop.
+- If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs. If a `auto-resume: {branch}` heartbeat is armed, tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`) — nothing left to protect — then stop.
 - **Auto-resume:** if `.claude/memory/settings.md` has `auto_resume: true` and there IS work to continue and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`). This is what re-arms after each firing.
 
 ### 2. Reconcile against reality (git wins)
@@ -31,4 +31,4 @@ Resume at the **first unchecked subtask** (or the current phase): keep implement
 Any short-lived agent that was mid-run when the session died (a `runner` or `smoke-tester`) simply gets re-run — they're idempotent, there's nothing to recover.
 
 ### 4. When done
-Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, delete it now — nothing left to recover (the `auto_resume` setting stays on; see `/auto-resume`).
+Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, tear it down now — delete the Routine and clear `recovery_trigger:` (per `/auto-resume`); nothing left to recover, and the `auto_resume` setting stays on so the next prompt re-arms.

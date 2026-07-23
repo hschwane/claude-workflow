@@ -143,17 +143,18 @@ Two toggles govern autonomous work — independent, **except that unsupervised i
 
 **State is the repo — there is no checkpoint file to maintain.** The branch names the ticket, the in-progress spec's unchecked subtask boxes name the remaining work, and `git log` is the record of what landed. `/resume` reconstructs from these (git wins on disagreement), so it behaves identically in local, cloud, docker, and VS Code sessions. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
 
-There's deliberately **no per-prompt reminder or scratch-note machinery** for plain manual prompts. Because the heartbeat resumes the *same* session, a limit reset doesn't lose what Claude was doing — the chat history carries it. So a raw "do X" prompt isn't separately checkpointed; if you want a long ad-hoc run to survive even a *fresh* session, route it through `/ship` or `/unsupervised` so it's spec-tracked (and thus recoverable from the repo).
+Because the heartbeat only needs to **wake** the session (not preserve state — the chat history carries that), there's no scratch-note machinery. Arming is handled **script-side** for any work, including free chat: the `auto-resume-guard.sh` `UserPromptSubmit` hook checks, on each prompt, whether `auto_resume` is on and no heartbeat is armed yet — and only then nudges the agent to arm it (one idempotent `create_trigger`; a hook can't call MCP itself). Once armed it's silent for the rest of the session, so there's no per-prompt cost. When the heartbeat later fires and the context shows the work is already finished, the agent deletes it (so you aren't woken needlessly); if work remains it continues and the heartbeat stays armed.
 
 The moving parts:
 
 | Piece | Role |
 |-------|------|
 | `session-start.sh` (SessionStart hook) | Detects an in-progress spec / `## Ship`; in unsupervised mode emits an AUTO-RESUME directive, else suggests `/resume` |
+| `auto-resume-guard.sh` (UserPromptSubmit hook) | While `auto_resume` is on in a cloud session and no heartbeat is armed, nudges the agent to arm it (once); silent once armed |
 | `completeness-check.sh` (Stop hook) | In unsupervised mode, blocks stopping while the in-progress spec has unchecked boxes (loop-guarded via `stop_hook_active`) |
 | `usage-guard.sh` (PostToolUse hook) | In unsupervised mode only, where usage is readable, pauses at the threshold (default 90%) so you keep headroom. Supervised runs to the hard limit |
 | `statusline.sh` (status line) | Shows usage and caches the official `rate_limits` data for the guard |
-| recovery heartbeat (cloud) | One recurring Routine armed when multi-step work begins (`/implement`, `/ship`, `/resume`, `/unsupervised on`) — wakes a limit-stalled session after reset, self-deletes when done; the setting persists |
+| recovery heartbeat (cloud) | One recurring Routine armed whenever work is underway (via the hook, or `/implement`/`/ship`/`/resume`/`/unsupervised on`) — wakes a limit-stalled session after reset, self-deletes the first time it fires with nothing left to do; the setting persists |
 | `scripts/claude-loop.sh` | **Optional** headless auto-resume for terminal-only/overnight runs (local counterpart of the heartbeat) |
 
 **Pausing at the usage threshold** (unsupervised mode, local terminal / VS Code, where usage is readable via the statusline `rate_limits` field or the OAuth endpoint): at 90% Claude finishes the current atomic step, commits, and ends the turn; it resumes when usage recovers (automatically if `/auto-resume` is on). **In cloud/docker, usage cannot be read** (no credentials file, no headless statusline), and supervised mode has no pre-emptive pause anywhere — the session runs into the limit; if `/auto-resume` is on, the **recovery heartbeat** resumes it after reset. Because the repo is the checkpoint, a kill costs at most the current subtask.

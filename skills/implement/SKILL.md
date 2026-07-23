@@ -56,7 +56,7 @@ Append `[skip ci]` **unless** the project's `ci-on-claude` decision is `yes` (li
 
 **Implement every subtask — do not scope out the hard ones.** The spec's subtasks and acceptance criteria are the contract; a ticket is not done until they are all met. When a subtask turns out difficult, large, or messier than expected, that is **not** a reason to defer it, stub it, mark it "out of scope for later", or quietly narrow what you build — that is exactly the work. Do it fully; `/consult` if you're stuck; if it genuinely needs a human decision or a missing credential, write `## Blocked` (reason + what's required) and stop. Never trade "done" for "done except the hard/core part."
 
-**If you get genuinely stuck** (same failure twice, or an architecture/security call): `/consult` before grinding. If it needs a human, write `## Blocked` to `.claude/memory/context-{branch}.md` (reason + what's required) and stop — and if a `auto-resume: {branch}` heartbeat is armed, delete it (a human is needed now; the `auto_resume` setting stays on — see `/auto-resume`).
+**If you get genuinely stuck** (same failure twice, or an architecture/security call): `/consult` before grinding. If it needs a human, write `## Blocked` to `.claude/memory/context-{branch}.md` (reason + what's required) and stop — and if a `auto-resume: {branch}` heartbeat is armed, tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`); a human is needed now, and the `auto_resume` setting stays on.
 
 ### 3. Feature done → verify
 
@@ -76,7 +76,7 @@ Commit with `[skip ci]` per the same rule as 2d.
 - If `github_issue` set and integration is on: comment "✅ implemented on `{branch}`".
 - Commit (`docs(specs): complete {id}  [skip ci]`).
 - If a `## Blocked` note was written for this branch, clear it.
-- If this was a standalone `/implement` (no active `## Ship` run) and no other spec is in-progress, and a `auto-resume: {branch}` heartbeat is armed, delete it — the work is done (the `auto_resume` setting stays on for next time; see `/auto-resume`). Inside a `/ship` run, leave it; `/ship` tears it down when the whole run finishes.
+- If this was a standalone `/implement` (no active `## Ship` run) and no other spec is in-progress, and a `auto-resume: {branch}` heartbeat is armed, tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`) — the work is done; the `auto_resume` setting stays on so the next prompt re-arms. Inside a `/ship` run, leave it; `/ship` tears it down when the whole run finishes.
 
 Merging is a separate step — the caller (`/ship`) or the user handles it per the **Merge policy** (local git, no formal PR by default). Report:
 ```

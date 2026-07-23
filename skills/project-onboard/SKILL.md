@@ -52,12 +52,13 @@ Ask (in chat — plain message, wait for the reply):
 Create `.claude/` directory with:
 ```
 .claude/
-├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine`/`permissions` keys if settings.json exists; keep an existing statusLine; union `permissions.allow` — add any template entries that are absent, never remove existing ones)
+├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine`/`permissions` keys if settings.json exists — including adding a hook EVENT TYPE the project lacks, e.g. `UserPromptSubmit`, not just entries under existing ones; keep an existing statusLine; union `permissions.allow` — add any template entries that are absent, never remove existing ones)
 ├── hooks/
 │   ├── auto-format.sh     ← parses stdin JSON, formats by language
 │   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
 │   ├── completeness-check.sh  ← Stop hook: keeps unsupervised work going
 │   ├── session-start.sh   ← shows in-progress work / auto-resume directive
+│   ├── auto-resume-guard.sh  ← UserPromptSubmit hook: arms the recovery heartbeat when auto_resume is on (cloud)
 │   ├── usage-guard.sh     ← 90% usage pause for unsupervised (where usage is readable)
 │   └── statusline.sh      ← status line + usage cache for the guard
 ├── agents/                ← copy all agent .md files

@@ -64,4 +64,4 @@ Released + deployed: {result / URL}
 ```
 Surface **every** deferral and blocker here — that is how out-of-scope decisions stay visible.
 
-When the run is complete (or fully `## Blocked`), clear the `## Ship` note and — if a `auto-resume: {branch}` heartbeat is armed — delete it; nothing is left to recover (the `auto_resume` setting stays on for the next run; see `/auto-resume`).
+When the run is complete (or fully `## Blocked`), clear the `## Ship` note and — if a `auto-resume: {branch}` heartbeat is armed — tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`); nothing is left to recover, and the `auto_resume` setting stays on for the next run.
