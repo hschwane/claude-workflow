@@ -80,7 +80,7 @@ Five isolated subagents — each runs in its own context window so heavy reading
 |-------|------|---------|
 | `code-explorer` (haiku) | Project-aware scout: orients via the project's own docs, then reads many files and returns a condensed briefing with `file:line` refs | `/plan`, `/project-onboard`, ad-hoc |
 | `runner` (haiku) | Executes a predefined entrypoint (`ci.sh fast/full`, `release.sh`, a named command), digests output → pass/fail + key lines. Never fixes/judges | `/commit`, `/implement`, `/verify`, `/release` |
-| `smoke-tester` (haiku/high) | Drives a running app from explicit prose steps (blackbox — no spec/code), reports failing steps only. Doubles as a novice-usability check | `/verify` (new features) |
+| `smoke-tester` (sonnet/low) | Drives a running app from explicit prose steps (blackbox — no spec/code), reports failing steps only. Doubles as a novice-usability check. Used proactively wherever a manual check is warranted | `/verify`, `/pr`, ad-hoc |
 | `reviewer` (best/high) | Fresh-eyes read-only review of a critical diff — correctness, security, quality, architecture in one pass | `/verify`/`/pr`, critical diffs only |
 | `project-scaffolder` (haiku) | Mechanical file creation after design decisions: directories, configs, canonical scripts, CI, docs, initial commit | `/project-init` |
 
@@ -88,9 +88,10 @@ Five isolated subagents — each runs in its own context window so heavy reading
 
 ### Models
 
-**The session runs on whatever model you picked — the workflow never switches it.** No per-ticket tiers, no route skills, no mid-flow model changes (which would invalidate the prompt cache). Just two levers:
+**The session runs on whatever model you picked — the workflow never switches it.** No per-ticket tiers, no route skills, no mid-flow model changes (which would invalidate the prompt cache). A few fixed-tier subagents only:
 
-- **Haiku subagents** do the mechanical, high-IO work — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `smoke-tester` (drives the app → failures only), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
+- **Haiku subagents** do the mechanical, high-IO work — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
+- **`smoke-tester` (Sonnet, low effort)** drives the running app from prose steps and reports failures only — one notch up from the mechanical agents because judging a live UI against "what the step said should happen" needs a little more reasoning. Used proactively wherever a manual check is worth it, not only at feature-done.
 - **`/consult` (best model, high effort)** for a hard call — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, read-only, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
 `best` resolves to Fable when available, else the latest Opus.

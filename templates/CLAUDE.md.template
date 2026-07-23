@@ -33,8 +33,9 @@ Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (
 
 ## Models
 
-**The session runs on whatever model you picked** — the workflow never switches it. Two levers only:
-- **Haiku subagents do mechanical, high-IO work** — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `smoke-tester` (drives the app from prose steps → failures only). They keep bulk output off your session model; judgment stays in the main session.
+**The session runs on whatever model you picked** — the workflow never switches it. A few fixed-tier subagents only:
+- **Haiku subagents do mechanical, high-IO work** — `code-explorer` (reads the codebase → digest) and `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines). They keep bulk output off your session model; judgment stays in the main session.
+- **`smoke-tester` (Sonnet, low effort)** drives the running app from prose steps and reports failures only — a notch above the mechanical agents because reading a live UI and judging "did this step actually do what it said?" needs a bit more reasoning. Use it proactively, not just at feature-done (see Agents).
 - **`/consult` (best/high) for a hard call** — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
 ## Agents — delegate proactively
@@ -45,7 +46,7 @@ Use these automatically when they fit — don't ask first. Anything that reads m
 |-------|----------|
 | `code-explorer` (Haiku) | Any codebase question needing >3-4 files, or "where is X?" — prefer it over the built-in Explore; it reads this project's docs to orient itself |
 | `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes/judges |
-| `smoke-tester` (Haiku) | Manually exercise a running feature from explicit prose steps (blackbox — no spec/code) — reports failing steps only |
+| `smoke-tester` (Sonnet/low) | Manually exercise a running app from explicit prose steps (blackbox — no spec/code) — reports failing steps only. Reach for it whenever a manual check is worth it: verifying a spec at feature-done, a pre-PR sanity pass, or confirming any user-facing change works for real — not only in `/verify` |
 | `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
 
 **A subagent can fail — never proceed on a missing result.** Just re-run it (the agents are idempotent — they run a script or drive the app; nothing to recover). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).

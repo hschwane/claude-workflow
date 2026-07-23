@@ -64,15 +64,15 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 ## Agents
 
-All agents are subagents — each runs in its own isolated context. Four of five are Haiku (mechanical, high-IO); the `reviewer` is best/high, read-only.
+All agents are subagents — each runs in its own isolated context. Three are Haiku (mechanical, high-IO); `smoke-tester` is Sonnet/low; the `reviewer` is best/high, read-only.
 
-Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents (`code-explorer`, `runner`, `smoke-tester`, `project-scaffolder`) do mechanical high-IO work to keep bulk output off the session model; `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
+Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents (`code-explorer`, `runner`, `project-scaffolder`) do mechanical high-IO work to keep bulk output off the session model. `smoke-tester` runs on Sonnet at low effort — one notch up, because driving a live app and judging each step against its expected result needs a bit more reasoning than pure mechanical IO; it's meant to be used proactively whenever a manual check is worthwhile, not only in `/verify`. `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
 
 | Agent | When used |
 |-------|-----------|
 | `code-explorer` (haiku) | During `/plan`, `/project-onboard`, ad-hoc — project-aware scout; condensed codebase briefings |
 | `runner` (haiku) | During `/commit`, `/implement`, `/verify`, `/release` — runs a canonical entrypoint (`ci.sh`/`release.sh`), digests output |
-| `smoke-tester` (haiku) | During `/verify` — drives the app from prose steps (blackbox), reports failing steps |
+| `smoke-tester` (sonnet/low) | During `/verify`, `/pr`, or ad-hoc — drives the app from prose steps (blackbox), reports failing steps; used proactively whenever a manual check is warranted |
 | `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review |
 | `project-scaffolder` (haiku) | During `/project-init` — mechanical file creation, template copying, initial commit |
 
