@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Stop hook: in unsupervised mode, keep Claude working until the task is done.
-# State is the repo: an in-progress spec with unchecked subtask boxes, a ## Ship run, or an
-# ad-hoc ## Working note (no spec) = work remains.
+# State is the repo: an in-progress spec with unchecked subtask boxes = work remains.
 #   Normal mode:       informational reminder (non-blocking).
 #   Unsupervised mode: block the stop so Claude continues — unless work is complete,
 #                      a blocker is recorded, or this stop was itself hook-triggered.
@@ -17,17 +16,15 @@ SHIP="$MEM/context-ship.md"   # /ship state — branch-independent
 { [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; } && exit 0
 { [ -f "$SHIP" ] && grep -q "^## Blocked" "$SHIP" 2>/dev/null; } && exit 0
 
-# What's in flight: the in-progress spec (and whether it has unchecked boxes), a ## Ship run,
-# or an ad-hoc ## Working note (a plain manual prompt with no spec).
+# What's in flight: the in-progress spec (and whether it has unchecked boxes), or a ## Ship run.
 SPEC=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/null | head -1 || true)
 HAS_SHIP=no; { [ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null; } && HAS_SHIP=yes
-HAS_WORKING=no; { [ -f "$CTX" ] && grep -q "^## Working" "$CTX" 2>/dev/null; } && HAS_WORKING=yes
 UNCHECKED=0
 # grep -c prints 0 AND exits 1 on no match; `|| true` swallows the exit so we don't get "0\n0".
 [ -n "$SPEC" ] && UNCHECKED=$(grep -c "^- \[ \]" "$SPEC" 2>/dev/null || true)
 
 # Nothing in progress → allow stop.
-[ -z "$SPEC" ] && [ "$HAS_SHIP" = no ] && [ "$HAS_WORKING" = no ] && exit 0
+[ -z "$SPEC" ] && [ "$HAS_SHIP" = no ] && exit 0
 
 # Loop guard: don't block a stop that a Stop hook already caused.
 if command -v jq >/dev/null 2>&1; then
@@ -40,13 +37,7 @@ UNSUP=false
 [ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=true
 
 if [ "$UNSUP" = true ] && [ "$STOP_ACTIVE" != true ]; then
-  if [ -n "$SPEC" ]; then
-    REASON="Unsupervised mode: work is still in progress ($UNCHECKED unchecked subtask(s) in ${SPEC#$ROOT/}). Continue with /implement or /ship. If genuinely blocked, write a ## Blocked section to the branch context file. If everything is done, finish the spec (move it to completed/) and clear any ## Ship note. If the usage-guard asked you to pause, stop cleanly — you will resume automatically."
-  elif [ "$HAS_WORKING" = yes ]; then
-    REASON="Unsupervised mode: an ad-hoc ## Working note is still open in ${CTX#$ROOT/} (no spec tracks this task). Finish it, or if genuinely blocked write ## Blocked instead. If it's actually done, clear the ## Working note. If the usage-guard asked you to pause, stop cleanly — you will resume automatically."
-  else
-    REASON="Unsupervised mode: a ## Ship run is still in progress. Continue it, or write ## Blocked if genuinely stuck."
-  fi
+  REASON="Unsupervised mode: work is still in progress ($UNCHECKED unchecked subtask(s) in ${SPEC#$ROOT/}). Continue with /implement or /ship. If genuinely blocked, write a ## Blocked section to the branch context file. If everything is done, finish the spec (move it to completed/) and clear any ## Ship note. If the usage-guard asked you to pause, stop cleanly — you will resume automatically."
   if command -v jq >/dev/null 2>&1; then
     jq -n --arg r "$REASON" '{decision:"block", reason:$r}'
   else
@@ -58,6 +49,5 @@ fi
 
 # Informational only.
 echo ""
-[ -n "$SPEC" ] && echo "⚠  In-progress work: ${SPEC#$ROOT/} ($UNCHECKED unchecked subtask(s)). Resume with /resume."
-[ "$HAS_WORKING" = yes ] && echo "⚠  Ad-hoc work still open (## Working in ${CTX#$ROOT/}). Resume with /resume."
+echo "⚠  In-progress work: ${SPEC#$ROOT/} ($UNCHECKED unchecked subtask(s)). Resume with /resume."
 exit 0
