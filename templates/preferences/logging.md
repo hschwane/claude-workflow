@@ -3,8 +3,7 @@
 Standing preferences for logging. **Mandatory for anything beyond a small script** — any backend/service, long-running or not. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
 
 ## Typed, catalogued events (not free-text channels)
-- Log through **one typed interface** backed by a closed union of named event types, rather than ad hoc `log.info("some string")` calls scattered around. Adding a new kind of log line means adding a new event type, not inventing a new string format — keeps log output structured and greppable/queryable.
-- A full compile-time enum is the strongest version of this; a **consistently-namespaced free-text event string** (`"ai_job_start"`, `"backup_upload_error"`, …) through that same one interface is an acceptable lighter-weight fallback for a smaller project — the point is one disciplined convention, not necessarily a compiler-checked one. (This is what `cshop` actually does today.)
+- Log through **one typed interface** backed by a closed union of named event types, rather than ad hoc `log.info("some string")` calls scattered around. Adding a new kind of log line means adding a new event type, not inventing a new string format — keeps log output structured and greppable/queryable. (`cshop` uses free-text namespaced strings instead of a closed union today — that's a gap to close there, not license to skip the enum elsewhere.)
 
 ## Redact automatically, not ad hoc
 - Redact PII/secrets **at the logger boundary**, recursively (nested objects too) — not by remembering to scrub each call site. A logger that can leak a token because one call site forgot to redact is a logger that will eventually leak a token.

@@ -21,6 +21,8 @@ Read: the draft spec(s) from `docs/specs/backlog/`, `docs/VISION.md` (if present
 
 **Check preferences:** read the preferences index(es) — the project's `.claude/preferences/INDEX.md` and, if present, the user-global `~/.claude/preferences/INDEX.md` (cross-project prefs like "Railway", "React"). For every trigger that matches a ticket's technology/feature, read that preference file. **Treat it as a recommendation, not a rule to apply blindly** — judge it against this project's actual scale, constraints, and existing patterns. Adapt what fits to the acceptance criteria / approach / constraints; for any part (or all of it) that genuinely doesn't fit, deliberately reject it with a reason rather than forcing it in. Either way, **reference the outcome in the spec** — an `Applied preferences:` line listing the file(s), with a short note on anything adapted or rejected and why (e.g. `.claude/preferences/background-jobs.md — adapted: always-on deploy here, so no scale-to-zero wakeup path needed`, or `.claude/preferences/service-architecture.md — rejected: single 150-line script, full layering would be overkill`). Load only the matching files — that's the point of the index. (Project-level wins over global on conflict.) If no preference matches, add nothing.
 
+If instead the **user or the ticket's explicit requirements** call for something that conflicts with a matching preference (not Claude's own scale/fit judgment), follow the explicit instruction — the user outranks the preference — but **say so plainly in chat**, naming the preference and noting the conflict, not just in the spec's `Applied preferences:` line.
+
 ### 2. Write the spec
 
 For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) with:

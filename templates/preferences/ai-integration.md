@@ -23,8 +23,8 @@ Standing preferences for any app that integrates AI features. Referenced prior a
 ## Usage transparency (required)
 - Show **usage-limit and token-consumption** prominently in the app's menu — styled the way Claude Code itself shows it (a persistent, glanceable indicator, not buried in a settings sub-page).
 
-## AI transcripts (required for multi-step/agentic features; recommended elsewhere)
-- The user (and Claude, for debugging/testing) must be able to inspect what the AI actually did. This matters most for **agentic, multi-step** features (a workflow chaining several tool calls) — confirmed in `cshop`'s "AI Activity Feed". A **single-shot** call (e.g. "estimate this field") can get by with just the working indicator below plus a structured log entry (`logging.md`) instead of a full transcript UI — `octofood` does exactly that and has no transcript viewer.
+## AI transcripts (required)
+- The user (and Claude, for debugging/testing) must be able to inspect what the AI actually did — for every AI feature, not just multi-step ones. `cshop`'s "AI Activity Feed" is the reference implementation; `octofood`'s AI calls have no transcript viewer at all today — that's a gap in `octofood` to close, not a reason to treat transcripts as optional for simpler/single-shot calls.
   - For **chat-style** AI features, the transcript is a standard, always-visible part of that UI.
   - For **non-chat, workflow-style** AI features, provide a **separate window/popup** where the running (and just-completed) AI workflow can be watched step by step — available while it runs, and at minimum until the user navigates away.
 - **Style transcripts like the Claude Code app:** collapsed, summarizing headers for each tool call, each thinking phase, and each output block; each expandable, with a popup available for a tool call's full input/output when the summary isn't enough.
