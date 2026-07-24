@@ -47,3 +47,9 @@ Every API surface carries a token unless it's deliberately public:
 
 ## Logging is mandatory
 Structured logging applies to any backend or service — see `logging.md` for the how. Not optional here, only the level of ceremony scales with size.
+
+## Injectable side effects
+- Not just repositories — any external effect a unit test shouldn't touch (the clock, the filesystem, timers, an SDK's call function) is passed in as an optional parameter defaulting to the real implementation. Tests supply a fake; production code never has to change.
+
+## Non-critical side-channels never block the primary path
+- Instrumentation that isn't the point of the request (usage recording, a backup upload, an analytics ping) is wrapped so it can never fail or delay the primary response — catch, log, move on. A user action shouldn't fail because a side-channel write did.

@@ -16,7 +16,9 @@ Read this **in full** when a UI is first being created, or when a project's very
 - Claude then **reviews the built UI against the mockup itself**, iterating — adjust, compare, adjust again — until the built UI matches the mockup as closely as practical.
 
 ## Capture the system
-- Once the mockup/first real design pass is done, write down the **reusable components, design variables (colors, spacing, type scale), and the ground rules** for views that get added later — this becomes the project's own condensed design-guidelines doc (see "When to read this file" above). Later UI work reads that doc, not this one.
+- Once the mockup/first real design pass is done, write down the **reusable components, design variables (colors, spacing, type scale), and the ground rules** for views that get added later — this becomes the project's own condensed design-guidelines doc (see "When to read this file" above). Later UI work reads that doc, not this one — confirmed practice in `octofood`, where every UI ticket is expected to consult its `docs/design/design-system.md`.
+- Keep the **mockup file itself** (e.g. a standalone `prototype.html`) alongside that condensed doc as the literal source of truth for exact layout/behavior — the doc records the *decisions*, the mockup file is what to check when a detail is ambiguous.
+- **Enforce it with tooling where practical**, not just documentation: a lint rule blocking raw hex colors / non-semantic values outside the token file, an import restriction limiting an icon library to one mapping module, etc. — a rule that's only written down drifts; a rule the linter checks doesn't.
 
 ## General design & accessibility
 - Follow ordinary design sense and **baseline accessibility** (contrast, focus states, semantic markup, keyboard reachability) — but **don't over-engineer it**, especially for an app with a single user. Match the effort to who's actually going to use it.

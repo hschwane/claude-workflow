@@ -26,6 +26,10 @@ Standing preferences for any browser-delivered app (SPA or installable PWA).
 ## Access control for private single-user apps (required)
 An app built for personal/single-user use, deployed somewhere internet-reachable, gets a **password gate by default**. Without it, the API surface is open to anyone who finds the URL — and strangers hitting it costs real money (bandwidth, scale-to-zero wake-ups, compute), not just a theoretical risk. Put the password in a **deployment env var** so it can be switched off explicitly (e.g. a local/offline deployment that was never internet-reachable in the first place doesn't need the gate).
 
+**Implementation shape** (seen in production in `cshop`): gate the **API routes only**, not the static shell — the app's own login view still needs to load publicly. Support two auth paths so both a browser and a script can get in: a signed **session cookie** issued on login, and a stateless **Bearer-token** header for scripts/smoke-tests (this is what lets Claude keep smoke-testing a gated app — see `app-baseline.md`). Compare the secret in **constant time**, rate-limit failed attempts per IP, and require a CSRF check on cookie-authorized state-changing requests.
+
+**Tie it to AI spend risk:** if the app also integrates a metered AI engine (see `ai-integration.md`), refuse to start when that engine is selected with no access gate configured — fail loud at boot instead of silently exposing a billable endpoint. Give the operator an explicit override env var for the rare case they genuinely want it open.
+
 ## Local persisted client state (localStorage / IndexedDB)
 - **Version it**: store a `SETTINGS_VERSION` (and, if the shape can change in incompatible ways, a `MIN_COMPATIBLE_VERSION`) alongside the data. On load, **merge** stored values into the current defaults field-by-field rather than overwriting — new fields silently get sane defaults, no reset/data loss on upgrade.
 - **Validate on read**: run anything read back from local storage through a type guard before use; drop/ignore entries that fail validation (manual edits, corruption, an old shape) instead of crashing or propagating bad data.

@@ -8,6 +8,7 @@ Standing preferences that apply whenever this project deploys on Railway. (Railw
 - **Service URL prefixed with the project name** (e.g. `<project>.up.railway.app` — choose the subdomain when generating the domain).
 - **`railway.json` `build.watchPatterns`** must exclude `docs/`, `tests/`, `.claude/`, `.github/`, and markdown, so the workflow's constant docs/spec commits don't trigger redeploys. If the app *serves* files from those paths at runtime, drop the matching `!` line and note the exception here.
 - After deploy, **verify health via the Railway MCP** (or the healthcheck endpoint) before considering a release done.
+- **Database migrations run in the `start` command, not `pre_deploy_command`** — Railway's pre-deploy step runs in an ephemeral container without volumes mounted, so a migration touching a volume-backed DB (e.g. SQLite on a volume) silently no-ops or fails there. Run migrations as the first step of the actual start script instead.
 
 ## Portability — Railway-specifics behind an interface (required)
 Any Railway-specific capability — the Railway API/SDK, platform env vars, volumes, private networking, or platform quirks — **must be used only behind a project-defined interface/abstraction**, never sprinkled through the codebase. The rest of the app depends on that interface, not on Railway.
