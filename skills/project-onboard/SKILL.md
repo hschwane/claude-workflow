@@ -23,7 +23,16 @@ Analyzes an existing project and installs the claude-workflow infrastructure wit
 - These are only relevant for the language detected in step 1. If the runtime for the project's primary language is missing, print a clear warning (e.g. "⚠ python not found — Python lint/type-check gates in /commit will be skipped until it's installed") and continue. A Rust/C++/other project that needs neither is fine.
 
 ### 1. Analyze Existing Project
-Invoke the `code-explorer` subagent to explore the project:
+
+Two-stage exploration — an overview first, then targeted depth:
+
+**a) Overview (breadth).** Get the lay of the land cheaply before drilling in.
+- **Small/medium repo:** a single `code-explorer` call covers overview + structure in one pass — use the prompt below directly and skip to step 2.
+- **Large/complex repo (many packages, a big monorepo, unfamiliar sprawl):** fan out a few `text-scout` subagents in parallel from here (the main session) — each on a slice, e.g. one on the manifests + top-level layout, one on `tests/` + CI config, one on `docs/` + README. Each returns a compact **sourced** digest. Collate those into the overview. (Scouts can't spawn each other — you drive the fan-out; see the exploration note in `CLAUDE.md`.)
+
+**b) Depth.** Once the overview shows where the interesting parts are, invoke `code-explorer` to *understand* them — the architecture, the main flows, the conventions to preserve — producing the structured report. For a small repo this is the only call; for a large one it's aimed by the scout overview instead of reading blind.
+
+`code-explorer` prompt:
 
 > Analyze this codebase and produce a concise report covering:
 > 1. Primary language(s) and tech stack
