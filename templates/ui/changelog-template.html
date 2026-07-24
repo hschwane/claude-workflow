@@ -1,10 +1,11 @@
 <!--
   In-app changelog template (see ../preferences/changelog.md for the requirements this implements).
 
-  Self-contained: no build step, no external dependencies. Drop into the app as its own
-  page/view/route, then:
+  Self-contained: no build step, no external dependencies, no webfonts. Drop into the app as its
+  own page/view/route, then:
     1. Replace the CSS custom properties in the "APP THEME" block below with the app's own
-       design tokens (colors, font, radius, spacing) — that's the whole re-skin.
+       design tokens (colors, type stacks, radius) — that's the whole re-skin. The defaults here
+       are a warm-paper palette with serif headings; swap them for the app's own.
     2. Point CHANGELOG_ENDPOINT / VERSIONS_ENDPOINT at the app's real backend routes (see the
        API CONTRACT comment below). Until then this renders the embedded DEMO_DATA so the page
        is inspectable standalone.
@@ -14,113 +15,211 @@
 <style>
   /* ---------------- APP THEME — replace these with the app's real tokens ---------------- */
   :root {
-    --cl-bg: #ffffff;
-    --cl-bg-alt: #f6f7f9;
-    --cl-card-bg: #ffffff;
-    --cl-card-border: #e3e5e9;
-    --cl-text: #1a1d23;
-    --cl-text-muted: #6b7280;
-    --cl-accent: #4f46e5;
-    --cl-accent-contrast: #ffffff;
-    --cl-added: #1a7f37;
-    --cl-added-bg: #dafbe1;
-    --cl-changed: #9a6700;
-    --cl-changed-bg: #fff8c5;
-    --cl-fixed: #b91c1c;
-    --cl-fixed-bg: #fee2e2;
-    --cl-radius: 10px;
-    --cl-font: system-ui, -apple-system, "Segoe UI", sans-serif;
-    --cl-mark-bg: #fde68a;
+    --paper: #fbfaf7;
+    --ink: #1c2a2c;
+    --ink-soft: #495a5c;
+    --ink-faint: #7d8a8a;
+    --line: #e8e2d8;
+    --card: #ffffff;
+    --field: #f4f1ea;
+    --accent: #d5622b;
+    --accent-ink: #a8471c;
+    --added: #3e7d5a;
+    --changed: #b8842a;
+    --fixed: #316d7b;
+    --mark: #f6d99a;
+    --mark-ink: #4a3208;
+    --shadow: 0 1px 2px rgba(28, 42, 44, 0.04), 0 8px 28px rgba(28, 42, 44, 0.06);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --radius: 12px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --cl-bg: #16181d;
-      --cl-bg-alt: #1d2026;
-      --cl-card-bg: #1d2026;
-      --cl-card-border: #2c3038;
-      --cl-text: #e7e9ec;
-      --cl-text-muted: #9aa1ac;
-      --cl-accent: #818cf8;
-      --cl-accent-contrast: #16181d;
-      --cl-added: #4ade80;
-      --cl-added-bg: #123321;
-      --cl-changed: #facc15;
-      --cl-changed-bg: #3a2f05;
-      --cl-fixed: #f87171;
-      --cl-fixed-bg: #3a1414;
-      --cl-mark-bg: #7c6a1c;
+      --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
+      --line: #24302e; --card: #17201e; --field: #1c2725;
+      --accent: #ef7d40; --accent-ink: #f19563;
+      --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0;
+      --mark: #6a5217; --mark-ink: #f7e6bd;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
     }
   }
-  :root[data-theme="dark"] {
-    --cl-bg: #16181d; --cl-bg-alt: #1d2026; --cl-card-bg: #1d2026; --cl-card-border: #2c3038;
-    --cl-text: #e7e9ec; --cl-text-muted: #9aa1ac; --cl-accent: #818cf8; --cl-accent-contrast: #16181d;
-    --cl-added: #4ade80; --cl-added-bg: #123321; --cl-changed: #facc15; --cl-changed-bg: #3a2f05;
-    --cl-fixed: #f87171; --cl-fixed-bg: #3a1414; --cl-mark-bg: #7c6a1c;
-  }
   :root[data-theme="light"] {
-    --cl-bg: #ffffff; --cl-bg-alt: #f6f7f9; --cl-card-bg: #ffffff; --cl-card-border: #e3e5e9;
-    --cl-text: #1a1d23; --cl-text-muted: #6b7280; --cl-accent: #4f46e5; --cl-accent-contrast: #ffffff;
-    --cl-added: #1a7f37; --cl-added-bg: #dafbe1; --cl-changed: #9a6700; --cl-changed-bg: #fff8c5;
-    --cl-fixed: #b91c1c; --cl-fixed-bg: #fee2e2; --cl-mark-bg: #fde68a;
+    --paper: #fbfaf7; --ink: #1c2a2c; --ink-soft: #495a5c; --ink-faint: #7d8a8a;
+    --line: #e8e2d8; --card: #ffffff; --field: #f4f1ea;
+    --accent: #d5622b; --accent-ink: #a8471c;
+    --added: #3e7d5a; --changed: #b8842a; --fixed: #316d7b;
+    --mark: #f6d99a; --mark-ink: #4a3208;
+    --shadow: 0 1px 2px rgba(28,42,44,.04), 0 8px 28px rgba(28,42,44,.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
+    --line: #24302e; --card: #17201e; --field: #1c2725;
+    --accent: #ef7d40; --accent-ink: #f19563;
+    --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0;
+    --mark: #6a5217; --mark-ink: #f7e6bd;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
   }
 
-  /* ---------------- structure (adjust freely, tokens above drive the look) ---------------- */
+  /* ---------------- structure (adjust freely; the tokens above drive the look) ---------------- */
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--cl-bg); color: var(--cl-text); font-family: var(--cl-font);
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  .cl-page { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
-  .cl-header { position: sticky; top: 0; background: var(--cl-bg); padding: 8px 0 16px; z-index: 5; }
-  .cl-title { font-size: 1.4rem; font-weight: 700; margin: 0 0 12px; }
-  .cl-controls { display: flex; flex-wrap: wrap; gap: 8px; }
-  .cl-search {
-    flex: 1 1 220px; padding: 8px 12px; border-radius: var(--cl-radius);
-    border: 1px solid var(--cl-card-border); background: var(--cl-bg-alt); color: var(--cl-text);
-    font: inherit;
-  }
-  .cl-version-filter { display: flex; gap: 6px; align-items: center; font-size: 0.85rem; color: var(--cl-text-muted); }
-  .cl-version-filter select {
-    padding: 6px 8px; border-radius: var(--cl-radius); border: 1px solid var(--cl-card-border);
-    background: var(--cl-bg-alt); color: var(--cl-text); font: inherit;
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: clamp(1.75rem, 5vw, 3.5rem) clamp(1.15rem, 5vw, 2rem) 5rem;
   }
 
-  .cl-release { border: 1px solid var(--cl-card-border); background: var(--cl-card-bg);
-    border-radius: var(--cl-radius); margin-bottom: 16px; overflow: hidden; }
-  .cl-release-head { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px;
-    border-bottom: 1px solid var(--cl-card-border); background: var(--cl-bg-alt); }
-  .cl-release-version { font-weight: 700; font-size: 1.05rem; }
-  .cl-release-date { color: var(--cl-text-muted); font-size: 0.85rem; }
+  /* Masthead */
+  .brand {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .brand .dot { color: var(--accent); font-size: 1rem; line-height: 0; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0.9rem 0 0.55rem;
+  }
+  .lede { margin: 0; max-width: 58ch; font-size: 1.05rem; color: var(--ink-soft); }
 
-  .cl-entry-list { list-style: none; margin: 0; padding: 8px 16px 14px; }
-  .cl-entry { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
-  .cl-tag { flex: 0 0 auto; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; margin-top: 2px; }
-  .cl-tag-added { color: var(--cl-added); background: var(--cl-added-bg); }
-  .cl-tag-changed { color: var(--cl-changed); background: var(--cl-changed-bg); }
-  .cl-tag-fixed { color: var(--cl-fixed); background: var(--cl-fixed-bg); }
-  .cl-entry-body { flex: 1 1 auto; }
-  .cl-entry-text mark { background: var(--cl-mark-bg); color: inherit; border-radius: 3px; }
-  .cl-entry-ticket { color: var(--cl-text-muted); font-size: 0.78rem; margin-left: 6px; }
+  /* Controls */
+  .controls {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    margin: 2rem 0 0;
+    padding: 0.9rem 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+  }
+  .search {
+    flex: 1 1 15rem; min-width: 0;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--line); border-radius: 999px;
+    background: var(--field); color: var(--ink);
+    font: inherit; font-size: 0.95rem;
+  }
+  .search::placeholder { color: var(--ink-faint); }
+  .search:focus-visible, .range select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  .range {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .range select {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--field); color: var(--ink);
+    font-family: var(--mono); font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    text-transform: none; letter-spacing: 0;
+  }
 
-  .cl-empty, .cl-status { text-align: center; color: var(--cl-text-muted); padding: 24px 0; font-size: 0.9rem; }
-  .cl-sentinel { height: 1px; }
+  /* Release block */
+  .release { margin: 2.6rem 0 0; }
+  .release-head {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.55rem 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+  .release-head .ver {
+    display: inline-flex; align-items: baseline;
+    padding: 0.24rem 0.68rem;
+    border: 1px solid var(--accent); border-radius: 999px;
+    color: var(--accent-ink);
+    font-family: var(--mono); font-size: 0.82rem; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .release-head .date {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Category group inside a release */
+  .group { margin: 0 0 1.6rem; }
+  .group-head { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.85rem; }
+  .group-head .swatch {
+    width: 0.62rem; height: 0.62rem; border-radius: 3px; flex: none;
+    background: var(--gcol);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gcol) 16%, transparent);
+  }
+  .group-head h2 {
+    font-family: var(--serif); font-weight: 600; font-size: 1.2rem;
+    letter-spacing: -0.005em; margin: 0;
+  }
+  .group-head .count {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  ul.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  li.item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gcol);
+    border-radius: var(--radius);
+    padding: 0.95rem 1.1rem;
+    box-shadow: var(--shadow);
+  }
+  li.item p { margin: 0; font-size: 1rem; }
+  li.item p .lead { font-weight: 600; color: var(--ink); }
+  li.item mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 0.12em; }
+  .tickets { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .chip {
+    font-family: var(--mono); font-size: 0.71rem; letter-spacing: 0.03em;
+    padding: 0.16rem 0.5rem; border-radius: 6px; white-space: nowrap;
+    color: var(--gcol);
+    background: color-mix(in srgb, var(--gcol) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gcol) 30%, transparent);
+  }
+
+  .status {
+    margin: 2.5rem 0 0; text-align: center;
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .sentinel { height: 1px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
 </style>
 
-<div class="cl-page">
-  <div class="cl-header">
-    <h1 class="cl-title">Changelog</h1>
-    <div class="cl-controls">
-      <input class="cl-search" type="search" placeholder="Search changes…" aria-label="Search changelog" />
-      <div class="cl-version-filter">
-        from <select class="cl-version-from" aria-label="From version"></select>
-        to <select class="cl-version-to" aria-label="To version"></select>
-      </div>
+<div class="wrap">
+  <header>
+    <span class="brand"><span class="dot">●</span> <span class="brand-name">Your app</span></span>
+    <h1>Changelog</h1>
+    <p class="lede">Everything that changed, newest first — searchable, and filterable down to a single release or a span of them.</p>
+  </header>
+
+  <div class="controls">
+    <input class="search" type="search" placeholder="Search changes…" aria-label="Search changelog" />
+    <div class="range">
+      from <select class="version-from" aria-label="From version"></select>
+      to <select class="version-to" aria-label="To version"></select>
     </div>
   </div>
 
-  <div class="cl-releases"></div>
-  <div class="cl-status" hidden></div>
-  <div class="cl-sentinel"></div>
+  <div class="releases"></div>
+  <p class="status" hidden></p>
+  <div class="sentinel"></div>
 </div>
 
 <script>
@@ -139,46 +238,62 @@
    *   -> {
    *        "releases": [
    *          { "version": "1.4.0", "date": "2026-07-01", "entries": [
-   *              { "type": "added" | "changed" | "fixed", "ticket": "FEAT-042", "text": "…" }
+   *              { "type": "added" | "changed" | "fixed",
+   *                "ticket": "FEAT-042",
+   *                "lead": "Short bold headline.",   // optional
+   *                "text": "The rest of the explanation." }
    *          ] }
    *        ],
    *        "nextCursor": "opaque-string-or-null"   // null/absent means no more pages
    *      }
    *   Releases are returned newest-first. Filtering/search happens server-side so pagination
-   *   and bandwidth savings hold even with an active filter.
+   *   and bandwidth savings hold even with an active filter; the client re-filters and
+   *   highlights locally so matches are visible without a second round trip.
    * ========================================================================================= */
   var CHANGELOG_ENDPOINT = "/api/changelog";
   var VERSIONS_ENDPOINT = "/api/changelog/versions";
   var PAGE_SIZE = 10;
   var SEARCH_DEBOUNCE_MS = 250;
 
+  var TYPES = ["added", "changed", "fixed"];
+  var TYPE_LABEL = { added: "Added", changed: "Changed", fixed: "Fixed" };
+  var COUNT_NOUN = { added: ["new", "new"], changed: ["change", "changes"], fixed: ["fix", "fixes"] };
+
   // Demo data so the template is inspectable before the endpoints exist. Delete once wired up.
   var DEMO_DATA = {
     versions: ["1.0.0", "1.1.0", "1.2.0"],
     releases: [
       { version: "1.2.0", date: "2026-07-20", entries: [
-        { type: "added", ticket: "FEAT-031", text: "Offline map region downloads with a progress indicator." },
-        { type: "changed", ticket: "FEAT-028", text: "Search results now rank by distance first." },
-        { type: "fixed", ticket: "BUG-014", text: "Fixed marker clustering flicker while zooming." }
+        { type: "added", ticket: "FEAT-031", lead: "Offline map regions.",
+          text: "Pre-download a named area or draw your own, with a size estimate before you start and a progress bar while it runs." },
+        { type: "added", ticket: "FEAT-034", lead: "Data freshness at a glance.",
+          text: "The map header shows when its data was last updated, with a refresh action when the server has something newer." },
+        { type: "changed", ticket: "FEAT-028", lead: "Search ranks by distance first.",
+          text: "Nearby results come before exact name matches, which is what you actually want while standing somewhere." },
+        { type: "fixed", ticket: "BUG-014", lead: "Clustering no longer flickers.",
+          text: "Markers were rebuilt on every zoom step instead of having their icons swapped; they now update in place." }
       ]},
       { version: "1.1.0", date: "2026-06-02", entries: [
-        { type: "added", ticket: "FEAT-019", text: "Dark mode support across all views." },
-        { type: "fixed", ticket: "BUG-009", text: "Fixed crash when opening settings offline." }
+        { type: "added", ticket: "FEAT-019", lead: "Dark mode everywhere.",
+          text: "Every view follows your system theme, with a manual override in settings." },
+        { type: "fixed", ticket: "BUG-009", lead: "Settings open offline again.",
+          text: "The settings screen tried to read the remote config before falling back to the cached copy, and crashed when there was no connection." }
       ]},
       { version: "1.0.0", date: "2026-05-01", entries: [
-        { type: "added", ticket: "FEAT-001", text: "Initial release." }
+        { type: "added", ticket: "FEAT-001", lead: "First release.",
+          text: "Map, search, favourites, and offline support." }
       ]}
     ]
   };
 
-  var releasesEl = document.querySelector(".cl-releases");
-  var statusEl = document.querySelector(".cl-status");
-  var sentinelEl = document.querySelector(".cl-sentinel");
-  var searchEl = document.querySelector(".cl-search");
-  var fromEl = document.querySelector(".cl-version-from");
-  var toEl = document.querySelector(".cl-version-to");
+  var releasesEl = document.querySelector(".releases");
+  var statusEl = document.querySelector(".status");
+  var sentinelEl = document.querySelector(".sentinel");
+  var searchEl = document.querySelector(".search");
+  var fromEl = document.querySelector(".version-from");
+  var toEl = document.querySelector(".version-to");
 
-  var state = { cursor: null, loading: false, done: false, search: "", versionFrom: "", versionTo: "" };
+  var state = { cursor: null, loading: false, done: false, search: "", versionFrom: "", versionTo: "", rendered: 0 };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -193,33 +308,56 @@
     return safe.replace(new RegExp("(" + esc + ")", "ig"), "<mark>$1</mark>");
   }
 
-  function renderRelease(release, term) {
-    var entries = release.entries.filter(function (e) {
-      return !term || e.text.toLowerCase().indexOf(term.toLowerCase()) !== -1;
-    });
-    if (!entries.length) return null;
+  function matches(entry, term) {
+    if (!term) return true;
+    var hay = ((entry.lead || "") + " " + (entry.text || "") + " " + (entry.ticket || "")).toLowerCase();
+    return hay.indexOf(term.toLowerCase()) !== -1;
+  }
 
-    var wrap = document.createElement("section");
-    wrap.className = "cl-release";
-    wrap.innerHTML =
-      '<div class="cl-release-head">' +
-        '<span class="cl-release-version">v' + escapeHtml(release.version) + "</span>" +
-        '<span class="cl-release-date">' + escapeHtml(release.date) + "</span>" +
-      "</div>" +
-      '<ul class="cl-entry-list">' +
-        entries.map(function (e) {
-          return (
-            '<li class="cl-entry">' +
-              '<span class="cl-tag cl-tag-' + e.type + '">' + e.type + "</span>" +
-              '<span class="cl-entry-body">' +
-                '<span class="cl-entry-text">' + highlight(e.text, term) + "</span>" +
-                (e.ticket ? '<span class="cl-entry-ticket">' + escapeHtml(e.ticket) + "</span>" : "") +
-              "</span>" +
-            "</li>"
-          );
-        }).join("") +
-      "</ul>";
-    return wrap;
+  function countLabel(type, n) {
+    var noun = COUNT_NOUN[type] || ["item", "items"];
+    return n + " " + (n === 1 ? noun[0] : noun[1]);
+  }
+
+  function renderEntry(entry, term) {
+    return (
+      '<li class="item">' +
+        "<p>" +
+          (entry.lead ? '<span class="lead">' + highlight(entry.lead, term) + "</span> " : "") +
+          highlight(entry.text || "", term) +
+        "</p>" +
+        (entry.ticket ? '<div class="tickets"><span class="chip">' + highlight(entry.ticket, term) + "</span></div>" : "") +
+      "</li>"
+    );
+  }
+
+  function renderRelease(release, term) {
+    var kept = (release.entries || []).filter(function (e) { return matches(e, term); });
+    if (!kept.length) return null;
+
+    var groups = TYPES.map(function (type) {
+      var ofType = kept.filter(function (e) { return e.type === type; });
+      if (!ofType.length) return "";
+      return (
+        '<div class="group" style="--gcol: var(--' + type + ')">' +
+          '<div class="group-head">' +
+            '<span class="swatch"></span>' +
+            "<h2>" + TYPE_LABEL[type] + "</h2>" +
+            '<span class="count">' + countLabel(type, ofType.length) + "</span>" +
+          "</div>" +
+          '<ul class="items">' + ofType.map(function (e) { return renderEntry(e, term); }).join("") + "</ul>" +
+        "</div>"
+      );
+    }).join("");
+
+    var section = document.createElement("section");
+    section.className = "release";
+    section.innerHTML =
+      '<div class="release-head">' +
+        '<span class="ver">v' + escapeHtml(release.version) + "</span>" +
+        (release.date ? '<span class="date">' + escapeHtml(release.date) + "</span>" : "") +
+      "</div>" + groups;
+    return section;
   }
 
   function setStatus(text) {
@@ -246,44 +384,61 @@
     }
   }
 
+  function inRange(version) {
+    var all = versionList;
+    if (!all.length) return true;
+    var i = all.indexOf(version);
+    if (i === -1) return true;
+    if (state.versionFrom && i < all.indexOf(state.versionFrom)) return false;
+    if (state.versionTo && i > all.indexOf(state.versionTo)) return false;
+    return true;
+  }
+
   async function loadMore() {
     if (state.loading || state.done) return;
     state.loading = true;
-    setStatus("Loading…");
+    if (!state.rendered) setStatus("Loading…");
 
     var page = await fetchPage();
     var term = state.search;
-    var appended = 0;
-    page.releases.forEach(function (release) {
+
+    (page.releases || []).forEach(function (release) {
+      if (!inRange(release.version)) return;
       var el = renderRelease(release, term);
-      if (el) { releasesEl.appendChild(el); appended++; }
+      if (el) { releasesEl.appendChild(el); state.rendered++; }
     });
 
     state.cursor = page.nextCursor || null;
     state.done = !state.cursor;
     state.loading = false;
-    setStatus(state.done && releasesEl.children.length === 0 ? "No matching changes." : "");
+
+    if (state.rendered === 0) setStatus(term || state.versionFrom || state.versionTo ? "No matching changes" : "Nothing here yet");
+    else setStatus(state.done ? "End of changelog" : "");
   }
 
   function resetAndReload() {
     releasesEl.innerHTML = "";
     state.cursor = null;
     state.done = false;
+    state.rendered = 0;
     loadMore();
   }
 
+  var versionList = [];
+
   async function loadVersionOptions() {
-    var versions;
     try {
       var res = await fetch(VERSIONS_ENDPOINT);
       if (!res.ok) throw new Error("bad response");
-      versions = (await res.json()).versions;
+      versionList = (await res.json()).versions || [];
     } catch (err) {
-      versions = DEMO_DATA.versions;
+      versionList = DEMO_DATA.versions;
     }
     [fromEl, toEl].forEach(function (sel) {
       sel.innerHTML = '<option value="">any</option>' +
-        versions.map(function (v) { return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + "</option>"; }).join("");
+        versionList.map(function (v) {
+          return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + "</option>";
+        }).join("");
     });
   }
 
@@ -308,7 +463,6 @@
     if (entries[0].isIntersecting) loadMore();
   }, { rootMargin: "200px" }).observe(sentinelEl);
 
-  loadVersionOptions();
-  loadMore();
+  loadVersionOptions().then(loadMore);
 })();
 </script>
