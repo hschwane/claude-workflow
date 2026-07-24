@@ -73,7 +73,7 @@ git commit -m "{message}  [skip ci]"      # omit the marker when ci-on-claude: y
 (A spec-only commit from step 1b uses `docs(specs): …  [skip ci]` and needs no gate.)
 
 ### 5. Push
-Feature/fix branches: push (`git push -u origin {branch}`) — cheap backup, the gate already ran. Direct commits to `develop`/`main`/`master` are fine for spec-only changes and for local merges per the **Merge policy** (`/ship` and `/release` do this); otherwise work on a branch.
+Feature/fix branches: push (`git push -u origin {branch}`) — cheap backup, the gate already ran. Direct commits to `develop`/`main`/`master` are fine for spec-only changes and for local merges per the **Merge policy** (`/ship` and `/release` do this) — and those integration-branch pushes are authorized by the invoked skill, not something to re-ask about (see **Merging** in `CLAUDE.md`); otherwise work on a branch.
 
 ### 6. Report
 Print the commit hash and message.

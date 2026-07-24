@@ -26,6 +26,8 @@ A raw idea or bug added with `/draft` → `docs/specs/backlog/`. Minimal — jus
 
 `/ship` orchestrates the whole chain from a spec list or a topic.
 
+**Authority:** merging into the integration branch, pushing `main`/`master`/`develop`, tagging, and the deploy `release.sh` performs are steps of these skills — invoking the skill authorizes them. Claude runs them through to a released version and does not pause mid-chain for permission; it stops only on a failed gate, a real blocker, or an action outside the skill's own steps.
+
 ---
 
 ## Parallel Sessions

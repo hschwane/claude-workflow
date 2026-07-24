@@ -35,7 +35,7 @@ Claude's commits carry `[skip ci]`, so **CI usually does not run on this PR** �
 ### 5. Merge
 Once review is satisfied (and CI green if it ran): `gh pr merge --squash`. Set the squash commit message explicitly and append `[skip ci]` unless `ci-on-claude: yes`, so the squashed commit landing on the base doesn't re-trigger CI. **Don't use `--auto` expecting a `[skip ci]` check to report** — a skipped required check sits Pending forever; if branch protection blocks the merge on a stuck check, that protection config is the problem to fix (this scheme assumes CI is not a required check).
 
-Ask before merging when: a merge conflict needed non-trivial resolution, the change is a major/breaking version, or the base branch requires human approval.
+Ask before merging when: a merge conflict needed non-trivial resolution, the change is a major/breaking version, or the base branch requires human approval. Otherwise merge — creating and merging the PR is what `/pr` was invoked to do (see **Merging** in `CLAUDE.md`), so don't stop for permission to land it on the base branch.
 
 ### 6. Report
 PR URL, review outcome, merge state.
