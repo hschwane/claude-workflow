@@ -130,6 +130,17 @@ So skills/agents mirror wholesale, decisions replay their tuned values, and CLAU
 
 Report any change (or offer) so the user knows the watch-path config was checked.
 
+### 5e. Offer to compact project-authored workflow content (crossing v2.11.1)
+
+v2.11.1 compacted the plugin's always-loaded instructions — the `CLAUDE.md` workflow sections + the agent/skill descriptions — tightening prose to direct instructions and moving on-demand detail out, without dropping a single behavioral trigger. Steps 5/5c already applied that to the **plugin-owned** files. But content the **project itself added or adapted** still carries the old, longer style: project-authored `## ` sections in `CLAUDE.md`, any skills or agents this project added locally (not shipped by the plugin), and custom preference files.
+
+**Only when the recorded version is < 2.11.1** (this is a one-time migration — skip it on later updates): **offer** to apply the same compaction to that project-owned content. If the user agrees, for each such file:
+- tighten prose to direct, on-the-point instructions — no filler, no restated rationale;
+- move detail that's only needed on demand into the file that loads it then (a skill body, a `docs/` page, a preference file) and leave a pointer where it was;
+- **keep every behavioral trigger, rule, and "when to use" keyword** — this is a wording pass, never a scope or behavior cut.
+
+Do this **with confirmation and per file**, showing before/after — it edits project-owned content the update otherwise never touches. If the user declines, skip silently. Don't re-touch plugin-owned files (already compacted).
+
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
 ```json
@@ -150,6 +161,7 @@ Updated claude-workflow: {old_version} → {new_version}
 Updated: agents/, skills/, hooks/ (merged), settings.json permissions (unioned)
 CLAUDE.md: {K} workflow section(s) refreshed{, L flagged for manual merge} · project content preserved
 Decisions: {N} tuned setting(s) re-applied from docs/workflow/decisions.md{, M new setting(s) added}
+{If the v2.11.1 boundary was crossed: "Compaction: {offered / applied to P file(s) / declined} for project-authored workflow content"}
 
 {If breaking changes: "Review migration notes above and update your project files as needed."}
 ```
