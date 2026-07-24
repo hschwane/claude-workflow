@@ -5,11 +5,16 @@
   own page/view/route, then:
     1. Replace the CSS custom properties in the "APP THEME" block below with the app's own
        design tokens (colors, type stacks, radius) — that's the whole re-skin. The defaults here
-       are a warm-paper palette with serif headings; swap them for the app's own.
+       are a warm-paper palette with serif headings; they are meant to be swapped.
     2. Point CHANGELOG_ENDPOINT / VERSIONS_ENDPOINT at the app's real backend routes (see the
        API CONTRACT comment below). Until then this renders the embedded DEMO_DATA so the page
        is inspectable standalone.
     3. Wire up navigation to/from wherever the app shows its version or update control.
+
+  Each change is a card: a one-line summary you can expand for the full description, with small
+  tags for its category, release version and ticket. Release headings appear only while the whole
+  history is shown — once a version filter narrows the list, every card still carries its version
+  tag, so the headings would only repeat it.
 -->
 <title>Changelog</title>
 <style>
@@ -27,6 +32,7 @@
     --added: #3e7d5a;
     --changed: #b8842a;
     --fixed: #316d7b;
+    --removed: #9c3f4e;
     --mark: #f6d99a;
     --mark-ink: #4a3208;
     --shadow: 0 1px 2px rgba(28, 42, 44, 0.04), 0 8px 28px rgba(28, 42, 44, 0.06);
@@ -40,7 +46,7 @@
       --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
       --line: #24302e; --card: #17201e; --field: #1c2725;
       --accent: #ef7d40; --accent-ink: #f19563;
-      --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0;
+      --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0; --removed: #d78f9b;
       --mark: #6a5217; --mark-ink: #f7e6bd;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
     }
@@ -49,7 +55,7 @@
     --paper: #fbfaf7; --ink: #1c2a2c; --ink-soft: #495a5c; --ink-faint: #7d8a8a;
     --line: #e8e2d8; --card: #ffffff; --field: #f4f1ea;
     --accent: #d5622b; --accent-ink: #a8471c;
-    --added: #3e7d5a; --changed: #b8842a; --fixed: #316d7b;
+    --added: #3e7d5a; --changed: #b8842a; --fixed: #316d7b; --removed: #9c3f4e;
     --mark: #f6d99a; --mark-ink: #4a3208;
     --shadow: 0 1px 2px rgba(28,42,44,.04), 0 8px 28px rgba(28,42,44,.06);
   }
@@ -57,7 +63,7 @@
     --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
     --line: #24302e; --card: #17201e; --field: #1c2725;
     --accent: #ef7d40; --accent-ink: #f19563;
-    --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0;
+    --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0; --removed: #d78f9b;
     --mark: #6a5217; --mark-ink: #f7e6bd;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -132,67 +138,84 @@
     text-transform: none; letter-spacing: 0;
   }
 
-  /* Release block */
-  .release { margin: 2.6rem 0 0; }
+  /* Release heading — only while the whole history is shown */
+  .release { margin: 2.4rem 0 0; }
   .release-head {
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.55rem 0.9rem;
-    margin-bottom: 1.2rem;
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem 0.85rem;
+    margin-bottom: 0.9rem;
   }
   .release-head .ver {
     display: inline-flex; align-items: baseline;
-    padding: 0.24rem 0.68rem;
+    padding: 0.22rem 0.64rem;
     border: 1px solid var(--accent); border-radius: 999px;
     color: var(--accent-ink);
-    font-family: var(--mono); font-size: 0.82rem; font-weight: 600;
+    font-family: var(--mono); font-size: 0.8rem; font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
   .release-head .date {
-    font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint);
+    font-family: var(--mono); font-size: 0.76rem; color: var(--ink-faint);
     font-variant-numeric: tabular-nums;
   }
 
-  /* Category group inside a release */
-  .group { margin: 0 0 1.6rem; }
-  .group-head { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.85rem; }
-  .group-head .swatch {
-    width: 0.62rem; height: 0.62rem; border-radius: 3px; flex: none;
-    background: var(--gcol);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gcol) 16%, transparent);
-  }
-  .group-head h2 {
-    font-family: var(--serif); font-weight: 600; font-size: 1.2rem;
-    letter-spacing: -0.005em; margin: 0;
-  }
-  .group-head .count {
-    margin-left: auto;
-    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--ink-faint);
-  }
-
-  ul.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  /* Cards */
+  ul.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; }
   li.item {
     background: var(--card);
     border: 1px solid var(--line);
     border-left: 3px solid var(--gcol);
     border-radius: var(--radius);
-    padding: 0.95rem 1.1rem;
     box-shadow: var(--shadow);
   }
-  li.item p { margin: 0; font-size: 1rem; }
-  li.item p .lead { font-weight: 600; color: var(--ink); }
-  li.item mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 0.12em; }
-  .tickets { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
-  .chip {
-    font-family: var(--mono); font-size: 0.71rem; letter-spacing: 0.03em;
-    padding: 0.16rem 0.5rem; border-radius: 6px; white-space: nowrap;
-    color: var(--gcol);
-    background: color-mix(in srgb, var(--gcol) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--gcol) 30%, transparent);
+  li.item > details > summary {
+    list-style: none; cursor: pointer;
+    padding: 0.8rem 1rem;
+    display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 0.7rem;
+    align-items: start;
   }
+  li.item > details > summary::-webkit-details-marker { display: none; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
+  .summary-text { font-size: 0.99rem; font-weight: 600; color: var(--ink); text-wrap: pretty; }
+  .chevron {
+    grid-row: 1 / span 2; align-self: center;
+    width: 0.62rem; height: 0.62rem; flex: none;
+    border-right: 1.5px solid var(--ink-faint); border-bottom: 1.5px solid var(--ink-faint);
+    transform: rotate(45deg); transform-origin: center;
+    transition: transform 140ms ease;
+  }
+  details[open] .chevron { transform: rotate(-135deg); }
+  details > summary .tags { grid-column: 1; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.28rem; margin-top: 0.3rem; }
+  .chip {
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.04em;
+    line-height: 1.5; padding: 0.06rem 0.38rem;
+    border-radius: 5px; white-space: nowrap;
+  }
+  .chip-type {
+    text-transform: uppercase; font-weight: 600;
+    color: var(--gcol);
+    background: color-mix(in srgb, var(--gcol) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gcol) 32%, transparent);
+  }
+  .chip-ver {
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-ticket {
+    color: var(--ink-faint);
+    background: transparent;
+    border: 1px solid var(--line);
+  }
+  .body {
+    margin: 0; padding: 0 1rem 0.95rem;
+    font-size: 0.95rem; color: var(--ink-soft); max-width: 62ch;
+  }
+  mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 0.12em; }
 
   .status {
     margin: 2.5rem 0 0; text-align: center;
-    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+    font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--ink-faint);
   }
   .sentinel { height: 1px; }
@@ -206,7 +229,7 @@
   <header>
     <span class="brand"><span class="dot">●</span> <span class="brand-name">Your app</span></span>
     <h1>Changelog</h1>
-    <p class="lede">Everything that changed, newest first — searchable, and filterable down to a single release or a span of them.</p>
+    <p class="lede">Everything that changed, newest first. Search it, narrow it to a release or a span of them, and open any entry for the full story.</p>
   </header>
 
   <div class="controls">
@@ -238,10 +261,10 @@
    *   -> {
    *        "releases": [
    *          { "version": "1.4.0", "date": "2026-07-01", "entries": [
-   *              { "type": "added" | "changed" | "fixed",
+   *              { "type": "added" | "changed" | "fixed" | "removed",
    *                "ticket": "FEAT-042",
-   *                "lead": "Short bold headline.",   // optional
-   *                "text": "The rest of the explanation." }
+   *                "summary": "One line, shown collapsed.",
+   *                "description": "The full explanation, shown when expanded." }
    *          ] }
    *        ],
    *        "nextCursor": "opaque-string-or-null"   // null/absent means no more pages
@@ -255,33 +278,34 @@
   var PAGE_SIZE = 10;
   var SEARCH_DEBOUNCE_MS = 250;
 
-  var TYPES = ["added", "changed", "fixed"];
-  var TYPE_LABEL = { added: "Added", changed: "Changed", fixed: "Fixed" };
-  var COUNT_NOUN = { added: ["new", "new"], changed: ["change", "changes"], fixed: ["fix", "fixes"] };
+  var TYPES = ["added", "changed", "fixed", "removed"];
+  var TYPE_LABEL = { added: "Added", changed: "Changed", fixed: "Fixed", removed: "Removed" };
 
   // Demo data so the template is inspectable before the endpoints exist. Delete once wired up.
   var DEMO_DATA = {
     versions: ["1.0.0", "1.1.0", "1.2.0"],
     releases: [
       { version: "1.2.0", date: "2026-07-20", entries: [
-        { type: "added", ticket: "FEAT-031", lead: "Offline map regions.",
-          text: "Pre-download a named area or draw your own, with a size estimate before you start and a progress bar while it runs." },
-        { type: "added", ticket: "FEAT-034", lead: "Data freshness at a glance.",
-          text: "The map header shows when its data was last updated, with a refresh action when the server has something newer." },
-        { type: "changed", ticket: "FEAT-028", lead: "Search ranks by distance first.",
-          text: "Nearby results come before exact name matches, which is what you actually want while standing somewhere." },
-        { type: "fixed", ticket: "BUG-014", lead: "Clustering no longer flickers.",
-          text: "Markers were rebuilt on every zoom step instead of having their icons swapped; they now update in place." }
+        { type: "added", ticket: "FEAT-031", summary: "Offline map regions",
+          description: "Pre-download a named area or draw your own. You get a size estimate before it starts and a progress bar while it runs, and the tile count is capped so a stray selection can't fill your storage." },
+        { type: "added", ticket: "FEAT-034", summary: "Data freshness at a glance",
+          description: "The map header shows when its data was last updated, with a refresh action that appears once the server has something newer." },
+        { type: "changed", ticket: "FEAT-028", summary: "Search ranks by distance first",
+          description: "Nearby results now come before exact name matches, which is what you actually want while standing somewhere looking for the closest one." },
+        { type: "fixed", ticket: "BUG-014", summary: "Clustering no longer flickers while zooming",
+          description: "Markers were being rebuilt on every zoom step instead of having their icons swapped in place. They now update without tearing down the layer." },
+        { type: "removed", ticket: "FEAT-036", summary: "Retired the legacy bookmark sync",
+          description: "The old sync endpoint has been off since 1.1.0 and its client code is now gone. Existing bookmarks were migrated on first launch of 1.1.0 and are unaffected." }
       ]},
       { version: "1.1.0", date: "2026-06-02", entries: [
-        { type: "added", ticket: "FEAT-019", lead: "Dark mode everywhere.",
-          text: "Every view follows your system theme, with a manual override in settings." },
-        { type: "fixed", ticket: "BUG-009", lead: "Settings open offline again.",
-          text: "The settings screen tried to read the remote config before falling back to the cached copy, and crashed when there was no connection." }
+        { type: "added", ticket: "FEAT-019", summary: "Dark mode everywhere",
+          description: "Every view follows your system theme, with a manual override in settings for when you want to pin one." },
+        { type: "fixed", ticket: "BUG-009", summary: "Settings open offline again",
+          description: "The settings screen tried to read the remote config before falling back to the cached copy, so it crashed with no connection instead of showing what it already had." }
       ]},
       { version: "1.0.0", date: "2026-05-01", entries: [
-        { type: "added", ticket: "FEAT-001", lead: "First release.",
-          text: "Map, search, favourites, and offline support." }
+        { type: "added", ticket: "FEAT-001", summary: "First release",
+          description: "Map, search, favourites and offline support." }
       ]}
     ]
   };
@@ -293,6 +317,7 @@
   var fromEl = document.querySelector(".version-from");
   var toEl = document.querySelector(".version-to");
 
+  var versionList = [];
   var state = { cursor: null, loading: false, done: false, search: "", versionFrom: "", versionTo: "", rendered: 0 };
 
   function escapeHtml(s) {
@@ -302,61 +327,60 @@
   }
 
   function highlight(text, term) {
-    var safe = escapeHtml(text);
+    var safe = escapeHtml(text || "");
     if (!term) return safe;
     var esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return safe.replace(new RegExp("(" + esc + ")", "ig"), "<mark>$1</mark>");
   }
 
+  function hit(text, term) {
+    return !!term && String(text || "").toLowerCase().indexOf(term.toLowerCase()) !== -1;
+  }
+
   function matches(entry, term) {
     if (!term) return true;
-    var hay = ((entry.lead || "") + " " + (entry.text || "") + " " + (entry.ticket || "")).toLowerCase();
-    return hay.indexOf(term.toLowerCase()) !== -1;
+    return hit(entry.summary, term) || hit(entry.description, term) || hit(entry.ticket, term);
   }
 
-  function countLabel(type, n) {
-    var noun = COUNT_NOUN[type] || ["item", "items"];
-    return n + " " + (n === 1 ? noun[0] : noun[1]);
-  }
-
-  function renderEntry(entry, term) {
+  function renderEntry(entry, version, term) {
+    // Open the card up front when the match is only in the collapsed description.
+    var openForMatch = term && hit(entry.description, term) && !hit(entry.summary, term);
     return (
-      '<li class="item">' +
-        "<p>" +
-          (entry.lead ? '<span class="lead">' + highlight(entry.lead, term) + "</span> " : "") +
-          highlight(entry.text || "", term) +
-        "</p>" +
-        (entry.ticket ? '<div class="tickets"><span class="chip">' + highlight(entry.ticket, term) + "</span></div>" : "") +
+      '<li class="item" style="--gcol: var(--' + entry.type + ')">' +
+        "<details" + (openForMatch ? " open" : "") + ">" +
+          "<summary>" +
+            '<span class="summary-text">' + highlight(entry.summary, term) + "</span>" +
+            '<span class="chevron" aria-hidden="true"></span>' +
+            '<span class="tags">' +
+              '<span class="chip chip-type">' + TYPE_LABEL[entry.type] + "</span>" +
+              '<span class="chip chip-ver">v' + escapeHtml(version) + "</span>" +
+              (entry.ticket ? '<span class="chip chip-ticket">' + highlight(entry.ticket, term) + "</span>" : "") +
+            "</span>" +
+          "</summary>" +
+          '<p class="body">' + highlight(entry.description, term) + "</p>" +
+        "</details>" +
       "</li>"
     );
   }
 
-  function renderRelease(release, term) {
-    var kept = (release.entries || []).filter(function (e) { return matches(e, term); });
+  function renderRelease(release, term, withHeading) {
+    var kept = (release.entries || [])
+      .filter(function (e) { return matches(e, term); })
+      .sort(function (a, b) { return TYPES.indexOf(a.type) - TYPES.indexOf(b.type); });
     if (!kept.length) return null;
-
-    var groups = TYPES.map(function (type) {
-      var ofType = kept.filter(function (e) { return e.type === type; });
-      if (!ofType.length) return "";
-      return (
-        '<div class="group" style="--gcol: var(--' + type + ')">' +
-          '<div class="group-head">' +
-            '<span class="swatch"></span>' +
-            "<h2>" + TYPE_LABEL[type] + "</h2>" +
-            '<span class="count">' + countLabel(type, ofType.length) + "</span>" +
-          "</div>" +
-          '<ul class="items">' + ofType.map(function (e) { return renderEntry(e, term); }).join("") + "</ul>" +
-        "</div>"
-      );
-    }).join("");
 
     var section = document.createElement("section");
     section.className = "release";
     section.innerHTML =
-      '<div class="release-head">' +
-        '<span class="ver">v' + escapeHtml(release.version) + "</span>" +
-        (release.date ? '<span class="date">' + escapeHtml(release.date) + "</span>" : "") +
-      "</div>" + groups;
+      (withHeading
+        ? '<div class="release-head">' +
+            '<span class="ver">v' + escapeHtml(release.version) + "</span>" +
+            (release.date ? '<span class="date">' + escapeHtml(release.date) + "</span>" : "") +
+          "</div>"
+        : "") +
+      '<ul class="items">' +
+        kept.map(function (e) { return renderEntry(e, release.version, term); }).join("") +
+      "</ul>";
     return section;
   }
 
@@ -384,13 +408,16 @@
     }
   }
 
+  function versionFiltered() {
+    return !!(state.versionFrom || state.versionTo);
+  }
+
   function inRange(version) {
-    var all = versionList;
-    if (!all.length) return true;
-    var i = all.indexOf(version);
+    if (!versionList.length) return true;
+    var i = versionList.indexOf(version);
     if (i === -1) return true;
-    if (state.versionFrom && i < all.indexOf(state.versionFrom)) return false;
-    if (state.versionTo && i > all.indexOf(state.versionTo)) return false;
+    if (state.versionFrom && i < versionList.indexOf(state.versionFrom)) return false;
+    if (state.versionTo && i > versionList.indexOf(state.versionTo)) return false;
     return true;
   }
 
@@ -401,10 +428,13 @@
 
     var page = await fetchPage();
     var term = state.search;
+    // Release headings only while the full history is on screen — with a version filter active
+    // every card already carries its version tag, so a heading would just repeat it.
+    var withHeading = !versionFiltered();
 
     (page.releases || []).forEach(function (release) {
       if (!inRange(release.version)) return;
-      var el = renderRelease(release, term);
+      var el = renderRelease(release, term, withHeading);
       if (el) { releasesEl.appendChild(el); state.rendered++; }
     });
 
@@ -412,8 +442,11 @@
     state.done = !state.cursor;
     state.loading = false;
 
-    if (state.rendered === 0) setStatus(term || state.versionFrom || state.versionTo ? "No matching changes" : "Nothing here yet");
-    else setStatus(state.done ? "End of changelog" : "");
+    if (state.rendered === 0) {
+      setStatus(term || versionFiltered() ? "No matching changes" : "Nothing here yet");
+    } else {
+      setStatus(state.done ? "End of changelog" : "");
+    }
   }
 
   function resetAndReload() {
@@ -423,8 +456,6 @@
     state.rendered = 0;
     loadMore();
   }
-
-  var versionList = [];
 
   async function loadVersionOptions() {
     try {
