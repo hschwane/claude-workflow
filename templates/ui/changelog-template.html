@@ -11,10 +11,10 @@
        is inspectable standalone.
     3. Wire up navigation to/from wherever the app shows its version or update control.
 
-  Each change is a card: a one-line summary you can expand for the full description, with small
-  tags for its category, release version and ticket. Release headings appear only while the whole
-  history is shown — once a version filter narrows the list, every card still carries its version
-  tag, so the headings would only repeat it.
+  Each change is a card: a one-line summary that expands to the full description, with small tags
+  for its release version, category and ticket. The list groups by version (default) or by
+  category, switchable; group headings drop away while a search is active, since every card
+  already carries its own version and category tags.
 -->
 <title>Changelog</title>
 <style>
@@ -114,14 +114,14 @@
     border-bottom: 1px solid var(--line);
   }
   .search {
-    flex: 1 1 15rem; min-width: 0;
+    flex: 1 1 14rem; min-width: 0;
     padding: 0.5rem 0.8rem;
     border: 1px solid var(--line); border-radius: 999px;
     background: var(--field); color: var(--ink);
     font: inherit; font-size: 0.95rem;
   }
   .search::placeholder { color: var(--ink-faint); }
-  .search:focus-visible, .range select:focus-visible {
+  .search:focus-visible, .range select:focus-visible, .sort button:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 1px;
   }
   .range {
@@ -137,14 +137,31 @@
     font-variant-numeric: tabular-nums;
     text-transform: none; letter-spacing: 0;
   }
-
-  /* Release heading — only while the whole history is shown */
-  .release { margin: 2.4rem 0 0; }
-  .release-head {
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.5rem 0.85rem;
-    margin-bottom: 0.9rem;
+  .sort {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
   }
-  .release-head .ver {
+  .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--field); padding: 2px; }
+  .sort button {
+    appearance: none; border: 0; cursor: pointer;
+    padding: 0.3rem 0.7rem; border-radius: 999px;
+    background: transparent; color: var(--ink-soft);
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .sort button[aria-pressed="true"] {
+    background: var(--card); color: var(--accent-ink);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Group headings */
+  .group { margin: 2.2rem 0 0; }
+  .group:first-child { margin-top: 1.6rem; }
+  .group-head {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.8rem;
+    margin-bottom: 0.85rem;
+  }
+  .group-head .ver {
     display: inline-flex; align-items: baseline;
     padding: 0.22rem 0.64rem;
     border: 1px solid var(--accent); border-radius: 999px;
@@ -152,9 +169,23 @@
     font-family: var(--mono); font-size: 0.8rem; font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-  .release-head .date {
+  .group-head .date {
     font-family: var(--mono); font-size: 0.76rem; color: var(--ink-faint);
     font-variant-numeric: tabular-nums;
+  }
+  .group-head .swatch {
+    width: 0.62rem; height: 0.62rem; border-radius: 3px; flex: none;
+    background: var(--gcol);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gcol) 16%, transparent);
+  }
+  .group-head h2 {
+    font-family: var(--serif); font-weight: 600; font-size: 1.25rem;
+    letter-spacing: -0.005em; margin: 0;
+  }
+  .group-head .count {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em;
+    color: var(--ink-faint); font-variant-numeric: tabular-nums;
   }
 
   /* Cards */
@@ -168,33 +199,33 @@
   }
   li.item > details > summary {
     list-style: none; cursor: pointer;
-    padding: 0.8rem 1rem;
-    display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 0.7rem;
-    align-items: start;
+    padding: 0.75rem 1rem 0.45rem;
   }
   li.item > details > summary::-webkit-details-marker { display: none; }
   summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius); }
-  .summary-text { font-size: 0.99rem; font-weight: 600; color: var(--ink); text-wrap: pretty; }
-  .chevron {
-    grid-row: 1 / span 2; align-self: center;
-    width: 0.62rem; height: 0.62rem; flex: none;
-    border-right: 1.5px solid var(--ink-faint); border-bottom: 1.5px solid var(--ink-faint);
-    transform: rotate(45deg); transform-origin: center;
+  .summary-text {
+    font-size: 0.99rem; font-weight: 600; color: var(--ink); text-wrap: pretty;
+  }
+  /* Disclosure arrow rides along with the text: horizontal when collapsed, down when open. */
+  .summary-text::after {
+    content: ""; display: inline-block;
+    width: 0.42em; height: 0.42em;
+    margin-left: 0.5em; vertical-align: 0.12em;
+    border-right: 1.6px solid var(--ink-faint);
+    border-bottom: 1.6px solid var(--ink-faint);
+    transform: rotate(-45deg);
     transition: transform 140ms ease;
   }
-  details[open] .chevron { transform: rotate(-135deg); }
-  details > summary .tags { grid-column: 1; }
-  .tags { display: flex; flex-wrap: wrap; gap: 0.28rem; margin-top: 0.3rem; }
+  details[open] .summary-text::after { transform: rotate(45deg); }
+  .body {
+    margin: 0; padding: 0 1rem 0.15rem;
+    font-size: 0.95rem; color: var(--ink-soft); max-width: 62ch;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.28rem; padding: 0.4rem 1rem 0.75rem; }
   .chip {
     font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.04em;
     line-height: 1.5; padding: 0.06rem 0.38rem;
     border-radius: 5px; white-space: nowrap;
-  }
-  .chip-type {
-    text-transform: uppercase; font-weight: 600;
-    color: var(--gcol);
-    background: color-mix(in srgb, var(--gcol) 13%, transparent);
-    border: 1px solid color-mix(in srgb, var(--gcol) 32%, transparent);
   }
   .chip-ver {
     color: var(--accent-ink);
@@ -202,14 +233,16 @@
     border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
     font-variant-numeric: tabular-nums;
   }
+  .chip-type {
+    text-transform: uppercase; font-weight: 600;
+    color: var(--gcol);
+    background: color-mix(in srgb, var(--gcol) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gcol) 32%, transparent);
+  }
   .chip-ticket {
     color: var(--ink-faint);
     background: transparent;
     border: 1px solid var(--line);
-  }
-  .body {
-    margin: 0; padding: 0 1rem 0.95rem;
-    font-size: 0.95rem; color: var(--ink-soft); max-width: 62ch;
   }
   mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 0.12em; }
 
@@ -238,9 +271,16 @@
       from <select class="version-from" aria-label="From version"></select>
       to <select class="version-to" aria-label="To version"></select>
     </div>
+    <div class="sort">
+      group
+      <span class="segmented">
+        <button type="button" data-sort="version" aria-pressed="true">Version</button>
+        <button type="button" data-sort="type" aria-pressed="false">Type</button>
+      </span>
+    </div>
   </div>
 
-  <div class="releases"></div>
+  <div class="groups"></div>
   <p class="status" hidden></p>
   <div class="sentinel"></div>
 </div>
@@ -300,6 +340,8 @@
       { version: "1.1.0", date: "2026-06-02", entries: [
         { type: "added", ticket: "FEAT-019", summary: "Dark mode everywhere",
           description: "Every view follows your system theme, with a manual override in settings for when you want to pin one." },
+        { type: "changed", ticket: "FEAT-022", summary: "Favourites moved into the bottom sheet",
+          description: "They used to live behind the settings menu, which meant three taps to reach the thing you look at most." },
         { type: "fixed", ticket: "BUG-009", summary: "Settings open offline again",
           description: "The settings screen tried to read the remote config before falling back to the cached copy, so it crashed with no connection instead of showing what it already had." }
       ]},
@@ -310,15 +352,21 @@
     ]
   };
 
-  var releasesEl = document.querySelector(".releases");
+  var groupsEl = document.querySelector(".groups");
   var statusEl = document.querySelector(".status");
   var sentinelEl = document.querySelector(".sentinel");
   var searchEl = document.querySelector(".search");
   var fromEl = document.querySelector(".version-from");
   var toEl = document.querySelector(".version-to");
+  var sortBtns = Array.prototype.slice.call(document.querySelectorAll(".sort button"));
 
   var versionList = [];
-  var state = { cursor: null, loading: false, done: false, search: "", versionFrom: "", versionTo: "", rendered: 0 };
+  var openKeys = new Set();   // cards the user expanded — survives re-render
+  var state = {
+    cursor: null, loading: false, done: false,
+    search: "", versionFrom: "", versionTo: "", sort: "version",
+    items: []   // flat {version, date, entry}, in server order (newest release first)
+  };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -342,46 +390,87 @@
     return hit(entry.summary, term) || hit(entry.description, term) || hit(entry.ticket, term);
   }
 
-  function renderEntry(entry, version, term) {
-    // Open the card up front when the match is only in the collapsed description.
-    var openForMatch = term && hit(entry.description, term) && !hit(entry.summary, term);
+  function keyOf(item) {
+    return item.version + "|" + (item.entry.ticket || "") + "|" + item.entry.summary;
+  }
+
+  function renderCard(item, term) {
+    var e = item.entry;
+    var key = keyOf(item);
+    // Open when the user opened it, or when the match is only in the collapsed description.
+    var open = openKeys.has(key) || (term && hit(e.description, term) && !hit(e.summary, term));
     return (
-      '<li class="item" style="--gcol: var(--' + entry.type + ')">' +
-        "<details" + (openForMatch ? " open" : "") + ">" +
-          "<summary>" +
-            '<span class="summary-text">' + highlight(entry.summary, term) + "</span>" +
-            '<span class="chevron" aria-hidden="true"></span>' +
-            '<span class="tags">' +
-              '<span class="chip chip-type">' + TYPE_LABEL[entry.type] + "</span>" +
-              '<span class="chip chip-ver">v' + escapeHtml(version) + "</span>" +
-              (entry.ticket ? '<span class="chip chip-ticket">' + highlight(entry.ticket, term) + "</span>" : "") +
-            "</span>" +
-          "</summary>" +
-          '<p class="body">' + highlight(entry.description, term) + "</p>" +
+      '<li class="item" style="--gcol: var(--' + e.type + ')" data-key="' + escapeHtml(key) + '">' +
+        "<details" + (open ? " open" : "") + ">" +
+          '<summary><span class="summary-text">' + highlight(e.summary, term) + "</span></summary>" +
+          '<p class="body">' + highlight(e.description, term) + "</p>" +
         "</details>" +
+        '<div class="tags">' +
+          '<span class="chip chip-ver">v' + escapeHtml(item.version) + "</span>" +
+          '<span class="chip chip-type">' + TYPE_LABEL[e.type] + "</span>" +
+          (e.ticket ? '<span class="chip chip-ticket">' + highlight(e.ticket, term) + "</span>" : "") +
+        "</div>" +
       "</li>"
     );
   }
 
-  function renderRelease(release, term, withHeading) {
-    var kept = (release.entries || [])
-      .filter(function (e) { return matches(e, term); })
-      .sort(function (a, b) { return TYPES.indexOf(a.type) - TYPES.indexOf(b.type); });
-    if (!kept.length) return null;
+  function section(headHtml, items, term, gcol) {
+    var el = document.createElement("section");
+    el.className = "group";
+    if (gcol) el.style.setProperty("--gcol", "var(--" + gcol + ")");
+    el.innerHTML = headHtml +
+      '<ul class="items">' + items.map(function (i) { return renderCard(i, term); }).join("") + "</ul>";
+    return el;
+  }
 
-    var section = document.createElement("section");
-    section.className = "release";
-    section.innerHTML =
-      (withHeading
-        ? '<div class="release-head">' +
-            '<span class="ver">v' + escapeHtml(release.version) + "</span>" +
-            (release.date ? '<span class="date">' + escapeHtml(release.date) + "</span>" : "") +
-          "</div>"
-        : "") +
-      '<ul class="items">' +
-        kept.map(function (e) { return renderEntry(e, release.version, term); }).join("") +
-      "</ul>";
-    return section;
+  function render() {
+    var term = state.search;
+    var visible = state.items.filter(function (i) { return matches(i.entry, term); });
+    groupsEl.innerHTML = "";
+
+    if (!visible.length) {
+      setStatus(term || state.versionFrom || state.versionTo ? "No matching changes" : "Nothing here yet");
+      return;
+    }
+
+    // A search scatters results across the whole history, so the grouping headings stop
+    // helping — every card carries its own version and category tags either way.
+    var withHeadings = !term;
+
+    if (state.sort === "type") {
+      TYPES.forEach(function (type) {
+        var ofType = visible.filter(function (i) { return i.entry.type === type; });
+        if (!ofType.length) return;
+        var head = withHeadings
+          ? '<div class="group-head"><span class="swatch"></span><h2>' + TYPE_LABEL[type] +
+            '</h2><span class="count">' + ofType.length + "</span></div>"
+          : "";
+        groupsEl.appendChild(section(head, ofType, term, type));
+      });
+    } else {
+      // Version headings also drop away once a version filter narrows the list — the card's
+      // own version tag already says which release it came from.
+      var headsHere = withHeadings && !state.versionFrom && !state.versionTo;
+      var order = [];
+      var byVersion = new Map();
+      visible.forEach(function (i) {
+        if (!byVersion.has(i.version)) { byVersion.set(i.version, []); order.push(i); }
+        byVersion.get(i.version).push(i);
+      });
+      order.forEach(function (first) {
+        var items = byVersion.get(first.version).slice().sort(function (a, b) {
+          return TYPES.indexOf(a.entry.type) - TYPES.indexOf(b.entry.type);
+        });
+        var head = headsHere
+          ? '<div class="group-head"><span class="ver">v' + escapeHtml(first.version) + "</span>" +
+            (first.date ? '<span class="date">' + escapeHtml(first.date) + "</span>" : "") +
+            '<span class="count">' + items.length + "</span></div>"
+          : "";
+        groupsEl.appendChild(section(head, items, term, null));
+      });
+    }
+
+    setStatus(state.done ? "End of changelog" : "");
   }
 
   function setStatus(text) {
@@ -408,10 +497,6 @@
     }
   }
 
-  function versionFiltered() {
-    return !!(state.versionFrom || state.versionTo);
-  }
-
   function inRange(version) {
     if (!versionList.length) return true;
     var i = versionList.indexOf(version);
@@ -424,36 +509,27 @@
   async function loadMore() {
     if (state.loading || state.done) return;
     state.loading = true;
-    if (!state.rendered) setStatus("Loading…");
+    if (!state.items.length) setStatus("Loading…");
 
     var page = await fetchPage();
-    var term = state.search;
-    // Release headings only while the full history is on screen — with a version filter active
-    // every card already carries its version tag, so a heading would just repeat it.
-    var withHeading = !versionFiltered();
-
     (page.releases || []).forEach(function (release) {
       if (!inRange(release.version)) return;
-      var el = renderRelease(release, term, withHeading);
-      if (el) { releasesEl.appendChild(el); state.rendered++; }
+      (release.entries || []).forEach(function (entry) {
+        state.items.push({ version: release.version, date: release.date, entry: entry });
+      });
     });
 
     state.cursor = page.nextCursor || null;
     state.done = !state.cursor;
     state.loading = false;
-
-    if (state.rendered === 0) {
-      setStatus(term || versionFiltered() ? "No matching changes" : "Nothing here yet");
-    } else {
-      setStatus(state.done ? "End of changelog" : "");
-    }
+    render();
   }
 
   function resetAndReload() {
-    releasesEl.innerHTML = "";
+    state.items = [];
     state.cursor = null;
     state.done = false;
-    state.rendered = 0;
+    groupsEl.innerHTML = "";
     loadMore();
   }
 
@@ -473,6 +549,14 @@
     });
   }
 
+  // `toggle` doesn't bubble, so capture it on the container.
+  groupsEl.addEventListener("toggle", function (ev) {
+    var li = ev.target.closest("li.item");
+    if (!li) return;
+    if (ev.target.open) openKeys.add(li.dataset.key);
+    else openKeys.delete(li.dataset.key);
+  }, true);
+
   var searchTimer = null;
   searchEl.addEventListener("input", function () {
     clearTimeout(searchTimer);
@@ -487,6 +571,15 @@
       state.versionFrom = fromEl.value;
       state.versionTo = toEl.value;
       resetAndReload();
+    });
+  });
+
+  sortBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (state.sort === btn.dataset.sort) return;
+      state.sort = btn.dataset.sort;
+      sortBtns.forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+      render();   // regrouping only — no refetch needed
     });
   });
 
