@@ -37,6 +37,7 @@ This keeps the core testable without I/O, and swappable (new transport, new DB) 
 
 ## Resource-conscious by default
 - Backends are frugal by default: bound concurrency/connection pools, avoid needless polling or keep-alive work, prefer the cheapest data structure/query that satisfies the requirement. This matters doubly on scale-to-zero deploys (see `railway.md`) where idle resource use has a direct cost.
+- **Prefer the client for work that can happen there:** server compute costs money, the user's own device doing the same work does not. Push formatting, rendering, and light computation client-side by default; keep the server for what only it can or should do (shared state, secrets, heavy or genuinely shared computation).
 
 ## API authentication (required)
 Every API surface carries a token unless it's deliberately public:

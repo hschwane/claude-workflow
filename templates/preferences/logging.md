@@ -21,5 +21,8 @@ Standing preferences for logging. **Mandatory for anything beyond a small script
 ## Errors
 - Errors logged through the same typed-event path should carry structured context (what operation, what identifier, what upstream status) — not just a stringified stack trace with no way to query it later.
 
+## Per-module, runtime-adjustable verbosity
+- Log level/depth is configurable **per module/subsystem**, not just one global level, and **changeable at runtime** — not only via an env var that needs a restart to take effect. When Claude needs to debug something, it must be able to turn up verbosity exactly where the problem is without restarting the process or drowning in unrelated noise.
+
 ## Configurable per deployment target
 - When the deployment platform already captures and retains logs (a managed platform with built-in log aggregation), rely on that — nothing extra needed. Otherwise, the app must let **logfile location, rotation, and deletion of old logs** be configured manually — don't hard-code a path or let logs grow unbounded on a target that doesn't manage that for you.
