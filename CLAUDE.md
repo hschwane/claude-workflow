@@ -64,13 +64,16 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 ## Agents
 
-All agents are subagents — each runs in its own isolated context. Three are Haiku (mechanical, high-IO); `smoke-tester` is Sonnet/low; the `reviewer` is best/high, read-only.
+All agents are subagents — each runs in its own isolated context. Three are Haiku (mechanical/high-IO: `text-scout`, `runner`, `project-scaffolder`); two are Sonnet/low (`code-explorer`, `smoke-tester`); the `reviewer` is best/high, read-only.
 
-Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents (`code-explorer`, `runner`, `project-scaffolder`) do mechanical high-IO work to keep bulk output off the session model. `smoke-tester` runs on Sonnet at low effort — one notch up, because driving a live app and judging each step against its expected result needs a bit more reasoning than pure mechanical IO; it's meant to be used proactively whenever a manual check is worthwhile, not only in `/verify`. `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
+Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents do mechanical high-IO work to keep bulk output off the session model — `text-scout` is the generic "intelligent grep" (reads/filters/summarizes any text with sources), `runner` executes the canonical scripts, `project-scaffolder` does init file creation. `code-explorer` and `smoke-tester` run on Sonnet at low effort — a notch up, because understanding how code works (not just locating it) and judging a live app against expected results each need a bit more reasoning than pure mechanical IO. `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
+
+Exploration: for most tasks reach for **one** `code-explorer` (understand code) **or** one `text-scout` (extract/summarize text) — a single call answers it. Fanning out several `text-scout`s in parallel, or a multi-stage sweep, is reserved for genuinely large codebases / text corpora in complex apps. Subagents can't spawn subagents, so any fan-out is driven from the main session, not from inside an agent. Both agents cite every claim and never invent — their digests are trusted without re-reading.
 
 | Agent | When used |
 |-------|-----------|
-| `code-explorer` (haiku) | During `/plan`, `/project-onboard`, ad-hoc — project-aware scout; condensed codebase briefings |
+| `code-explorer` (sonnet/low) | During `/plan`, `/project-onboard`, ad-hoc — code-comprehension scout; orients via project docs, then targeted search; condensed, sourced briefings |
+| `text-scout` (haiku) | Ad-hoc — generic "intelligent grep": reads/searches/filters/summarizes any text (code, logs, docs, output) into a sourced digest |
 | `runner` (haiku) | During `/commit`, `/implement`, `/verify`, `/release` — runs a canonical entrypoint (`ci.sh`/`release.sh`), digests output |
 | `smoke-tester` (sonnet/low) | During `/verify`, `/pr`, or ad-hoc — drives the app from prose steps (blackbox), reports failing steps; used proactively whenever a manual check is warranted |
 | `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review |

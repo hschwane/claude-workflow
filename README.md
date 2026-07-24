@@ -74,11 +74,12 @@ The development lifecycle:
 
 ## Agents
 
-Five isolated subagents — each runs in its own context window so heavy reading and noisy output never pollute the main conversation. Four are Haiku (mechanical, high-IO); the `reviewer` is best/high, read-only (`tools: Read, Grep, Glob`). Claude delegates to them automatically based on their descriptions.
+Six isolated subagents — each runs in its own context window so heavy reading and noisy output never pollute the main conversation. Three are Haiku (mechanical, high-IO), two are Sonnet/low (`code-explorer`, `smoke-tester`), the `reviewer` is best/high, read-only. Claude delegates to them automatically based on their descriptions.
 
 | Agent | Role | Used by |
 |-------|------|---------|
-| `code-explorer` (haiku) | Project-aware scout: orients via the project's own docs, then reads many files and returns a condensed briefing with `file:line` refs | `/plan`, `/project-onboard`, ad-hoc |
+| `code-explorer` (sonnet/low) | Code-comprehension scout: orients via the project's own docs, then searches with intent (indexes/interfaces/call sites) and explains how the code works in a condensed, sourced briefing (`file:line`). Cites everything, invents nothing | `/plan`, `/project-onboard`, ad-hoc |
+| `text-scout` (haiku) | Generic "intelligent grep": reads/searches/filters/summarizes any text — code, logs, docs, transcripts, big command output — into a sourced digest. More than a match, less than code comprehension; never invents | ad-hoc, large-corpus fan-out |
 | `runner` (haiku) | Executes a predefined entrypoint (`ci.sh fast/full`, `release.sh`, a named command), digests output → pass/fail + key lines. Never fixes/judges | `/commit`, `/implement`, `/verify`, `/release` |
 | `smoke-tester` (sonnet/low) | Drives a running app from explicit prose steps (blackbox — no spec/code), reports failing steps only. Doubles as a novice-usability check. Used proactively wherever a manual check is warranted | `/verify`, `/pr`, ad-hoc |
 | `reviewer` (best/high) | Fresh-eyes read-only review of a critical diff — correctness, security, quality, architecture in one pass | `/verify`/`/pr`, critical diffs only |
@@ -90,13 +91,13 @@ Five isolated subagents — each runs in its own context window so heavy reading
 
 **The session runs on whatever model you picked — the workflow never switches it.** No per-ticket tiers, no route skills, no mid-flow model changes (which would invalidate the prompt cache). A few fixed-tier subagents only:
 
-- **Haiku subagents** do the mechanical, high-IO work — `code-explorer` (reads the codebase → digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
-- **`smoke-tester` (Sonnet, low effort)** drives the running app from prose steps and reports failures only — one notch up from the mechanical agents because judging a live UI against "what the step said should happen" needs a little more reasoning. Used proactively wherever a manual check is worth it, not only at feature-done.
+- **Haiku subagents** do the mechanical, high-IO work — `text-scout` (reads/filters/summarizes any text → sourced digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
+- **`code-explorer` and `smoke-tester` (Sonnet, low effort)** are a notch up: `code-explorer` *understands* how code works (not just locates it) and returns a sourced briefing; `smoke-tester` drives the running app and judges each step against its expected result. Both need a little more reasoning than pure mechanical IO. Used proactively — for most exploration, one `code-explorer` or one `text-scout` call answers it; parallel fan-out is reserved for genuinely large corpora and driven from the main session (subagents can't spawn subagents).
 - **`/consult` (best model, high effort)** for a hard call — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, read-only, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
 `best` resolves to Fable when available, else the latest Opus.
 
-**Why a project-aware `code-explorer` over the built-in Explore agent**: same cheap Haiku tier, but it orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`), so its briefings land on the right code and cite the project's conventions. It reports facts; judgment stays with the caller.
+**Why a project-aware `code-explorer` over the built-in Explore agent**: a small upgrade for the same job. It runs on Sonnet/low (a bit of code-comprehension reasoning, still cheap) and orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`, indexes) before targeting a search — so its briefings land on the right code, explain how it works, and cite the project's conventions. It reports facts, sourced; judgment stays with the caller. (For pure text extraction with no code understanding needed, `text-scout` on Haiku is the cheaper primitive.)
 
 Override the agents' model with `CLAUDE_CODE_SUBAGENT_MODEL`, or by editing the `model:` line in `.claude/agents/{name}.md`.
 
