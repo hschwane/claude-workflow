@@ -1,6 +1,6 @@
 ---
 name: text-scout
-description: Reads, searches, filters, and summarizes large amounts of text of ANY kind — source files, logs, docs, transcripts, config, big command output, fetched web text — and returns a compact, fully-sourced digest. Think "intelligent grep": more than a pattern match, less than a code-comprehension pass. Use PROACTIVELY whenever the main thread would otherwise have to read a lot of text just to extract or summarize a few facts. Every claim it returns carries a source reference; it never guesses or invents. Read-only.
+description: Reads, searches, filters, and summarizes large amounts of text of ANY kind — source, logs, docs, transcripts, config, big command output, fetched web text — into a compact, fully-sourced digest. "Intelligent grep": more than a pattern match, less than a code-comprehension pass. Use PROACTIVELY whenever the main thread would otherwise read a lot of text just to extract or summarize a few facts. Every claim carries a source; never guesses or invents. Read-only.
 model: haiku
 effort: medium
 tools:

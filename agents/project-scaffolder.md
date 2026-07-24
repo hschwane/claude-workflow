@@ -1,6 +1,6 @@
 ---
 name: project-scaffolder
-description: Creates the full project directory structure, copies and fills all template files, installs claude-workflow infrastructure (.claude/ with agents/skills/hooks/memory), and makes the initial git commit for a new project initialized by /project-init. Receives all project decisions in its prompt. Purely mechanical — never asks questions. Used automatically by /project-init after design decisions are complete.
+description: Creates a new project's full structure, fills all template files, installs the .claude/ workflow infrastructure (agents/skills/hooks/memory), and makes the initial commit. Receives all decisions in its prompt; purely mechanical, never asks. Used automatically by /project-init after design is complete.
 model: haiku
 effort: medium
 ---

@@ -14,7 +14,7 @@
 | `/release patch\|minor\|major` | Bump + changelog, then run the release/deploy locally |
 | `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: plan → implement → verify → merge → release |
 | `/resume` | Continue interrupted work (reconstructs state from the repo) |
-| `/consult "question"` | Delegate hard thinking to the `advisor` agent (best/high) — decision, design/debugging idea, or unsure; no model switch |
+| `/consult "question"` | Delegate a hard decision / design / debugging call to the `advisor` agent — no model switch |
 | `/unsupervised on\|off` | Toggle autonomous mode (no questions + proactive 90% pause) |
 | `/auto-resume on\|off` | Toggle auto-recovery after a limit reset (independent of unsupervised) |
 | `/pr [base]` | (optional) Open a PR — only when you want external review |
@@ -29,31 +29,28 @@ Tech stack: {{TECH_STACK}}
 
 Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (lifecycle, quality, decisions, deploy).
 
-**Preferences:** standing per-technology / per-feature preferences live in `.claude/preferences/` (this project) and, for cross-project ones, `~/.claude/preferences/` (user-global) — each indexed by an `INDEX.md` trigger→file table that is **not** auto-loaded. They are **recommendations, not rules** — adapt to the project or reject with a stated reason when one genuinely doesn't fit; never apply blindly. The workflow consults the index where it matters — `/plan` (references + folds matching prefs into the spec, noting anything adapted/rejected; `/implement` then just follows the spec) and `/project-init`/`/project-onboard` (scaffolding) — loading only the matching file. For **ad-hoc work touching a specialized area**, read `INDEX.md` yourself first. Add one by asking Claude to "remember a preference for X". (Note: `~/.claude/` is ephemeral in cloud sessions — put anything that must survive into the project's `.claude/preferences/`.)
+**Preferences:** standing per-tech/feature recommendations — **not rules**; adapt to the project or reject with a stated reason. They live in `.claude/preferences/` (project) and `~/.claude/preferences/` (user-global; ephemeral in cloud, so put anything that must survive in the project), indexed by a non-auto-loaded `INDEX.md`. `/plan` folds matching ones into the spec; `/project-init`/`/project-onboard` install them. For ad-hoc work in a specialized area, read `INDEX.md` yourself first. Add one via "remember a preference for X".
 
 ## Models
 
-**The session runs on whatever model you picked** — the workflow never switches it. A few fixed-tier subagents only:
-- **Haiku subagents do mechanical, high-IO work** — `text-scout` (generic "intelligent grep": reads/filters/summarizes any text → sourced digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
-- **`code-explorer` and `smoke-tester` (Sonnet, low effort)** are a notch up: `code-explorer` *understands* how code works (not just locates it) and returns a sourced briefing; `smoke-tester` drives the running app and judges each step against its expected result. Both need a bit more reasoning than pure mechanical IO — use them proactively (see Agents).
-- **`/consult` delegates hard thinking to the `advisor` agent (best/high)** — stuck twice, an architecture/design idea, a debugging angle, a security call, or genuinely unsure. It does **not** switch your model (which would invalidate the prompt cache twice): you stay cached, brief the advisor with a focused question + curated context, and it reasons on the top model. The `reviewer` agent (best/high, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
+**The session model never switches** — you stay on whatever you picked. Subagents do the tiered work: **Haiku** for mechanical/high-IO (`text-scout`, `runner`, `project-scaffolder`), **Sonnet/low** for the two needing light reasoning (`code-explorer`, `smoke-tester`), **best/high** read-only for `reviewer` and `advisor`. `/consult` delegates hard thinking to `advisor` instead of switching your model (a switch would blow the prompt cache). See Agents for when to use each.
 
 ## Agents — delegate proactively
 
-Use these automatically when they fit — don't ask first. Anything that reads many files or produces bulk output belongs in a subagent.
+Use automatically when they fit — don't ask first. Anything that reads many files or produces bulk output belongs in a subagent.
 
 | Agent | Use when |
 |-------|----------|
-| `code-explorer` (Sonnet/low) | Understanding code across >3-4 files, or "how does X work / where is it?" — prefer it over the built-in Explore; it orients via this project's docs, then searches with intent and explains the flow. Cites everything |
-| `text-scout` (Haiku) | Extract or summarize facts from a lot of text — code, logs, docs, transcripts, big command output. "Intelligent grep": more than a match, less than code comprehension. Returns a sourced digest; never invents |
+| `code-explorer` (Sonnet/low) | Understand code across >3-4 files, or "how does X work / where is it?" — orients via project docs, then targeted search; explains the flow, cites everything. Prefer over the built-in Explore |
+| `text-scout` (Haiku) | Extract/summarize facts from a lot of text (code, logs, docs, big output) — "intelligent grep": a sourced digest, never invents |
 | `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes/judges |
-| `smoke-tester` (Sonnet/low) | Manually exercise a running app from explicit prose steps (blackbox — no spec/code) — reports failing steps only. Reach for it whenever a manual check is worth it: verifying a spec at feature-done, a pre-PR sanity pass, or confirming any user-facing change works for real — not only in `/verify`. **It can't see the spec or code, so hand it concrete, executable steps** — exact action + literal inputs (URL, values, control label, test creds) and an exact observable expected result; a vague step comes back as "could not complete" |
+| `smoke-tester` (Sonnet/low) | Manually exercise a running app from prose steps (blackbox — no spec/code) — reports failing steps only. Use at feature-done, pre-PR, or any user-facing check. Hand it **concrete, executable steps** (exact action + expected result) — it can't see the spec/code |
 | `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
-| `advisor` (best/high) | Hard thinking on a briefed question — a decision, a design/architecture idea, a debugging angle, unsure of the approach. Driven by `/consult`; read-only, advises, never implements |
+| `advisor` (best/high) | Hard thinking on a briefed question — a decision, a design/debugging idea, unsure of approach. Driven by `/consult`; advises, never implements |
 
-**Exploring: one agent by default.** For most questions reach for **one** `code-explorer` (understand code) **or** one `text-scout` (extract/summarize text) — a single call answers it. Fanning out several `text-scout`s in parallel, or a multi-stage sweep, is reserved for genuinely large codebases / text corpora. Subagents can't spawn subagents, so *you* (the main session) drive any fan-out — hand each scout a slice, then work with their sourced digests. Both agents cite every claim and never invent, so you can trust the digest without re-reading — but if a claim isn't sourced, don't rely on it.
+**One scout by default:** most questions need a single `code-explorer` or `text-scout`. Fan out several (driven from the main session — subagents can't spawn subagents) only for genuinely large codebases/corpora. Both cite every claim — rely only on what's sourced.
 
-**A subagent can fail — never proceed on a missing result.** Just re-run it (the agents are idempotent — they run a script, read files, or drive the app; nothing to recover). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).
+**A subagent can fail — never proceed on a missing result.** Re-run it (they're idempotent). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).
 
 ## Skills — invoke proactively
 
@@ -78,38 +75,39 @@ Multiple tasks in one message: work through them in order; in unsupervised mode 
 
 ## Scope — build the whole ticket
 
-A ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — the core functionality, the hard part, a criterion, or the error/edge handling those criteria imply. Difficulty or size is not a reason to cut scope; that *is* the work — do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras the ticket never asked for. If a ticket is too big, say so and split it explicitly with the user — never quietly ship the easy half.
+The ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — core functionality, the hard part, a criterion, or the error/edge handling those criteria imply. Difficulty or size is not a reason to cut scope — that *is* the work; do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras. If a ticket is too big, say so and split it with the user — never quietly ship the easy half.
 
 ## Merging
 
-Default is **local git, no formal PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts locally, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only when you want external review or the repo requires it.
+Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only for external review or if the repo requires it.
 
 ## GitHub via `gh`
 
-The `gh` CLI is authenticated and available **in every session, including cloud/web ones**. Whenever a plain-git operation fails at something GitHub-side — a proxy rejecting `git push` of tags or to a protected branch, a ref you can't create with git — **fall back to `gh` instead of giving up**: `gh api` for refs/tags (`gh api repos/{owner}/{repo}/git/refs -f ref=refs/tags/vX -f sha=…`), `gh release`, `gh pr`, `gh run`, etc. One gotcha in cloud sessions: the git remote may be a proxy URL `gh` can't parse, so pass **`-R {owner}/{repo}`** explicitly on `gh` subcommands (e.g. `gh release create v1.0.0 -R owner/repo …`).
+The `gh` CLI is authenticated in **every** session, including cloud/web. When plain git fails at something GitHub-side (a proxy rejecting a tag/protected-branch push, a ref git can't create), **fall back to `gh` instead of giving up**: `gh api` for refs/tags (`gh api repos/{owner}/{repo}/git/refs -f ref=refs/tags/vX -f sha=…`), `gh release`, `gh pr`, `gh run`. Cloud gotcha: the remote may be a proxy URL `gh` can't parse — pass **`-R {owner}/{repo}`** on `gh` subcommands.
 
 ## Documentation policy
 
-Keep it minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions — not everything. Maintain one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints; a little markdown for key concepts + setup.
+Minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions. Keep one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints over prose.
 
 ## Asking the user
 
-When you need input or a decision from the user, **ask in a plain chat message and wait for their reply** — do **not** use the `AskUserQuestion` tool. The user answers in chat. Batch related questions into one message as a short numbered list so they can answer everything in a single reply (this is how skills "ask up front"). In unsupervised mode, don't ask at all — apply the autonomous defaults and note assumptions.
+When you need a decision, **ask in a plain chat message and wait** — do **not** use the `AskUserQuestion` tool. Batch related questions into one numbered list so the user answers in a single reply (this is how skills "ask up front"). In unsupervised mode, don't ask — apply the autonomous defaults and note assumptions.
 
 ## Session Behavior
 
-- Session-start says `=== AUTO-RESUME REQUIRED ===` → run `/resume` immediately.
-- Says `=== IN-PROGRESS WORK FOUND ===` → tell the user and suggest `/resume`; don't auto-resume.
-- Says `=== BLOCKED WORK ===` → surface the blocker; don't work around it.
+- Session-start `=== AUTO-RESUME REQUIRED ===` → run `/resume` immediately.
+- `=== IN-PROGRESS WORK FOUND ===` → tell the user, suggest `/resume`; don't auto-resume.
+- `=== BLOCKED WORK ===` → surface the blocker; don't work around it.
 
-**State lives in the repo** — the branch, the in-progress spec's unchecked subtask boxes, and `git log`. There is no checkpoint file to maintain; `/resume` reconstructs from these. The only branch-memory notes are `## Blocked` (human needed) and `## Ship` (orchestration state).
+**State lives in the repo** — branch + the in-progress spec's unchecked subtask boxes + `git log`. No checkpoint file; `/resume` reconstructs from these. Only branch notes: `## Blocked` (human needed) and `## Ship` (orchestration state).
 
-**Two toggles** (both in `.claude/memory/settings.md`), independent except that **unsupervised implies auto-resume**: `/unsupervised on` turns `auto_resume` on too if it isn't already (an autonomous run must survive a limit kill); `/unsupervised off` leaves `auto_resume` on. `/auto-resume` is otherwise toggled on its own.
-- **`unsupervised`** (`/unsupervised`) — *how* Claude works. When `true`: never ask the user (apply the `/unsupervised` defaults); keep every subtask green-committed so an interruption loses at most the current subtask; on a genuine blocker write `## Blocked` and stop; when done, clear the notes and post a short report. A usage-guard pause (local, at the threshold — default 90%) → finish the atomic step, commit, end the turn. Supervised (default) still asks questions and runs to the hard limit with no proactive pause.
-- **`auto_resume`** (`/auto-resume`) — *whether* an interrupted run wakes itself after the limit resets, in **either** mode. Its job is to **wake** a stalled cloud session (a limit reset doesn't restart it on its own), not to preserve state: the recovery heartbeat (a recurring Routine bound to the session) resumes the **same** session, so the chat history + repo are still there — the woken agent reads its own context to see what's left. In cloud, the `auto-resume-guard.sh` hook keeps the heartbeat armed for **any** work — including a plain prompt outside a skill: on each prompt, while unarmed, it nudges the agent to arm it once, then stays silent (armed → zero per-prompt cost). When the heartbeat fires and the context shows the work is already done, the agent deletes it (and clears `recovery_trigger:`), so you're not woken needlessly; if work remains it continues and the heartbeat stays armed. Locally the SessionStart hook / `scripts/claude-loop.sh` drives `/resume` on the next start. In supervised mode a heartbeat-driven resume does the mechanical work and writes `## Blocked` with a question when a real decision is needed. Toggling `auto_resume` never changes whether Claude asks questions; toggling `unsupervised` on ensures `auto_resume` is on, but off never removes it.
+**Two independent toggles** in `.claude/memory/settings.md`:
+- **`unsupervised`** — *how* Claude works. `true`: never ask (apply the `/unsupervised` defaults), keep every subtask green-committed (an interruption loses at most the current subtask), write `## Blocked` + stop on a real blocker, post a short report when done. A usage-guard pause at the threshold (default 90%) → finish the atomic step, commit, end the turn. Supervised (default): still ask, run to the hard limit.
+- **`auto_resume`** — *whether* an interrupted run wakes itself after a limit reset, in either mode. In cloud a recovery heartbeat (bound to the session) + the `auto-resume-guard.sh` hook keep it armed and tear it down when work is done — mechanics in `/auto-resume`. Locally the SessionStart hook / `scripts/claude-loop.sh` drives `/resume` on next start.
+- **Coupling:** `/unsupervised on` turns `auto_resume` on too (an autonomous run must survive a limit kill); `off` leaves it on. Neither toggle changes whether Claude asks questions beyond the above.
 
 ## Memory
 
-`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and runtime notes (gitignored). Read them when relevant; they're not auto-loaded.
+`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and runtime notes (gitignored). Read when relevant; not auto-loaded.
 
-Runtime notes: `context-{branch}.md` for a branch's `## Blocked` note — **`{branch}` = the git branch with every `/` replaced by `-`** (`feature/feat-001-x` → `context-feature-feat-001-x.md`); the hooks compute it exactly this way, so skills must too. `/ship` orchestration state lives in the **fixed, branch-independent** `context-ship.md` (a ship spans many branches).
+Runtime notes: `context-{branch}.md` for a branch's `## Blocked` note — **`{branch}` = the git branch with every `/` replaced by `-`** (`feature/feat-001-x` → `context-feature-feat-001-x.md`); hooks compute it this way, so skills must too. `/ship` state lives in the **fixed, branch-independent** `context-ship.md` (a ship spans many branches).

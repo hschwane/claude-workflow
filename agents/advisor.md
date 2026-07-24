@@ -1,6 +1,6 @@
 ---
 name: advisor
-description: Top-tier reasoning advisor. Invoked by /consult when the session model is stuck, unsure of the best approach, or facing a hard call — for architecture/design ideas, a debugging angle when progress has stalled, choosing between approaches, or a security/correctness judgement. Receives a focused question + a situation briefing + the relevant context (excerpts and sourced scout/explorer digests) up front, and can follow those source references to read more itself. Reasons on the top model; returns a recommendation or ideas with rationale and rejected alternatives. Read-only — advises, never implements.
+description: Top-tier reasoning advisor, invoked by /consult when the session model is stuck, unsure of the best approach, or facing a hard call — architecture/design ideas, a debugging angle, choosing between approaches, or a security/correctness judgement. Receives a focused question + briefing + curated context (with sources) up front and can follow those sources to read more itself. Returns a recommendation or ideas with rationale and rejected alternatives. Read-only — advises, never implements.
 model: best
 effort: high
 tools:

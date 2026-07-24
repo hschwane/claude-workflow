@@ -1,6 +1,6 @@
 ---
 name: runner
-description: Executes a predefined project entrypoint (the canonical check script, the release script, or any predefined project command) and reports a condensed pass/fail result with the key output lines — without fixing or judging anything. Use PROACTIVELY whenever a gate, test run, or release script needs running and the raw output would clutter the main context.
+description: Runs a predefined project entrypoint (the canonical check/release script or a named command) and reports condensed pass/fail + the key output lines — never fixes or judges. Use PROACTIVELY whenever a gate, test run, or release script would otherwise clutter the main context with raw output.
 model: haiku
 effort: medium
 tools:

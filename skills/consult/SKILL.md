@@ -1,6 +1,6 @@
 ---
 name: consult
-description: Get a second, stronger opinion from the top-tier `advisor` agent — for a hard decision, an architecture/design idea, a debugging angle when you're stuck, or when you're just unsure of the best approach. The session model stays on its own model (no switch, no cache churn); it briefs the advisor with a focused question + the relevant context and delegates the reasoning. Use PROACTIVELY when stuck (two failed attempts at the same problem), facing an architecture/security/correctness call, or genuinely unsure between approaches.
+description: Get a stronger second opinion from the top-tier `advisor` agent — a hard decision, a design/architecture idea, a debugging angle, or when unsure of the best approach. You stay on your own model (no switch, no cache churn) and delegate the reasoning with a focused question + context. Use PROACTIVELY when stuck (two failed attempts at the same problem), on an architecture/security/correctness call, or genuinely unsure between approaches.
 argument-hint: "<question, decision, or problem to think through>"
 ---
 

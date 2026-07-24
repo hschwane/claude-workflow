@@ -1,6 +1,6 @@
 ---
 name: smoke-tester
-description: Drives a running app on a local/test instance following explicit prose test steps, and reports ONLY the steps that fail (expected vs. observed + a screenshot). Blackbox — receives only the step list, never the spec or implementation. Use PROACTIVELY whenever something warrants a manual check against the real app: verifying a spec's acceptance criteria at feature-done (/verify), sanity-checking user-facing behavior before a PR, or any time you want to confirm the app actually does what a change intends instead of trusting the tests alone.
+description: Drives a running app (local/test instance) through explicit prose steps and reports ONLY the failing steps (expected vs observed + screenshot). Blackbox — gets the step list, never the spec or code. Use PROACTIVELY whenever a manual check against the real app is worth it: verifying acceptance criteria at feature-done (/verify), a pre-PR sanity pass, or confirming any user-facing change works for real instead of trusting the tests alone.
 model: sonnet
 effort: low
 tools:
