@@ -56,7 +56,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/release` | Semver bump + changelog, then run `release.sh` locally |
 | `/ship` | The orchestrator: spec list OR topic → plan → implement → verify → merge → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) or a `"topic"` |
 | `/resume` | Resume interrupted work by reconstructing state from the branch + spec checkboxes + git log |
-| `/consult` | Top-tier advisor: one elevated turn (best/high) with full context, then back to the session model |
+| `/consult` | Delegate hard thinking to the top-tier `advisor` agent — a decision, a design/debugging idea, or when unsure. Session stays on its model (no switch); it briefs the advisor and delegates |
 | `/unsupervised` | Toggle unsupervised mode (no questions, autonomous defaults, proactive 90% pause) |
 | `/auto-resume` | Toggle auto-recovery after a limit reset (independent of unsupervised; cloud heartbeat / local loop) |
 | `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
@@ -64,9 +64,9 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 
 ## Agents
 
-All agents are subagents — each runs in its own isolated context. Three are Haiku (mechanical/high-IO: `text-scout`, `runner`, `project-scaffolder`); two are Sonnet/low (`code-explorer`, `smoke-tester`); the `reviewer` is best/high, read-only.
+All agents are subagents — each runs in its own isolated context. Three are Haiku (mechanical/high-IO: `text-scout`, `runner`, `project-scaffolder`); two are Sonnet/low (`code-explorer`, `smoke-tester`); two are best/high, read-only (`reviewer`, `advisor`).
 
-Models: the session runs on whatever model the user picked — the workflow does not switch it. The Haiku agents do mechanical high-IO work to keep bulk output off the session model — `text-scout` is the generic "intelligent grep" (reads/filters/summarizes any text with sources), `runner` executes the canonical scripts, `project-scaffolder` does init file creation. `code-explorer` and `smoke-tester` run on Sonnet at low effort — a notch up, because understanding how code works (not just locating it) and judging a live app against expected results each need a bit more reasoning than pure mechanical IO. `/consult` and the `reviewer` agent reach for the best model at high effort only when a hard call or a critical review warrants it.
+Models: the session runs on whatever model the user picked — the workflow does not switch it, ever. The Haiku agents do mechanical high-IO work to keep bulk output off the session model — `text-scout` is the generic "intelligent grep" (reads/filters/summarizes any text with sources), `runner` executes the canonical scripts, `project-scaffolder` does init file creation. `code-explorer` and `smoke-tester` run on Sonnet at low effort — a notch up, because understanding how code works (not just locating it) and judging a live app against expected results each need a bit more reasoning than pure mechanical IO. The best model at high effort lives in two read-only agents: `reviewer` (critical-diff review) and `advisor` (the reasoning `/consult` delegates to). `/consult` is the key move here — instead of switching the session to the top model (which invalidates the prompt cache twice, up and back), the session stays put, briefs the `advisor` agent with a focused question + curated context, and delegates just the hard thinking.
 
 Exploration: for most tasks reach for **one** `code-explorer` (understand code) **or** one `text-scout` (extract/summarize text) — a single call answers it. Fanning out several `text-scout`s in parallel, or a multi-stage sweep, is reserved for genuinely large codebases / text corpora in complex apps. Subagents can't spawn subagents, so any fan-out is driven from the main session, not from inside an agent. Both agents cite every claim and never invent — their digests are trusted without re-reading.
 
@@ -77,6 +77,7 @@ Exploration: for most tasks reach for **one** `code-explorer` (understand code) 
 | `runner` (haiku) | During `/commit`, `/implement`, `/verify`, `/release` — runs a canonical entrypoint (`ci.sh`/`release.sh`), digests output |
 | `smoke-tester` (sonnet/low) | During `/verify`, `/pr`, or ad-hoc — drives the app from prose steps (blackbox), reports failing steps; used proactively whenever a manual check is warranted |
 | `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review |
+| `advisor` (best/high) | During `/consult` — top-tier reasoning on a briefed question (decision, design/debugging idea, unsure of approach); read-only, advises, never implements |
 | `project-scaffolder` (haiku) | During `/project-init` — mechanical file creation, template copying, initial commit |
 
 ## Contributing to claude-workflow

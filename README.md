@@ -67,14 +67,14 @@ The development lifecycle:
 | `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: from a spec list **or** a topic/direction → plan (batch questions) → implement → verify → **local merge** → release → report. Out-of-scope deferrals surfaced in the report |
 | `/pr [base]` | **Optional** — open a PR for external review or a repo that requires it. The default flow merges locally with plain git (no PR) |
 | `/resume` | Continue interrupted work by reconstructing state from the repo (branch + in-progress spec's unchecked boxes + git log) — works the same in every environment |
-| `/consult "question"` | Ask the advisor: one elevated turn (best/high) with full context, records the decision in `.claude/memory/decisions.md` |
+| `/consult "question"` | Delegate hard thinking to the `advisor` agent (best/high) — a decision, a design/architecture or debugging idea, or when unsure. You stay on your model (no switch, no cache churn); you brief the advisor with a focused question + curated context. Records the decision in `.claude/memory/decisions.md` when one is made |
 | `/unsupervised on [90]\|off` | Toggle autonomous mode (no questions + proactive 90% pause) — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 | `/auto-resume on\|off` | Toggle auto-recovery after a session/rate-limit reset — **independent** of unsupervised; works in supervised too |
 | `/workflow-decisions [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
 
 ## Agents
 
-Six isolated subagents — each runs in its own context window so heavy reading and noisy output never pollute the main conversation. Three are Haiku (mechanical, high-IO), two are Sonnet/low (`code-explorer`, `smoke-tester`), the `reviewer` is best/high, read-only. Claude delegates to them automatically based on their descriptions.
+Seven isolated subagents — each runs in its own context window so heavy reading and noisy output never pollute the main conversation. Three are Haiku (mechanical, high-IO), two are Sonnet/low (`code-explorer`, `smoke-tester`), two are best/high and read-only (`reviewer`, `advisor`). Claude delegates to them automatically based on their descriptions.
 
 | Agent | Role | Used by |
 |-------|------|---------|
@@ -83,6 +83,7 @@ Six isolated subagents — each runs in its own context window so heavy reading 
 | `runner` (haiku) | Executes a predefined entrypoint (`ci.sh fast/full`, `release.sh`, a named command), digests output → pass/fail + key lines. Never fixes/judges | `/commit`, `/implement`, `/verify`, `/release` |
 | `smoke-tester` (sonnet/low) | Drives a running app from explicit prose steps (blackbox — no spec/code), reports failing steps only. Doubles as a novice-usability check. Used proactively wherever a manual check is warranted | `/verify`, `/pr`, ad-hoc |
 | `reviewer` (best/high) | Fresh-eyes read-only review of a critical diff — correctness, security, quality, architecture in one pass | `/verify`/`/pr`, critical diffs only |
+| `advisor` (best/high) | Top-tier reasoning on a briefed question — a decision, a design/architecture or debugging idea, unsure of the approach. Read-only; advises, never implements | `/consult` |
 | `project-scaffolder` (haiku) | Mechanical file creation after design decisions: directories, configs, canonical scripts, CI, docs, initial commit | `/project-init` |
 
 **Why agents and not main-thread work?** Subagents pay a startup overhead but keep the main context clean — the rule of thumb (matching [official guidance](https://code.claude.com/docs/en/best-practices)): anything that reads more than 3-4 files or produces large output goes to a subagent; anything interactive, stateful, or small stays in the main thread. That's why **release/deploy is a skill, not an agent** (sequential, needs user confirmations and main-context state), while planning and implementation judgment stay in the main session.
@@ -93,7 +94,7 @@ Six isolated subagents — each runs in its own context window so heavy reading 
 
 - **Haiku subagents** do the mechanical, high-IO work — `text-scout` (reads/filters/summarizes any text → sourced digest), `runner` (executes the canonical `ci.sh`/`release.sh` → pass/fail + key lines), `project-scaffolder` (init file creation). They keep bulk output off your session model; judgment stays in the main session.
 - **`code-explorer` and `smoke-tester` (Sonnet, low effort)** are a notch up: `code-explorer` *understands* how code works (not just locates it) and returns a sourced briefing; `smoke-tester` drives the running app and judges each step against its expected result. Both need a little more reasoning than pure mechanical IO. Used proactively — for most exploration, one `code-explorer` or one `text-scout` call answers it; parallel fan-out is reserved for genuinely large corpora and driven from the main session (subagents can't spawn subagents).
-- **`/consult` (best model, high effort)** for a hard call — stuck twice, an architecture/security decision, genuinely unsure. The `reviewer` agent (best/high, read-only, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
+- **`/consult` delegates to the `advisor` agent (best model, high effort)** for hard thinking — stuck twice, an architecture/design idea, a debugging angle, a security call, genuinely unsure. Crucially it does **not** switch your session model (which would invalidate the prompt cache twice, up and back): you stay cached, gather cheaply with the scouts, brief the advisor with a focused question + curated context (whose citations it can follow to read more itself), and it reasons on the top model. The `reviewer` agent (best/high, read-only, fresh eyes) is the review counterpart, used sparingly for genuinely critical diffs.
 
 `best` resolves to Fable when available, else the latest Opus.
 
