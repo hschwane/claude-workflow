@@ -73,6 +73,20 @@ Ask the user (in chat — plain message, wait for the reply) — **skip question
 
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
 
+### 1.5 Load the matching preferences — before designing anything
+The project type and language are known now, so match preferences **here**, not at scaffolding time: they shape the vision, the architecture and the backlog, and retrofitting them later is how a project ends up missing its baseline.
+
+Read `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md` and, if it exists, the user-global `~/.claude/preferences/INDEX.md`. Match every trigger against what's known so far — project type, language, and the features/tech/deploy intentions from the design doc — and **read each matching preference file now**. Re-check once the architecture and deploy target are decided (steps 3–5) and read anything newly matched (e.g. `railway.md`).
+
+Carry what you read into:
+- **Vision (step 2)** — a preference can sharpen scope or an explicit non-goal.
+- **Architecture and deploy (steps 3–5)** — e.g. `service-architecture.md`'s layering, `ai-integration.md`'s interface rule, `railway.md`'s portability rule.
+- **Backlog (step 7)** — **every "required" item in a matching preference that the scaffold doesn't already provide becomes a ticket.** `app-baseline.md` alone yields several (logging, in-app changelog, an update mechanism, Claude-testable smoke access); `ui-frontend.md` says when a real design pass is due; `web-app-pwa.md` yields version display, update control and the access gate.
+
+Preferences stay **recommendations** — judge each against this project's real scale and say so when you reject one (see the preferences `README.md`). What you must not do is silently skip them.
+
+After scaffolding, the matching files are installed into the project's `.claude/preferences/` with their INDEX rows (the scaffolder does this via `LIBRARY_PREFERENCES`; **copy matching global ones too**, since `~/.claude/` is ephemeral in cloud sessions).
+
 ### 2. Product Vision Workshop
 Tell the user: "Let me help you define the product vision — this guides planning and implementation. Answer these questions as briefly or thoroughly as you like."
 
@@ -86,9 +100,6 @@ Ask (in chat — plain message, wait for the reply):
 5. "What is explicitly OUT of scope? (what will you NOT build?)"
 
 Write `docs/VISION.md` from `templates/vision.md.template`, filled with the user's answers.
-
-### 2.5 Apply global preferences
-Read the user-global preferences index `~/.claude/preferences/INDEX.md` (if it exists). For every trigger matching this project's **type, language, deploy target, or planned tech**, read that preference file and **apply it to the decisions below** (architecture, tech stack, release/deploy). After scaffolding, **copy the matching global preference files into the new project's `.claude/preferences/`** and add their rows to the project `INDEX.md`, so they persist with the project (important: `~/.claude/` is ephemeral in cloud sessions). If the folder doesn't exist, skip.
 
 ### 3. Architecture Decision
 Based on project type and language, present an opinionated recommendation. **Consider any architectural ideas or technology preferences from the design document when making the recommendation.**
@@ -157,7 +168,7 @@ Then determine:
 - `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`
 - `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
 - `TARGET_DIR`: the absolute path to the new project directory.
-- `LIBRARY_PREFERENCES`: consult `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md` and build a comma-separated list of every library preference whose "install when" matches this project — `railway` if DEPLOY=railway; `plots-graphs` if the app renders charts/graphs/data-viz; `maps` if it shows an interactive map; `web-app-pwa` if it's a web app / PWA; `telegram-bots` if it's a Telegram bot; `service-architecture` and `logging` if it's a non-trivial backend/service with real business logic (Web API, bot, daemon — not a thin CLI/library); `background-jobs` if it has scheduled/periodic/background work or must handle graceful shutdown (plus any others added to LIBRARY.md later). Empty if none match. The scaffolder installs each (file + INDEX row) so `/plan` picks them up.
+- `LIBRARY_PREFERENCES`: the comma-separated list of library preferences matched in **step 1.5**, now that the deploy target and architecture are settled — re-check `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md` for anything the later decisions newly match. Typical matches: `app-baseline` for any project bigger than a small script/tool; `railway` if DEPLOY=railway; `plots-graphs` if the app renders charts/graphs/data-viz; `maps` if it shows an interactive map; `web-app-pwa` if it's a web app / PWA; `ui-frontend` if it has a UI to design; `changelog` if it should ship an in-app changelog; `ai-integration` if it integrates AI features; `telegram-bots` if it's a Telegram bot; `service-architecture` if it's a non-trivial backend/service with real business logic (Web API, bot, daemon — not a thin CLI/library); `logging` for anything beyond a small script; `background-jobs` if it has scheduled/periodic/background work or must handle graceful shutdown (plus any others added to LIBRARY.md later). Empty only for a genuinely tiny script. The scaffolder installs each (file + INDEX row) so `/plan` picks them up.
 
 Invoke the `project-scaffolder` agent with this prompt (fill in every `{…}` placeholder):
 
@@ -228,7 +239,7 @@ Explain the four-phase approach to the user, then generate and review the backlo
 | `MVP` | MVP | All use cases complete and usable. Skip comfort features, advanced automation, and polish. The core product is testable and buildable. |
 | `1.0.0` | 1.0.0 | Everything else from the design phase needed to reach version 1.0.0, not required for the MVP. Added so nothing is lost — the user decides which to pursue after the MVP is validated. Items that belong to future versions beyond 1.0.0 get a version string like `1.1.0`, `2.0.0`, etc. |
 
-**Generate proposed items for each milestone** based on the product vision, architecture decisions, and any design documents from step 0.5:
+**Generate proposed items for each milestone** based on the product vision, architecture decisions, any design documents from step 0.5, **and the preferences matched in step 1.5** — every "required" item in a matching preference that the scaffold doesn't already provide needs a ticket here, placed in the milestone where it belongs (baseline infrastructure in `tech-backbone`, the real UI design pass by `MVP`/`1.0.0`, and so on). Name the source preference in the item's rationale so the user can judge it; if you deliberately drop one as overkill for this project's scale, say that too rather than omitting it silently.
 
 - **tech-backbone (3–6 items):** Build system working, CI green (lint/type-check/test), core infrastructure provisioned (database, auth provider, cloud services — specific to the project type and deploy target from steps 3–5), release/deploy pipeline end-to-end, smoke test / health check endpoint so the user can verify the skeleton is alive in the deployed environment.
 

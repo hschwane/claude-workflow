@@ -1,41 +1,61 @@
 <!--
   In-app changelog template (see ../preferences/changelog.md for the requirements this implements).
 
-  Self-contained: no build step, no external dependencies, no webfonts. Drop into the app as its
-  own page/view/route, then:
-    1. Replace the CSS custom properties in the "APP THEME" block below with the app's own
-       design tokens (colors, type stacks, radius) — that's the whole re-skin. The defaults here
-       are a warm-paper palette with serif headings; they are meant to be swapped.
-    2. Point CHANGELOG_ENDPOINT / VERSIONS_ENDPOINT at the app's real backend routes (see the
-       API CONTRACT comment below). Until then this renders the embedded DEMO_DATA so the page
-       is inspectable standalone.
-    3. Wire up navigation to/from wherever the app shows its version or update control.
+  Self-contained: no build step, no external dependencies, no webfonts. The palette below is
+  deliberately neutral — it is a starting point to replace, not a look to keep.
 
-  Each change is a card: a one-line summary that expands to the full description, with small tags
-  for its release version, category and ticket. The list groups by version (default) or by
-  category, switchable; group headings drop away while a search is active, since every card
-  already carries its own version and category tags.
+  ============================================================================================
+  ADAPT to the project (expected, do all of these)
+  ----------------------------------------------------------------------------------------
+  · Every token in the APP THEME block: surfaces, ink, lines, accent, radius, type stacks.
+    Swap them for the app's real design tokens in all three places (`:root`, the
+    prefers-color-scheme block, and both `[data-theme]` blocks).
+  · The masthead: brand name, headline, and the lede sentence.
+  · CHANGELOG_ENDPOINT / VERSIONS_ENDPOINT — point them at the app's real routes (contract in
+    the API CONTRACT comment below), then delete DEMO_DATA and its two fallback branches.
+  · Spacing, radius and shadow to match the app's other surfaces.
+
+  KEEP (these carry meaning or behavior — changing them breaks the view)
+  ----------------------------------------------------------------------------------------
+  · Four distinct category colors. Re-pick the hues freely, but --added / --changed / --fixed
+    / --removed must stay mutually distinguishable, readable on the card surface in both
+    themes, and distinct from --accent (which marks versions, not categories). Each category's
+    color must stay the same wherever that category appears — heading swatch, card edge, chip.
+  · --mark must stay clearly distinct from all four category colors and from --accent, or a
+    search highlight starts reading as a category. Its contrast against --mark-ink is what
+    makes highlighted text legible.
+  · Both themes. The `[data-theme]` blocks must keep overriding the media query in both
+    directions, or the app's own theme toggle stops working here.
+  · Card anatomy and reading order: summary → (description when open) → tags, tags in the
+    order version, category, ticket. The disclosure arrow follows the summary text and points
+    sideways when collapsed, down when open.
+  · Heading logic: headings disappear while a search is active, and version headings also
+    disappear while a version filter narrows the list — in both cases the cards' own tags
+    already carry that information.
+  · The grouping toggle, search-with-highlight, version range filter and cursor pagination —
+    these are the requirements this template exists to satisfy.
+  ============================================================================================
 -->
 <title>Changelog</title>
 <style>
   /* ---------------- APP THEME — replace these with the app's real tokens ---------------- */
   :root {
-    --paper: #fbfaf7;
-    --ink: #1c2a2c;
-    --ink-soft: #495a5c;
-    --ink-faint: #7d8a8a;
-    --line: #e8e2d8;
+    --paper: #fcfcfd;
+    --ink: #17191c;
+    --ink-soft: #53585f;
+    --ink-faint: #868b93;
+    --line: #e3e5e9;
     --card: #ffffff;
-    --field: #f4f1ea;
-    --accent: #d5622b;
-    --accent-ink: #a8471c;
-    --added: #3e7d5a;
-    --changed: #b8842a;
-    --fixed: #316d7b;
-    --removed: #9c3f4e;
-    --mark: #f6d99a;
-    --mark-ink: #4a3208;
-    --shadow: 0 1px 2px rgba(28, 42, 44, 0.04), 0 8px 28px rgba(28, 42, 44, 0.06);
+    --field: #f2f3f6;
+    --accent: #4a5a70;
+    --accent-ink: #3b4859;
+    --added: #2f7150;
+    --changed: #8a6a24;
+    --fixed: #2c637f;
+    --removed: #8f3f48;
+    --mark: #ffe9a8;
+    --mark-ink: #4a3a08;
+    --shadow: 0 1px 2px rgba(20, 24, 30, 0.04), 0 8px 28px rgba(20, 24, 30, 0.06);
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
@@ -43,28 +63,28 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
-      --line: #24302e; --card: #17201e; --field: #1c2725;
-      --accent: #ef7d40; --accent-ink: #f19563;
-      --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0; --removed: #d78f9b;
-      --mark: #6a5217; --mark-ink: #f7e6bd;
+      --paper: #131519; --ink: #e7e9ec; --ink-soft: #a3a8b0; --ink-faint: #6f757e;
+      --line: #272a30; --card: #1a1d22; --field: #1f232a;
+      --accent: #93a4bb; --accent-ink: #a7b6c9;
+      --added: #6cba8c; --changed: #cba55f; --fixed: #6aa9c6; --removed: #cf8590;
+      --mark: #5c4a12; --mark-ink: #f7e9c0;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
     }
   }
   :root[data-theme="light"] {
-    --paper: #fbfaf7; --ink: #1c2a2c; --ink-soft: #495a5c; --ink-faint: #7d8a8a;
-    --line: #e8e2d8; --card: #ffffff; --field: #f4f1ea;
-    --accent: #d5622b; --accent-ink: #a8471c;
-    --added: #3e7d5a; --changed: #b8842a; --fixed: #316d7b; --removed: #9c3f4e;
-    --mark: #f6d99a; --mark-ink: #4a3208;
-    --shadow: 0 1px 2px rgba(28,42,44,.04), 0 8px 28px rgba(28,42,44,.06);
+    --paper: #fcfcfd; --ink: #17191c; --ink-soft: #53585f; --ink-faint: #868b93;
+    --line: #e3e5e9; --card: #ffffff; --field: #f2f3f6;
+    --accent: #4a5a70; --accent-ink: #3b4859;
+    --added: #2f7150; --changed: #8a6a24; --fixed: #2c637f; --removed: #8f3f48;
+    --mark: #ffe9a8; --mark-ink: #4a3a08;
+    --shadow: 0 1px 2px rgba(20,24,30,.04), 0 8px 28px rgba(20,24,30,.06);
   }
   :root[data-theme="dark"] {
-    --paper: #101718; --ink: #ece6db; --ink-soft: #a6b1af; --ink-faint: #6c7978;
-    --line: #24302e; --card: #17201e; --field: #1c2725;
-    --accent: #ef7d40; --accent-ink: #f19563;
-    --added: #71ba8d; --changed: #e0b25c; --fixed: #64aec0; --removed: #d78f9b;
-    --mark: #6a5217; --mark-ink: #f7e6bd;
+    --paper: #131519; --ink: #e7e9ec; --ink-soft: #a3a8b0; --ink-faint: #6f757e;
+    --line: #272a30; --card: #1a1d22; --field: #1f232a;
+    --accent: #93a4bb; --accent-ink: #a7b6c9;
+    --added: #6cba8c; --changed: #cba55f; --fixed: #6aa9c6; --removed: #cf8590;
+    --mark: #5c4a12; --mark-ink: #f7e9c0;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
   }
 
