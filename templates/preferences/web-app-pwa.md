@@ -9,7 +9,8 @@ Standing preferences for any browser-delivered app (SPA or installable PWA).
 ## Manual update control (required)
 - Provide a visible **"Check for updates"** button (next to the version). Users on a cached PWA can otherwise sit on a stale build for days; the button gives them an explicit way out without hunting through browser menus.
 - The button drives the service-worker update flow: `registration.update()` → if a worker is `waiting`, `postMessage({type:'SKIP_WAITING'})` → on `controllerchange`, reload. If already current, say so ("You're on the latest version").
-- Also **detect updates passively**: when the SW reports a `waiting` worker (new build deployed), surface a non-intrusive "Update available — reload" banner. The manual button and the banner share the same apply path.
+- **The button always gives visible feedback**, from click to outcome — a busy/checking state while it runs, then one clear result: update found and installed, already on the latest version, or the check/update failed (show the error, don't fail silently). The user must never be left wondering whether the click did anything.
+- Also **detect updates passively**: when the SW reports a `waiting` worker (new build deployed), surface a banner **pinned to the top of the screen** with an explicit **"Update now"** button — not just a passive notice. The manual button and the banner share the same apply path.
 
 ## Update UX
 - Never hard-reload out from under the user mid-action — offer the reload, let them take it.
@@ -19,6 +20,11 @@ Standing preferences for any browser-delivered app (SPA or installable PWA).
 ## General
 - Design offline-tolerant where it's cheap: cache the shell and the last-known data, show a clear offline indicator rather than a broken screen.
 - Keep the installable manifest (name, icons, theme color, display mode) accurate — it's the app's identity on the home screen.
+- **Cache all static and semi-static data locally**, not just the app shell — anything that doesn't change every request. Only refetch what the "Data changed on the server" signal below actually flags as stale; minimizing bandwidth is the point, not just offline support.
+- Consider routing frontend logs through the backend's logging pipeline (see `logging.md`) when it would meaningfully ease debugging — e.g. a single-user app where you can't ask the user for their browser console.
+
+## Access control for private single-user apps (required)
+An app built for personal/single-user use, deployed somewhere internet-reachable, gets a **password gate by default**. Without it, the API surface is open to anyone who finds the URL — and strangers hitting it costs real money (bandwidth, scale-to-zero wake-ups, compute), not just a theoretical risk. Put the password in a **deployment env var** so it can be switched off explicitly (e.g. a local/offline deployment that was never internet-reachable in the first place doesn't need the gate).
 
 ## Local persisted client state (localStorage / IndexedDB)
 - **Version it**: store a `SETTINGS_VERSION` (and, if the shape can change in incompatible ways, a `MIN_COMPATIBLE_VERSION`) alongside the data. On load, **merge** stored values into the current defaults field-by-field rather than overwriting — new fields silently get sane defaults, no reset/data loss on upgrade.

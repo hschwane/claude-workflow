@@ -14,7 +14,8 @@ Standing preferences for charts/graphs (time-series, bar, line, field/heat overl
 ## Axes, scaling, units
 - **Auto-fit the value axis with a small padding** (e.g. `floor(min)-1 … ceil(max)+1`); label only the two extreme ticks to stay uncluttered.
 - **Always show units** next to axes *and* in tooltips (°C, mm, m/s, %, …).
-- **Time axis:** prefer **day-boundary gridlines** (a dashed vertical at each new calendar day, labeled "Today"/short weekday) over noisy per-timestamp ticks.
+- **Ticks and gridlines track the data actually shown, not a fixed step:** derive density from the current window/range (few points → tick every point; a wide window → a coarser, evenly-spaced subset) so labels never overlap or under-fill as the shown data changes.
+- **Time axis:** prefer **day-boundary gridlines** (a dashed vertical at each new calendar day, labeled "Today"/short weekday) over noisy per-timestamp ticks — one instance of the data-adaptive rule above.
 - **Combine related series in one chart** via stacked bands sharing the x/time axis (e.g. temperature line + precipitation bars + wind glyphs) instead of three separate charts. Decimate glyph-style series (`step = max(1, round(n/target))`) to avoid clutter.
 
 ## Color & theming
@@ -29,6 +30,9 @@ Standing preferences for charts/graphs (time-series, bar, line, field/heat overl
 
 ## Honest states
 - End-to-end **loading / error / empty** states: the data hook returns `{data, loading, error}` (reset on param change, guard against stale/unmounted updates with a `cancelled` flag); the view renders explicit "loading…", the error string, and "no data"; the chart itself guards `n < 2` → "no data".
+
+## Works on every targeted device (required)
+- The chart must be **fully usable on every input device and screen size the project is built for** — not just mouse+desktop. If the project's target range includes touch, small screens, or keyboard-only use, that's not optional polish: hover must have a touch equivalent (see above), the size presets must actually stay legible and tappable (~44px targets) at the smallest targeted breakpoint, and keyboard nav (below) must work without a mouse. Check the smallest and largest targeted screen, not just a desktop browser window.
 
 ## Accessibility & performance (do this too)
 - Give the chart `role="img"` + a meaningful `aria-label`; expose glyph meaning via `<title>`/`aria-label`. **Add what the reference lacked:** keyboard navigation of the hover (arrow keys move the selected index) and a screen-reader-readable value readout or a visually-hidden data table — don't ship mouse/touch-only.

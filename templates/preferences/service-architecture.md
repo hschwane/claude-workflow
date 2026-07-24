@@ -34,3 +34,15 @@ This keeps the core testable without I/O, and swappable (new transport, new DB) 
 
 ## Export/import format versioning
 - Any backup/export format gets an explicit **version number** and an **allowlist of versions the importer accepts**. Evolve the schema **additively only** (new optional fields) — never repurpose or remove a field — so an old export a user is still holding keeps importing.
+
+## Resource-conscious by default
+- Backends are frugal by default: bound concurrency/connection pools, avoid needless polling or keep-alive work, prefer the cheapest data structure/query that satisfies the requirement. This matters doubly on scale-to-zero deploys (see `railway.md`) where idle resource use has a direct cost.
+
+## API authentication (required)
+Every API surface carries a token unless it's deliberately public:
+- Endpoints the frontend/app/PWA calls: authenticate the same way the app does — an account/session token for multi-user apps, an env-var-configured token for single-user apps (see `web-app-pwa.md`'s access-control note).
+- Endpoints exposed on purpose for scripts/extensions: their own token, issued explicitly — not the same secret as the interactive session.
+- Multi-user apps authorize via the account/session; single-purpose or ops-facing endpoints authorize via a deployment env var.
+
+## Logging is mandatory
+Structured logging applies to any backend or service — see `logging.md` for the how. Not optional here, only the level of ceremony scales with size.

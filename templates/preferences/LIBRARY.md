@@ -12,7 +12,7 @@ Installing a file doesn't mean applying it verbatim — see the note in `README.
 | `web-app-pwa.md` | is a web app / PWA (service worker, app shell) | `Web app / PWA, service worker, app version + update` |
 | `telegram-bots.md` | is a Telegram bot | `Telegram bot, commands, inline keyboards, webhooks/polling` |
 | `service-architecture.md` | has a non-trivial backend/service (API, bot, daemon) with real business logic | `Backend/service architecture, layered app, use cases, repository pattern, external API client` |
-| `logging.md` | has a backend/long-running service worth structured logging | `Logging, structured logs, observability, PII redaction` |
+| `logging.md` | is anything beyond a small script (any backend/service, long-running or not) — mandatory, not optional | `Logging, structured logs, observability, PII redaction` |
 | `background-jobs.md` | has scheduled/periodic/background work, retries, or must shut down gracefully | `Scheduled tasks, cron, retries, background jobs, timers, graceful shutdown` |
 
 **To install one:** copy `templates/preferences/<file>` → `<project>/.claude/preferences/<file>`, then add a row to the project's `.claude/preferences/INDEX.md`:

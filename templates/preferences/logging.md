@@ -1,12 +1,13 @@
 # Logging
 
-Standing preferences for logging in a backend/service. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
+Standing preferences for logging. **Mandatory for anything beyond a small script** — any backend/service, long-running or not. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
 
 ## Typed, catalogued events (not free-text channels)
 - Log through **one typed interface** backed by a closed union of named event types, rather than ad hoc `log.info("some string")` calls scattered around. Adding a new kind of log line means adding a new event type, not inventing a new string format — keeps log output structured and greppable/queryable.
 
 ## Redact automatically, not ad hoc
 - Redact PII/secrets **at the logger boundary**, recursively (nested objects too) — not by remembering to scrub each call site. A logger that can leak a token because one call site forgot to redact is a logger that will eventually leak a token.
+- **Boundary redaction is the backstop, not the primary defense:** each call site should still think about what it's putting in the payload and avoid logging sensitive values in the first place. Don't treat automatic redaction as a license to log whatever's convenient.
 
 ## Never throws
 - The logger itself must **never throw** and must be safe to call with circular references or in-flight promises. Logging is a side effect, not a critical path — an always-on process cannot be crashed by its own logging. Prefer fire-and-forget semantics.
@@ -19,3 +20,6 @@ Standing preferences for logging in a backend/service. Extracted independently f
 
 ## Errors
 - Errors logged through the same typed-event path should carry structured context (what operation, what identifier, what upstream status) — not just a stringified stack trace with no way to query it later.
+
+## Configurable per deployment target
+- When the deployment platform already captures and retains logs (a managed platform with built-in log aggregation), rely on that — nothing extra needed. Otherwise, the app must let **logfile location, rotation, and deletion of old logs** be configured manually — don't hard-code a path or let logs grow unbounded on a target that doesn't manage that for you.
