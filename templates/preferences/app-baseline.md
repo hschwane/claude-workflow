@@ -2,6 +2,8 @@
 
 Standing baseline for **any application project bigger than a small script or mini-tool** — the handful of things every such project needs regardless of stack. Each is detailed in its own preference file; this is the checklist that says they're not optional.
 
+**Build these first.** Everything here is development and debugging infrastructure, so it belongs in the **first milestone** (`tech-backbone` in a `/project-init` backlog) — before the features that will depend on it. Logging you add after the fact doesn't cover the code already written; an update mechanism retrofitted into a shipped app is a migration instead of a feature; a changelog started late has a hole in its history. Deferring these costs more than building them early, which is why they aren't "nice to have later."
+
 ## Logging (required)
 Structured logging, mandatory — see `logging.md`.
 
