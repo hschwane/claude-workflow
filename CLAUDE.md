@@ -35,7 +35,8 @@ templates/                   ← files copied into projects by project-init / pr
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
   memory/                    ← .gitignore for runtime memory files
-  preferences/               ← on-demand per-tech/feature preferences (recommendations, not rules — /plan adapts or reasoned-rejects): README + INDEX + example, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots, service-architecture, logging, background-jobs, app-baseline, changelog, ui-frontend, ai-integration) installed into projects on match
+  preferences/               ← workflow preferences, **plugin-owned** (a project's copy is replaced wholesale on /workflow-update): README + INDEX, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots, service-architecture, logging, background-jobs, app-baseline, changelog, ui-frontend, ai-integration) installed into projects on match. Recommendations, not rules — /plan adapts or reasoned-rejects
+  project-notes/             ← the project-owned counterpart (README + INDEX + example): a project's own standing rules, never touched by an update; a note outranks a preference but a contradiction is asked about, not silently applied
   ui/                        ← reusable UI templates referenced by a preference file (changelog-template.html, self-contained, re-skin via CSS vars)
   scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```

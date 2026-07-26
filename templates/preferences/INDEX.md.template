@@ -1,11 +1,14 @@
-# Preferences index
+# Workflow preferences index (plugin-owned — regenerated on update)
 
-Trigger → file map for `.claude/preferences/`. Skills read THIS file (not the preference bodies) at plan / implement / scaffold time; a preference body is read only when its trigger matches the work. Keep each row to one concrete line.
+Trigger → file map for `.claude/preferences/`. Skills read THIS file (not the preference bodies) at plan / implement / scaffold time; a body is read only when its trigger matches.
+
+Rows are generated from the workflow's preference library and **rewritten on every `/workflow-update`** — don't hand-edit. Project-specific triggers go in `.claude/project-notes/INDEX.md`.
+
+<!-- Rows are appended below by /project-init, /project-onboard and /workflow-update — one per
+     installed library file, e.g.:
+     | Railway deploy, railway.json, deployment/hosting | .claude/preferences/railway.md |
+     Take the trigger text verbatim from the third column of the library's LIBRARY.md.
+     Append to the end of this file so the table stays contiguous. -->
 
 | When the task involves… | Read |
 |---|---|
-<!-- add rows, e.g.:
-| Railway deploy, railway.json, scale-to-zero | .claude/preferences/railway.md |
-| React components, frontend, JSX | .claude/preferences/react.md |
-| Stripe, payments, webhooks | .claude/preferences/stripe.md |
--->

@@ -79,10 +79,11 @@ scripts/ci.sh, scripts/release.sh, scripts/claude-loop.sh
                            never remove existing ones
 ```
 
-**Preferences:** `.claude/preferences/` is **project-owned** (the user's `INDEX.md` rows + preference files) — never overwrite it. If it's **missing** (project predates this feature), create it from `{UPDATE_DIR}/templates/preferences/` (README, `INDEX.md`, example) and ensure the root `CLAUDE.md` has the one-line Preferences pointer from the new `CLAUDE.md.template`. Never edit the user's existing `INDEX.md` rows or preference files. (Refresh `README.md` — it's plugin-owned guidance.)
+**Preferences and project notes** are handled in step 5f — they need their own pass (mirror + migration + compliance), not a one-line rule here.
 
 **Never touch** (project-specific files):
 - `CLAUDE.md` — **except** the plugin-owned workflow sections, refreshed in step 5c; the title, description, `## Architecture`, and any project-authored sections are never modified
+- `.claude/project-notes/` — the project's own standing rules; only ever **added to** (step 5f migration), never edited or removed
 - `CONTRIBUTING.md`
 - `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
 - `.claude/memory/` — **except** `.claude/memory/.gitignore` (plugin-owned runtime-pattern list, refreshed in step 5); the state files themselves (decisions.md, context-*, settings.md, …) are never touched
@@ -115,7 +116,7 @@ Reconcile them without disturbing the rest:
 
 1. Read the new `{UPDATE_DIR}/templates/CLAUDE.md.template` and the project's current `CLAUDE.md`.
 2. For each workflow-owned section: if the project's differs from the template's (ignoring `{{PLACEHOLDER}}` fills), **replace just that section** (match a top-level `## ` heading at column 0; replace to the next such heading — ignoring any `##` inside a fenced code block). Insert sections that are **absent** in template order; **delete** retired sections listed above.
-3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, and any project-authored sections. (The one-line Preferences pointer near Architecture is plugin-owned prose and may be refreshed; the user's actual preferences live in the separately-protected `.claude/preferences/`.) If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
+3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, and any project-authored sections. (The standing-guidance pointer near Architecture is plugin-owned prose and may be refreshed; the project's own rules live in the separately-protected `.claude/project-notes/`.) If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
 4. If `CLAUDE.md` changed, stage it in step 7's commit.
 
 So skills/agents mirror wholesale, decisions replay their tuned values, and CLAUDE.md's workflow sections refresh — the update reaches existing projects, not just new ones.
@@ -132,7 +133,7 @@ Report any change (or offer) so the user knows the watch-path config was checked
 
 ### 5e. Offer to compact project-authored workflow content (crossing v2.11.1)
 
-v2.11.1 compacted the plugin's always-loaded instructions — the `CLAUDE.md` workflow sections + the agent/skill descriptions — tightening prose to direct instructions and moving on-demand detail out, without dropping a single behavioral trigger. Steps 5/5c already applied that to the **plugin-owned** files. But content the **project itself added or adapted** still carries the old, longer style: project-authored `## ` sections in `CLAUDE.md`, any skills or agents this project added locally (not shipped by the plugin), and custom preference files.
+v2.11.1 compacted the plugin's always-loaded instructions — the `CLAUDE.md` workflow sections + the agent/skill descriptions — tightening prose to direct instructions and moving on-demand detail out, without dropping a single behavioral trigger. Steps 5/5c already applied that to the **plugin-owned** files. But content the **project itself added or adapted** still carries the old, longer style: project-authored `## ` sections in `CLAUDE.md`, any skills or agents this project added locally (not shipped by the plugin), and its own files under `.claude/project-notes/`.
 
 **Only when the recorded version is < 2.11.1** (this is a one-time migration — skip it on later updates): **offer** to apply the same compaction to that project-owned content. If the user agrees, for each such file:
 - tighten prose to direct, on-the-point instructions — no filler, no restated rationale;
@@ -140,6 +141,33 @@ v2.11.1 compacted the plugin's always-loaded instructions — the `CLAUDE.md` wo
 - **keep every behavioral trigger, rule, and "when to use" keyword** — this is a wording pass, never a scope or behavior cut.
 
 Do this **with confirmation and per file**, showing before/after — it edits project-owned content the update otherwise never touches. If the user declines, skip silently. Don't re-touch plugin-owned files (already compacted).
+
+### 5f. Refresh Workflow Preferences, Split Out Project Notes, Check Compliance
+
+Workflow preferences are **plugin-owned** and refresh wholesale; anything project-specific lives in `.claude/project-notes/`, which this step only ever adds to.
+
+**a) Migrate, if the project predates the split** (no `.claude/project-notes/` yet). One-time, and it must run before the refresh in (b) overwrites anything:
+
+1. Create `.claude/project-notes/` from `{UPDATE_DIR}/templates/project-notes/` (`README.md`, `INDEX.md.template`→`INDEX.md`; skip the example if the project already has real notes to move).
+2. Classify every file in `.claude/preferences/`. **A "library file" is one whose name appears as a row in `{UPDATE_DIR}/templates/preferences/LIBRARY.md`** — `README.md`, `INDEX.md` and `LIBRARY.md` itself are infrastructure, not library files, and are never migrated.
+   - **`README.md` / `INDEX.md`** → leave them; (b) refreshes both.
+   - **`example.md`** → if it still looks like the shipped example (its first line says it's an example to delete or replace), delete it; if the user replaced its contents with something real, treat it as a user-authored file below.
+   - **User-authored file** (not in LIBRARY.md) → **move** it to `.claude/project-notes/`, and move its `INDEX.md` row along, repointing the path to `.claude/project-notes/<name>.md`.
+   - **Library file, unmodified** → leave it; (b) refreshes it.
+   - **Library file, locally modified** → **conflict, ask**: show the diff and offer (i) take the new plugin version and keep the local edit as a project note, (ii) take the new version and drop the edit, (iii) keep the local file as a project note and don't install the library version. Never decide this silently — a local edit here was deliberate, and after this migration edits in `.claude/preferences/` are overwritten without warning, so this is the one chance to rescue it.
+3. To tell modified from unmodified, compare against the version the project came from: `git -C {UPDATE_DIR} show v{current}:templates/preferences/<name>.md` (the clone is shallow — `git -C {UPDATE_DIR} fetch --unshallow --tags` first if that fails). If the old version can't be retrieved at all, fall back to comparing against the **new** version and ask about every file that differs — that over-asks on files upstream simply changed, which is the safe direction.
+4. Report what moved.
+
+**b) Refresh the installed preferences** (every update):
+- For each library file **already present** in `.claude/preferences/`: overwrite it from `{UPDATE_DIR}/templates/preferences/` — no diff, no asking. This is the whole point of the split, and it's how a fixed preference reaches an existing project.
+- Refresh `README.md`, and **regenerate** the `INDEX.md` rows for installed library files from `{UPDATE_DIR}/templates/preferences/LIBRARY.md` (triggers change too).
+- For a library file **not present**: offer it only if it is **newly shipped** — added to `LIBRARY.md` between `v{current}` and `{target}` (`git -C {UPDATE_DIR} show v{current}:templates/preferences/LIBRARY.md` and diff the table). Anything that already existed at the project's current version was considered at init/onboard time and declined or not matched; re-offering it every update is exactly the recurring question this design exists to kill. Of the newly-shipped ones, check `LIBRARY.md`'s "install when" against what the project actually is (its stack, deploy target, whether it has a UI, AI features, background work) and offer only genuine matches: "This version adds `changelog.md`, which fits this project — install? [yes / no]". No new library files, or none matching → say nothing.
+- If `.claude/preferences/` is missing entirely (project predates preferences), there is no prior decision to respect: create it and offer the full matching set.
+
+**c) Check compliance and draft the gaps** (after the refresh, so it checks against current rules):
+For every preference now installed, check whether the project actually satisfies its **required** items — the baseline in `app-baseline.md` (logging, in-app changelog, update mechanism, Claude-testable live instance), `web-app-pwa.md`'s version display / update control / access gate, `logging.md`'s adjustable levels, and so on. For each real gap, create a backlog draft in `docs/specs/backlog/` naming the preference it comes from, and list them in the report. Don't fix anything here and don't block the update — the drafts are the deliverable, the user decides when to pull them in. A gap that doesn't apply to this project is dropped with a stated reason instead of drafted.
+
+Keep this proportionate: an update that changed no preference bodies has nothing to re-check — compare the preference files between the old and new version first and only check what actually changed, plus anything newly installed.
 
 ### 6. Update Version Record
 Write updated `.claude/workflow-source.json`:
@@ -150,7 +178,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/settings.json .claude/workflow-source.json docs/workflow/decisions.md CLAUDE.md
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/preferences/ .claude/project-notes/ .claude/settings.json .claude/workflow-source.json docs/specs/backlog/ docs/workflow/decisions.md CLAUDE.md
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 
@@ -160,6 +188,9 @@ Print:
 Updated claude-workflow: {old_version} → {new_version}
 Updated: agents/, skills/, hooks/ (merged), settings.json permissions (unioned)
 CLAUDE.md: {K} workflow section(s) refreshed{, L flagged for manual merge} · project content preserved
+Preferences: {P} refreshed{, Q newly installed}{, R conflict(s) resolved}
+{If migrated: "Project notes: {S} project-owned file(s) moved to .claude/project-notes/"}
+{If gaps found: "Compliance: {T} backlog draft(s) created for unmet preference requirements — {ids}"}
 Decisions: {N} tuned setting(s) re-applied from docs/workflow/decisions.md{, M new setting(s) added}
 {If the v2.11.1 boundary was crossed: "Compaction: {offered / applied to P file(s) / declined} for project-authored workflow content"}
 

@@ -29,7 +29,9 @@ Tech stack: {{TECH_STACK}}
 
 Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (lifecycle, quality, decisions, deploy).
 
-**Preferences:** standing per-tech/feature recommendations — **not rules**; adapt to the project or reject with a stated reason. They live in `.claude/preferences/` (project) and `~/.claude/preferences/` (user-global; ephemeral in cloud, so put anything that must survive in the project), indexed by a non-auto-loaded `INDEX.md`. `/plan` folds matching ones into the spec; `/project-init`/`/project-onboard` install them. For ad-hoc work in a specialized area, read `INDEX.md` yourself first. Add one via "remember a preference for X".
+**Standing guidance — two indexed folders, neither auto-loaded.** Read both `INDEX.md` files when a task touches a specialized area; read a body only when its trigger matches. `/plan` folds matching ones into the spec.
+- `.claude/preferences/` — **workflow preferences, plugin-owned**: per-tech/feature recommendations, **not rules** — adapt to the project or reject with a stated reason. Replaced wholesale on `/workflow-update`; never edit them here. (Also `~/.claude/preferences/`, user-global and ephemeral in cloud — anything that must survive goes in the project.)
+- `.claude/project-notes/` — **this project's own standing rules**, never touched by an update. A note **outranks** a preference on the same subject: if it names the preference it overrides, that's settled — apply it, don't re-ask. An *unacknowledged* contradiction is asked about, not silently resolved, and the answer written back into the note. Add one via "remember this for X in this project".
 
 ## Models
 

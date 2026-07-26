@@ -60,10 +60,15 @@ Create all required directories (use `mkdir -p`):
 {TARGET_DIR}/.claude/skills/
 {TARGET_DIR}/.claude/memory/
 {TARGET_DIR}/.claude/preferences/
+{TARGET_DIR}/.claude/project-notes/
 {TARGET_DIR}/scripts/
 ```
 
-Into `.claude/preferences/`: copy `{PLUGIN_SOURCE_DIR}/templates/preferences/README.md` → `README.md`, `templates/preferences/INDEX.md.template` → `INDEX.md` (the trigger table — starts empty), and `templates/preferences/example.md.template` → `example.md`. (The root CLAUDE.md ships only a one-line pointer to `INDEX.md`; the index itself is not auto-loaded.)
+Into `.claude/preferences/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/preferences/README.md` → `README.md` and `templates/preferences/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
+
+Into `.claude/project-notes/` (project-owned): copy `{PLUGIN_SOURCE_DIR}/templates/project-notes/README.md` → `README.md`, `INDEX.md.template` → `INDEX.md`, and `example.md.template` → `example.md`.
+
+(The root CLAUDE.md ships only one-line pointers to the two `INDEX.md` files; neither index is auto-loaded.)
 
 Note: `docs/VISION.md`, `docs/dev/architecture.md`, and `docs/dev/adr/ADR-001-architecture.md` were already written by the main session — do not overwrite them. Also do not overwrite `docs/workflow/release.md` or `docs/workflow/deploy.md` if they exist.
 
@@ -116,6 +121,8 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - Copy `{PLUGIN_SOURCE_DIR}/templates/preferences/<name>.md` → `{TARGET_DIR}/.claude/preferences/<name>.md`.
 - Append its row to `{TARGET_DIR}/.claude/preferences/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md`:
   `| <trigger row> | .claude/preferences/<name>.md |`
+
+`.claude/preferences/` is **plugin-owned** — `/workflow-update` replaces it wholesale, so nothing project-specific goes in it. Also create the project-owned counterpart `{TARGET_DIR}/.claude/project-notes/` from `{PLUGIN_SOURCE_DIR}/templates/project-notes/`: `README.md`, `INDEX.md.template` → `INDEX.md`, `example.md.template` → `example.md`.
 
 These carry the maintainer's standing "how I like X done" rules (Railway details + interface-for-portability, map caching/clustering/tooltips, chart UX, Telegram-bot structure, PWA version+update). `/plan` picks the matching one up when a ticket touches that area. If the list is empty, skip.
 

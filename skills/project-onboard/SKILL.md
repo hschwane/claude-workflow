@@ -87,7 +87,11 @@ Write `.claude/workflow-source.json`. Read the `repository` and `version` fields
 
 Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
 
-**Preferences folder:** create `.claude/preferences/` and copy `templates/preferences/{README.md, INDEX.md.template→INDEX.md, example.md.template→example.md}`. Ensure the root `CLAUDE.md` has the one-line **Preferences** pointer (from `templates/CLAUDE.md.template`) so `INDEX.md` is discoverable for ad-hoc work.
+**Two standing-guidance folders:**
+- `.claude/preferences/` (**plugin-owned** — replaced wholesale on `/workflow-update`): copy `templates/preferences/{README.md, INDEX.md.template→INDEX.md}`; the rows come from the library install below.
+- `.claude/project-notes/` (**project-owned** — never touched by an update): copy `templates/project-notes/{README.md, INDEX.md.template→INDEX.md, example.md.template→example.md}`. This is where anything project-specific goes, including a deliberate deviation from a workflow preference.
+
+Ensure the root `CLAUDE.md` carries the pointer to both (from `templates/CLAUDE.md.template`) so the indexes are discoverable for ad-hoc work. If the codebase analysis surfaced local conventions worth keeping (a house rule, a deliberate deviation), write them as project notes now.
 
 **Install matching library preferences:** consult `templates/preferences/LIBRARY.md` and, from the codebase analysis, detect which library preferences fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below); a backend/service with a domain/application/infrastructure-style layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines; skip all if none match.
 
