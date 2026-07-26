@@ -1,34 +1,28 @@
 ---
 name: resume
-description: Continue interrupted work by reconstructing state from the repo — current branch, the in-progress spec, its unchecked subtask boxes, and git log. Works identically in every environment. Use on an AUTO-RESUME directive or when asked to continue.
+description: Continue interrupted work — reconstructs state from the repo (branch, in-progress spec, its unchecked boxes, git log). Run on an AUTO-RESUME directive, an auto-resume heartbeat wake, or when asked to continue.
 ---
 
 # Resume
 
-Picks up interrupted work. There is no separate checkpoint to trust — **the repo is the state**: the branch tells you which ticket, the spec's unchecked boxes tell you what's left, and `git log` tells you what actually landed. This reconstructs the same way in local, cloud, docker, and VS Code sessions.
-
-## Usage
-```
-/resume
-```
+The repo is the state — there is no checkpoint to trust. Only the non-obvious parts are below; the lifecycle, merge policy and memory-file layout are in `CLAUDE.md`.
 
 ## Instructions
 
-### 1. Find the work
-- Current branch: `git branch --show-current` (`{branch}` = with `/`→`-` for the memory filename). A feature branch (`feature/{id}-…`) names the ticket.
-- **Ship run?** Check the fixed **`.claude/memory/context-ship.md`** first: a `## Ship` section means a `/ship` orchestration is active — resume it from the first unfinished ticket (may need to switch branches / do a pending merge). A `## Blocked` there → surface it and stop.
-- The in-progress spec: the one with `status: in-progress` (search `docs/specs/`), or the one matching the branch id.
-- Branch blocker: `.claude/memory/context-{branch}.md` with `## Blocked` → tell the user and stop (don't work around a human-needed blocker).
-- If there's no in-progress spec, no ship state, and no branch work: say "nothing in progress", list any `status: ready` specs. If a `auto-resume: {branch}` heartbeat is armed, tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`) — nothing left to protect — then stop.
-- **Auto-resume:** if `.claude/memory/settings.md` has `auto_resume: true` and there IS work to continue and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`). This is what re-arms after each firing.
+### 1. Find the work — ship state first
+Check `.claude/memory/context-ship.md` **before** the branch. A `## Ship` section means an orchestration is active: continue from its **first unfinished ticket**, which may mean switching branches or completing a pending merge — the current branch is not the answer. Otherwise: the spec with `status: in-progress` (search `docs/specs/`), or the one matching the branch's ticket id.
 
-### 2. Reconcile against reality (git wins)
-Read the spec's subtask checkboxes and compare to `git log --oneline -15` on this branch. **If they disagree, trust git** and fix the boxes: a subtask with a matching commit is done even if unchecked; an unchecked box with no commit is the next work. This self-corrects a crash mid-subtask.
+A `## Blocked` note (in `context-ship.md` or `context-{branch}.md`) → surface it and stop.
+
+Nothing in progress anywhere → say so, list `status: ready` specs, tear down an armed heartbeat (per `/auto-resume`), stop.
+
+### 2. Reconcile — git wins
+Compare the spec's checkboxes against `git log --oneline -15` on this branch. **On disagreement, trust git:** a subtask with a matching commit is done even if unchecked; an unchecked box with no commit is the next work. This is what self-corrects a crash mid-subtask.
 
 ### 3. Continue
-Resume at the **first unchecked subtask** (or the current phase): keep implementing per `/implement`, or if all subtasks are done, run `/verify`, then merge per the Merge policy. For a `/ship` run, continue the orchestration loop. No model/tier to re-arm — the session runs on its normal model; reach for `/consult` only if a hard call comes up.
+Resume at the first unchecked subtask per `/implement`; if all are done, `/verify`, then merge per the Merge policy. For a ship run, continue the orchestration loop.
 
-Any short-lived agent that was mid-run when the session died (a `runner` or `smoke-tester`) simply gets re-run — they're idempotent, there's nothing to recover.
+An agent that died mid-run (`runner`, `smoke-tester`) is simply re-run — they're idempotent, there's nothing to recover.
 
-### 4. When done
-Finish the ticket (spec → `completed/`), and clear any `## Ship`/`## Blocked` note from the branch memory file once the work is truly complete. If an `auto-resume: {branch}` heartbeat is armed, tear it down now — delete the Routine and clear `recovery_trigger:` (per `/auto-resume`); nothing left to recover, and the `auto_resume` setting stays on so the next prompt re-arms.
+### 4. Heartbeat
+If `.claude/memory/settings.md` has `auto_resume: true` and this is a cloud session with work to continue, ensure the heartbeat is armed (idempotent — see `/auto-resume`); this is what re-arms it after each firing. Tear it down when the work completes or a `## Blocked` note is written.

@@ -99,9 +99,7 @@ When you need a decision, **ask in a plain chat message and wait** — do **not*
 
 ## Session Behavior
 
-- Session-start `=== AUTO-RESUME REQUIRED ===` → run `/resume` immediately.
-- `=== IN-PROGRESS WORK FOUND ===` → tell the user, suggest `/resume`; don't auto-resume.
-- `=== BLOCKED WORK ===` → surface the blocker; don't work around it.
+Act on the SessionStart hook's `=== … ===` markers — each states what to do. Never work around `=== BLOCKED WORK ===`, and never continue on your own on `=== IN-PROGRESS WORK FOUND ===` (that one is a suggestion to the user).
 
 **State lives in the repo** — branch + the in-progress spec's unchecked subtask boxes + `git log`. No checkpoint file; `/resume` reconstructs from these. Only branch notes: `## Blocked` (human needed) and `## Ship` (orchestration state).
 
