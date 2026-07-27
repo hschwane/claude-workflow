@@ -1,115 +1,154 @@
+<!-- project-specific: start: identity -->
 # {{PROJECT_NAME}}
 
 {{PROJECT_DESCRIPTION}}
 
-## Quick Reference
+**Architecture.** {{ARCHITECTURE_SUMMARY}}
 
-| Command | Description |
-|---------|-------------|
-| `/draft feature\|bug "title"` | Capture a raw idea/bug in the backlog |
-| `/plan FEAT-001 [FEAT-002 …]` | Turn draft(s) into ready spec(s); batches questions up front |
-| `/implement FEAT-001` | Build a ready spec — tests + code per subtask, then `/verify` |
-| `/verify [FEAT-001]` | Feature-done QA: full gate + review + manual smoke |
-| `/commit` | Gated conventional commit (runs the canonical `ci.sh fast`) |
-| `/release patch\|minor\|major` | Bump + changelog, then run the release/deploy locally |
-| `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: plan → implement → verify → merge → release |
-| `/resume` | Continue interrupted work (reconstructs state from the repo) |
-| `/consult "question"` | Delegate a hard decision / design / debugging call to the `advisor` agent — no model switch |
-| `/unsupervised on\|off` | Toggle autonomous mode (no questions + proactive 90% pause) |
-| `/auto-resume on\|off` | Toggle auto-recovery after a limit reset (independent of unsupervised) |
-| `/pr [base]` | (optional) Open a PR — only when you want external review |
-| `/workflow-decisions [setting]` | View/change a workflow setting |
-| `/workflow-update` | Update the workflow plugin |
+**Stack.** {{TECH_STACK}}
+<!-- project-specific: end: identity -->
 
-## Architecture
+## Workflow settings
 
-{{ARCHITECTURE_SUMMARY}}
+<!-- workflow-settings: start -->
+testing-scope: {{TESTING_SCOPE}}
+branching: {{BRANCHING_MODEL}}
+version-source: {{VERSION_SOURCE}}
+deploy: {{DEPLOY_TARGET}}
+github: {{GITHUB_INTEGRATION}}
+ci-on-claude: {{CI_ON_CLAUDE}}
+release-runner: {{RELEASE_RUNNER}}
+<!-- workflow-settings: end -->
 
-Tech stack: {{TECH_STACK}}
+Change one with `/workflow-settings` — it knows the allowed values and what each means, so they are not repeated here. Personal toggles (`unsupervised`, `auto_resume`, the usage threshold) are not project settings; they live in `.claude/memory/settings.md` and are never committed.
 
-Read on demand (not auto-loaded): `docs/dev/architecture.md`, `docs/workflow/` (lifecycle, quality, decisions, deploy).
+## How to edit this file
 
-**Standing guidance — two indexed folders, neither auto-loaded.** Read both `INDEX.md` files when a task touches a specialized area; read a body only when its trigger matches. `/plan` folds matching ones into the spec.
-- `.claude/preferences/` — **workflow preferences, plugin-owned**: per-tech/feature recommendations, **not rules** — adapt to the project or reject with a stated reason. Replaced wholesale on `/workflow-update`; never edit them here. (Also `~/.claude/preferences/`, user-global and ephemeral in cloud — anything that must survive goes in the project.)
-- `.claude/project-notes/` — **this project's own standing rules**, never touched by an update. A note **outranks** a preference on the same subject: if it names the preference it overrides, that's settled — apply it, don't re-ask. An *unacknowledged* contradiction is asked about, not silently resolved, and the answer written back into the note. Add one via "remember this for X in this project".
+This file is part plugin, part project, and the boundary is marked. A marker counts **only when it is the whole line** — a marker shown inside a sentence or a code fence, like this one, is text and nothing else.
+
+- Inside a `project-specific` block: yours. It survives every update and is carried into the new version by its id, even if the plugin restructures everything around it.
+- Outside the blocks: the plugin's. `/workflow-update` replaces it wholesale, so an edit there is silently gone at the next update.
+- The `workflow-settings` block is merged rather than replaced or kept: **keys from the new version, values from this project.** A newly shipped setting appears with its default, a retired one disappears, a value you tuned stays.
+
+To record something durable, put it inside a block — or better, don't put it here at all. This file is loaded on every turn, which makes it the most expensive storage in the project.
+
+## Where things live
+
+Nothing below is auto-loaded. Read a file when its trigger fires, not before.
+
+| Read when… | File |
+|---|---|
+| before writing code | `docs/dev/code-style.md` — style, errors, security, design, languages |
+| you need this codebase's layout, key types, patterns | `src/CLAUDE.md` · `tests/CLAUDE.md` |
+| `/plan`, `/project-init`, `/project-onboard`, or the user names one | `.claude/guidelines/INDEX.md` |
+| planning — past decisions and known traps | `.claude/memory/decisions.md` · `gotchas.md` |
+| architecture, data model, an external interface | `docs/dev/architecture.md` |
+| running it locally or on the dev deployment | `docs/dev/setup.md` |
+| deploying, rolling back, a required secret | `docs/dev/deploy.md` |
+| goals or explicit non-goals | `docs/VISION.md` |
+| any ticket work | `docs/specs/{backlog,ready,completed}/` |
+| a human asks how to contribute | `CONTRIBUTING.md` — never for your own instructions |
+
+**Guidelines are not read per ticket.** `/plan` consults the index once while writing a spec and **links the specific guideline into that spec** when it applies. `/implement` then reads only what the spec links; it never re-scans the index.
+
+`.claude/guidelines/` ships with the plugin: standing engineering rules per technology or feature kind, **recommendations rather than law** — adapt one to this project, or reject it with a stated reason recorded in `decisions.md`. A dated decision in `decisions.md` **outranks** a guideline: if it names the guideline it departs from, that is settled — apply it and don't re-ask. An *unacknowledged* contradiction gets surfaced and asked about, and the answer written back as a decision.
 
 ## Models
 
-**The session model never switches** — you stay on whatever you picked. Subagents do the tiered work: **Haiku** for mechanical/high-IO (`text-scout`, `runner`, `project-scaffolder`), **Sonnet/low** for the two needing light reasoning (`code-explorer`, `smoke-tester`), **best/high** read-only for `reviewer` and `advisor`. `/consult` delegates hard thinking to `advisor` instead of switching your model (a switch would blow the prompt cache). See Agents for when to use each.
+**The session model never switches** — you stay on whatever was picked. Subagents do the tiered work: **Haiku** for mechanical/high-IO (`text-scout`, `runner`, `project-scaffolder`), **Sonnet/low** for the two needing light reasoning (`code-explorer`, `smoke-tester`), **best/high** read-only for `reviewer` and `advisor`. `/consult` delegates hard thinking to `advisor` instead of switching your model — a switch would blow the prompt cache twice.
 
 ## Agents — delegate proactively
 
-Use automatically when they fit — don't ask first. Anything that reads many files or produces bulk output belongs in a subagent.
+Use them when they fit; don't ask first. Anything that reads many files or produces bulk output belongs in a subagent. `reviewer` and `advisor` are named here deliberately and are **exempt from any general limit on spawning higher-tier agents**.
 
 | Agent | Use when |
 |-------|----------|
-| `code-explorer` (Sonnet/low) | Understand code across >3-4 files, or "how does X work / where is it?" — orients via project docs, then targeted search; explains the flow, cites everything. Prefer over the built-in Explore |
-| `text-scout` (Haiku) | Extract/summarize facts from a lot of text (code, logs, docs, big output) — "intelligent grep": a sourced digest, never invents |
-| `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes/judges |
-| `smoke-tester` (Sonnet/low) | Manually exercise a running app from prose steps (blackbox — no spec/code) — reports failing steps only. Use at feature-done, pre-PR, or any user-facing check. Hand it **concrete, executable steps** (exact action + expected result) — it can't see the spec/code |
+| `code-explorer` (Sonnet/low) | Understand code across >3–4 files, or "how does X work / where is it?" — orients via project docs, then targeted search. Prefer over the built-in Explore |
+| `text-scout` (Haiku) | Extract or summarize facts from a lot of text (code, logs, docs, big output) — a sourced digest, never invents |
+| `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes or judges |
+| `smoke-tester` (Sonnet/low) | Exercise a running app from prose steps (blackbox — no spec, no code). Hand it **concrete steps**: exact action, literal inputs, exact expected result |
 | `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
-| `advisor` (best/high) | Hard thinking on a briefed question — a decision, a design/debugging idea, unsure of approach. Driven by `/consult`; advises, never implements |
+| `advisor` (best/high) | Hard thinking on a briefed question. Driven by `/consult`; advises, never implements |
 
-**One scout by default:** most questions need a single `code-explorer` or `text-scout`. Fan out several (driven from the main session — subagents can't spawn subagents) only for genuinely large codebases/corpora. Both cite every claim — rely only on what's sourced.
+**One scout by default.** Most questions need a single `code-explorer` or `text-scout`. Fan out only for genuinely large codebases — and from here, since subagents cannot spawn subagents. Both cite every claim; rely only on what is sourced.
 
-**A subagent can fail — never proceed on a missing result.** Re-run it (they're idempotent). If it fails again, ask (supervised) or write `## Blocked` (unsupervised).
+**Never proceed on a missing result.** A subagent can fail. Re-run it (they are idempotent); if it fails again, ask, or write `## Blocked` in unsupervised mode.
 
 ## Skills — invoke proactively
 
-**When a request matches a skill, invoke it — don't improvise a process a skill already covers.**
+**When a request matches a skill, invoke it.** Don't improvise a process a skill already covers.
 
-| User says… | Skill |
-|-----------|-------|
-| "capture this idea/bug" | `/draft` |
-| "plan / spec out FEAT-001", "make X ready" | `/plan` |
-| "implement / build FEAT-001" | `/implement` |
-| "verify / does it actually work" | `/verify` |
-| "commit" | `/commit` |
-| "release / publish / bump version" | `/release` |
-| "ship a version", "build these tickets", "work toward <topic>" | `/ship` |
-| "resume / continue / I was interrupted" | `/resume` |
-| "I'm stuck", a hard architecture/security call, want a design or debugging idea | `/consult` |
-| "work on its own / stop asking me" | `/unsupervised on` |
-| "keep going after the limit resets", "finish it while I'm away" | `/auto-resume on` |
-| "open a PR / submit for review" | `/pr` (optional — default merges locally) |
+| Skill | Invoke when the user says… |
+|---|---|
+| `/draft feature\|bug "title"` | "capture this idea/bug" → lands in the backlog |
+| `/plan FEAT-001 […]` | "plan / spec out X", "make X ready" → spec, all questions up front |
+| `/implement FEAT-001` | "implement / build X" → tests + code per subtask, then `/verify` |
+| `/verify [FEAT-001]` | "does it actually work?" → full gate + review + smoke |
+| `/commit` | "commit" → gated conventional commit |
+| `/release patch\|minor\|major` | "release / publish / bump version" |
+| `/ship [IDs] \| "topic"` | "ship a version", "work toward X" → the whole chain |
+| `/resume` | "continue", "I was interrupted" |
+| `/consult "question"` | "I'm stuck"; a hard architecture or security call |
+| `/unsupervised on\|off` | "work on its own", "stop asking me" |
+| `/auto-resume on\|off` | "keep going after the limit resets" |
+| `/pr [base]` | "open a PR" — optional; the default merges locally |
+| `/workflow-settings [name]` | "change how the workflow behaves" → the block above |
+| `/workflow-update` | "update the workflow" |
 
-Multiple tasks in one message: work through them in order; in unsupervised mode apply autonomous defaults and don't stop between them. `/ship` is the built-in orchestrator for a full cycle.
+Several tasks in one message: work through them in order. In unsupervised mode apply the autonomous defaults and don't stop between them.
 
 ## Scope — build the whole ticket
 
-The ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — core functionality, the hard part, a criterion, or the error/edge handling those criteria imply. Difficulty or size is not a reason to cut scope — that *is* the work; do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras. If a ticket is too big, say so and split it with the user — never quietly ship the easy half.
+The ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — core functionality, the hard part, a criterion, or the error and edge handling those criteria imply. Difficulty or size is not a reason to cut scope; that *is* the work. Do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras. If a ticket is too big, say so and split it with the user — never quietly ship the easy half.
 
-## Merging
+## Merging and release authority
 
-Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only` (no re-run); otherwise resolve conflicts, re-run the full gate (`ci.sh full`), then merge. Merge commits carry `[skip ci]` unless the project is `ci-on-claude: yes`. Use `/pr` only for external review or if the repo requires it.
+Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only`, no re-run; otherwise resolve conflicts, re-run `ci.sh full`, then merge. Merge commits carry `[skip ci]` unless `ci-on-claude: yes`. Use `/pr` only for external review or where the repo requires it.
 
-**Invoking a skill authorizes what that skill does.** `/ship`, `/release`, `/commit`, `/pr` all define git and deploy actions — merging a feature branch into the integration branch, **pushing `main`/`master`/`develop`**, tagging, running `scripts/release.sh` (which builds, publishes, and deploys). Running the skill is the user's explicit go-ahead for those steps: carry them out, don't stop at the merge to re-ask. A session-scoped "develop on branch X, never push elsewhere" instruction governs **ad-hoc** pushes — it is not a veto on the integration-branch push the invoked skill exists to perform. If a genuine conflict remains, note it in one line and proceed; don't halt a run for it. Still confirm anything *beyond* the skill's own steps (force-push, history rewrite, deleting environments/data) — and if a gate fails, stop on the failure, not on the permission.
+Under `branching: git-flow`, features merge into `develop`; `/release` runs the full gate on `develop`, merges `develop → master` and tags there, so `master`'s tip is always the latest release. Under `main-only`, features merge into `main` and `/release` tags there.
 
-## GitHub via `gh`
+**Invoking a skill authorizes what that skill does.** `/ship`, `/release`, `/commit` and `/pr` define git and deploy actions — merging into the integration branch, **pushing `main`/`master`/`develop`**, tagging, and running `release.sh`, which builds, publishes and deploys. Running the skill is the user's explicit go-ahead: carry those steps out, don't stop at the merge to re-ask. This holds against a general "don't commit or push unless asked" rule and against a session-scoped "develop on branch X" instruction — the latter governs **ad-hoc** pushes, not the integration push the skill exists to perform. Still confirm anything *beyond* the skill's own steps: force-push, history rewrite, deleting environments or data. If a gate fails, stop on the failure, not on the permission.
 
-The `gh` CLI is authenticated in **every** session, including cloud/web. When plain git fails at something GitHub-side (a proxy rejecting a tag/protected-branch push, a ref git can't create), **fall back to `gh` instead of giving up**: `gh api` for refs/tags (`gh api repos/{owner}/{repo}/git/refs -f ref=refs/tags/vX -f sha=…`), `gh release`, `gh pr`, `gh run`. Cloud gotcha: the remote may be a proxy URL `gh` can't parse — pass **`-R {owner}/{repo}`** on `gh` subcommands.
+## CI — you run it, so CI does not
+
+`scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you. `fast` (format, lint, types, affected tests) gates each subtask; `full` (everything plus integration/e2e and the build) gates a merge and a release.
+
+- **Your commits carry `[skip ci]`** unless `ci-on-claude: yes` — Actions minutes are not spent repeating a gate that just ran locally.
+- **That skip is a debt you must pay.** Running `ci.sh full` before a merge or release is not optional; skipping CI only makes sense because you did the equivalent yourself. Never merge or release on an unrun gate.
+- **Everyone else's pushes carry no marker, so CI runs normally.** The skip is yours alone, never a project-wide switch.
+- **Keep the workflows current.** PR, release and deploy workflows are part of the deliverable: when the gate, the release steps or the deploy target change, the workflow files change with them in the same ticket. A workflow that no longer matches `ci.sh` is a broken gate for every human contributor.
 
 ## Documentation policy
 
-Minimal and useful. Doc-comments only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions. Keep one concise `docs/dev/architecture.md` (key decisions, algorithms, APIs, data model). User docs minimal — prefer self-explanatory UI + in-app hints over prose.
+Minimal and useful. Doc-comments only for function usage and params, class or file purpose, and genuinely tricky algorithms or decisions.
 
-## Asking the user
+**`README.md` is the entry point** — its description, install/run instructions and usage example must stay true; `/release` checks them before every bump. `docs/dev/` holds what would be expensive to re-derive from the code: architecture, data model, external interfaces, and difficult decisions explained beyond the one-line record in `decisions.md`. User docs stay minimal — prefer a self-explanatory UI and in-app hints over prose.
 
-When you need a decision, **ask in a plain chat message and wait** — do **not** use the `AskUserQuestion` tool. Batch related questions into one numbered list so the user answers in a single reply (this is how skills "ask up front"). In unsupervised mode, don't ask — apply the autonomous defaults and note assumptions.
+## Session behavior
 
-## Session Behavior
+Act on the SessionStart hook's `=== … ===` markers — each states what to do. Never work around `=== BLOCKED WORK ===`, and never continue on your own on `=== IN-PROGRESS WORK FOUND ===` (that one is a suggestion for the user).
 
-Act on the SessionStart hook's `=== … ===` markers — each states what to do. Never work around `=== BLOCKED WORK ===`, and never continue on your own on `=== IN-PROGRESS WORK FOUND ===` (that one is a suggestion to the user).
+**State lives in the repo** — branch + the in-progress spec's unchecked subtask boxes + `git log`. There is no checkpoint file; `/resume` reconstructs from those.
 
-**State lives in the repo** — branch + the in-progress spec's unchecked subtask boxes + `git log`. No checkpoint file; `/resume` reconstructs from these. Only branch notes: `## Blocked` (human needed) and `## Ship` (orchestration state).
+**One session per branch.** Several sessions in parallel are fine on *different* branches — state lives in the repo, so they cannot collide. Two sessions on the same branch race on the same files; don't.
 
 **Two independent toggles** in `.claude/memory/settings.md`:
-- **`unsupervised`** — *how* Claude works. `true`: never ask (apply the `/unsupervised` defaults), keep every subtask green-committed (an interruption loses at most the current subtask), write `## Blocked` + stop on a real blocker, post a short report when done. A usage-guard pause at the threshold (default 90%) → finish the atomic step, commit, end the turn. Supervised (default): still ask, run to the hard limit.
-- **`auto_resume`** — *whether* an interrupted run wakes itself after a limit reset, in either mode. In cloud a recovery heartbeat (bound to the session) + the `auto-resume-guard.sh` hook keep it armed and tear it down when work is done — mechanics in `/auto-resume`. Locally the SessionStart hook / `scripts/claude-loop.sh` drives `/resume` on next start.
-- **Coupling:** `/unsupervised on` turns `auto_resume` on too (an autonomous run must survive a limit kill); `off` leaves it on. Neither toggle changes whether Claude asks questions beyond the above.
+- **`unsupervised`** — *how* you work. `true`: never ask, green-commit every subtask, `## Blocked` + stop on a real blocker, short report at the end; at the usage threshold (default 90%) finish the step, commit, end the turn. Default: ask as normal, run to the hard limit.
+- **`auto_resume`** — *whether* an interrupted run wakes itself after a limit reset, in either mode. Mechanics in `/auto-resume`.
+- `/unsupervised on` turns `auto_resume` on too; `off` leaves it on.
 
-## Memory
+## Memory — five files, five jobs
 
-`.claude/memory/` holds project memory (decisions, gotchas, tech-debt — tracked) and runtime notes (gitignored). Read when relevant; not auto-loaded.
+`.claude/memory/` is not one bucket. Each file answers a different question, and putting something in the wrong one is how it stops being found.
 
-Runtime notes: `context-{branch}.md` for a branch's `## Blocked` note — **`{branch}` = the git branch with every `/` replaced by `-`** (`feature/feat-001-x` → `context-feature-feat-001-x.md`); hooks compute it this way, so skills must too. `/ship` state lives in the **fixed, branch-independent** `context-ship.md` (a ship spans many branches).
+| File | Answers | Tracked |
+|---|---|---|
+| `decisions.md` | *Why* was this decided, and what follows from it? Dated, append-only. Read during `/plan` | yes |
+| `gotchas.md` | What surprised someone here? Non-obvious facts that cost time. Read during `/plan` | yes |
+| `tech-debt.md` | What shortcut did we knowingly take, and why? Ideally with a ticket | yes |
+| `settings.md` | The two toggles above, the usage threshold, the recovery-heartbeat id | no — personal |
+| `context-*.md` | Runtime notes: `## Blocked` per branch, `## Ship` for an orchestration run | no — ephemeral |
+
+Memory records **the past**; a decision that should change future behavior says so explicitly, because `/plan` reads it. Deep explanation belongs in `docs/dev/` — `decisions.md` keeps the choice and the reason, not the essay.
+
+`context-{branch}.md` uses the git branch with every `/` replaced by `-` (`feature/feat-001-x` → `context-feature-feat-001-x.md`); hooks compute it that way, so skills must too. `/ship` state lives in the fixed, branch-independent `context-ship.md`, because a ship run spans many branches.

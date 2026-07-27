@@ -1,62 +1,83 @@
 # Contributing to {{PROJECT_NAME}}
 
-## Development Workflow
+> **This file is maintained by the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) plugin** and is replaced on `/workflow-update`, except the marked project block at the end. Claude never reads this file — instructions meant for Claude belong in `CLAUDE.md` or `.claude/project-notes/`, or they will simply never arrive.
 
-This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI-assisted development workflow.
+This project is developed with an AI-assisted workflow. You can contribute either way: by steering Claude, or by writing the code yourself. Both paths end at the same gate.
 
-### Lifecycle
+The installed workflow version is in `.claude/workflow-source.json`; the commands available in this checkout are the directories under `.claude/skills/` — that list is always current, because updates replace it.
+
+---
+
+## Path 1 — steering Claude
+
+The normal path. Open Claude Code in the repo and drive it with the workflow commands:
 
 ```
-/draft → /plan → /implement → /pr → /release
+/draft feature "let users export their data"   → captures the idea in the backlog
+/plan FEAT-012                                 → turns it into a spec, asks everything up front
+/implement FEAT-012                            → tests + code per subtask, gated each time
+/verify FEAT-012                               → full gate, review, manual smoke test
+/release minor                                 → version, changelog, publish, deploy
 ```
 
-1. **Draft** — Add raw ideas to backlog: `/draft feature "idea"`
-2. **Refine** — Turn a draft into a ready spec in one light pass: `/plan FEAT-001`
-3. **Implement** — Write tests first, then code: `/implement FEAT-001`
-4. **PR** — CI runs, then AI reviews, then auto-merge: `/pr`
-5. **Release** — Version bump + tag + publish: `/release patch`
+`/ship FEAT-012` runs that whole chain in one go. `/resume` picks up interrupted work.
 
-### Branch Naming
-```
-feature/feat-001-short-title
-fix/bug-042-short-description
-chore/update-dependencies
-```
+Two things worth knowing:
 
-### Branching & Pushing Rules
-- **Push to your feature branch freely** — after every commit is fine. Pushes are backups, not quality statements.
-- **The quality gate sits at the merge**: merging into the integration branch happens only via `/pr` (CI green, AI code/security review findings fixed).
-- **Never push directly to the integration branch** (`develop` in git flow, otherwise `main`). Exception: `/release` performs the release merge into `master` (git flow).
-- **Git flow projects**: `master` contains only released states — its tip always equals the latest release tag.
+- **Questions come up front.** `/plan` batches every open decision into one message before implementation starts, so you can answer once and walk away.
+- **The gate is not optional and not manual.** Claude runs `scripts/ci.sh` itself before every commit and before any merge or release. You do not need to ask for it.
 
-### Commit Format
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+## Path 2 — writing the code yourself
+
+Also fine. The rules are the same ones the workflow enforces:
+
+**Before you push:** run `scripts/ci.sh fast`. Before opening a PR or merging: `scripts/ci.sh full`. This is the same script CI runs — if it passes locally it passes there.
+
+**Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 ```
 feat(auth): add OAuth login with Google
 fix(session): correct token expiry calculation
-test(auth): add OAuth integration tests
-docs(api): update authentication endpoints
-chore: update dependencies
 ```
 
-Types: `feat` | `fix` | `refactor` | `test` | `docs` | `chore` | `perf` | `ci`
+Types: `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `perf` · `ci`. Imperative mood, lowercase, no trailing period, ≤72 characters on the first line.
 
-### Definition of Ready (before implementation)
-- [ ] User Story is clear (who / what / why)
-- [ ] All acceptance criteria are testable
-- [ ] Interface definitions are complete
-- [ ] All subtasks defined
-- [ ] No open questions
-- [ ] RE sign-off + TP sign-off
+**Branches:** `feature/feat-001-short-title`, `fix/bug-042-short-description`, `chore/update-dependencies`.
 
-### Definition of Done (before merge)
-- [ ] All tests pass (CI green)
-- [ ] Linter clean
-- [ ] All code review findings addressed
-- [ ] All security review findings addressed
-- [ ] Documentation updated
-- [ ] Spec moved to `docs/specs/completed/`
+**Code conventions** live where they are needed: `src/CLAUDE.md` for source, `tests/CLAUDE.md` for tests. They apply to human contributions too.
 
-## Local Setup
+## How CI works here
 
-See [docs/dev/setup.md](docs/dev/setup.md).
+`scripts/ci.sh` is the single definition of "does this pass" — the GitHub workflows call it, Claude calls it, you call it. There is no separate list of checks that can drift out of sync.
+
+| | `fast` | `full` |
+|---|---|---|
+| runs | format, lint, types, affected tests | everything, plus integration/e2e and the build |
+| when | every commit | before a merge, a PR, a release |
+
+**Why you will see `[skip ci]` on Claude's commits.** Claude runs the identical gate locally before committing, so re-running it in Actions would spend minutes proving something already proven. The marker suppresses that duplicate run — and it comes with an obligation: Claude must actually run `ci.sh full` before any merge or release, never skip both.
+
+**Your commits carry no such marker, so CI runs on them normally.** The skip applies only to commits the workflow itself produced. If you push by hand, expect the full pipeline — that is the intended safety net for human contributions.
+
+The workflows for PR, release and deploy are maintained alongside the code: when the gate or the release steps change, the workflow files change in the same ticket.
+
+## Where things are
+
+| | |
+|---|---|
+| `docs/VISION.md` | What this project is for, and what it deliberately is not |
+| `docs/specs/` | Tickets — `backlog/`, `ready/`, `completed/` |
+| `docs/dev/architecture.md` | How it is built |
+| `docs/dev/setup.md` | Running it locally or against the dev deployment |
+| `docs/user/` | User-facing documentation |
+| `CHANGELOG.md` | Released changes — older majors under `docs/changelog/` |
+
+---
+
+<!-- project-specific: start: contributing -->
+## Project-specific notes
+
+<!-- Anything about contributing that is true for THIS project only: review expectations,
+     a code of conduct, CLA, who to ask, an unusual local setup step.
+     This block survives every workflow update — everything outside it does not. -->
+<!-- project-specific: end: contributing -->

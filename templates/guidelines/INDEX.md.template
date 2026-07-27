@@ -1,8 +1,8 @@
 # Workflow preferences index (plugin-owned — regenerated on update)
 
-Trigger → file map for `.claude/preferences/`. Skills read THIS file (not the preference bodies) at plan / implement / scaffold time; a body is read only when its trigger matches.
+Trigger → file map for `.claude/guidelines/`. Skills read THIS file (not the preference bodies) at plan / implement / scaffold time; a body is read only when its trigger matches.
 
-Rows are generated from the workflow's preference library and **rewritten on every `/workflow-update`** — don't hand-edit. Project-specific triggers go in `.claude/project-notes/INDEX.md`.
+Rows are generated from the workflow's preference library and **rewritten on every `/workflow-update`** — don't hand-edit. Project-specific triggers go in `.claude/memory/decisions.mdINDEX.md`.
 
 <!-- Rows are appended below by /project-init, /project-onboard and /workflow-update — one per
      installed library file, e.g.:

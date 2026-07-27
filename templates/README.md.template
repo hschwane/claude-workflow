@@ -2,42 +2,46 @@
 
 {{PROJECT_DESCRIPTION}}
 
-## Status
-
 ![CI](https://github.com/{{GITHUB_REPO}}/actions/workflows/ci.yml/badge.svg)
+<!-- Remove the badge if there is no GitHub remote. -->
 
-<!-- Remove the badge above if there is no GitHub remote. -->
-
-## Installation
+## Install and run
 
 {{INSTALLATION}}
-<!-- e.g. `npm install {{PROJECT_NAME_KEBAB}}` / `pip install {{PROJECT_NAME}}` / build-from-source steps -->
+<!-- Small project: the complete instructions belong here.
+     Larger one: the shortest path that works, then link docs/dev/setup.md for the rest. -->
+
+{{OPERATIONS}}
+<!-- For anything deployed: required environment variables, where it runs, the health endpoint.
+     Enough that someone can operate it without reading the code. Detail → docs/dev/setup.md. -->
 
 ## Usage
 
 {{USAGE_EXAMPLE}}
-<!-- A minimal end-to-end example: the one command or code snippet that shows the project working. -->
+<!-- The one command or snippet that shows it working end to end. Everything else → docs/user/. -->
+
+Full user guide: [docs/user/](docs/user/README.md)
 
 ## Documentation
 
-- [User guide](docs/user/README.md)
-- [Architecture](docs/dev/architecture.md)
-- [Development setup](docs/dev/setup.md)
-- [Contributing](CONTRIBUTING.md)
-
-## Tech Stack
-
-{{TECH_STACK}}
+| | |
+|---|---|
+| [User guide](docs/user/README.md) | Using it |
+| [Architecture](docs/dev/architecture.md) | How it is built |
+| [Development setup](docs/dev/setup.md) | Running it locally |
+| [Contributing](CONTRIBUTING.md) | Working on it |
+| [Changelog](CHANGELOG.md) | What changed |
+| [Vision](docs/VISION.md) | Goals and explicit non-goals |
 
 ## Development
 
-This project uses the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) AI-assisted development workflow:
+This project is developed with [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) — an AI-assisted workflow where specs, gates and releases run through Claude Code. The installed version is recorded in `.claude/workflow-source.json`, and the available commands are the directories under `.claude/skills/`.
 
-```
-/draft → /plan → /implement → /pr → /release
-```
+**[CONTRIBUTING.md](CONTRIBUTING.md) explains how to work on this project** — both by steering Claude and by hand.
 
-See [docs/workflow/README.md](docs/workflow/README.md) for the full lifecycle, or ask directly.
+## Tech stack
+
+{{TECH_STACK}}
 
 ## License
 

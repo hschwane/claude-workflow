@@ -1,27 +1,27 @@
-# Source Code Conventions
+# Source — {{PROJECT_NAME}}
 
-Tech stack: {{TECH_STACK}}
+Loaded when you touch anything under `src/`, and not when planning, drafting or answering questions about the project.
 
-## Structure
+**Coding rules are not here.** Style, naming, error handling, comments, security, design and the language specifics live in [`docs/dev/code-style.md`](../docs/dev/code-style.md) — one source, maintained by the workflow. Read it before writing code here. This file holds only what is true of *this* codebase.
+
+## Layout
 
 ```
 src/
 {{SRC_STRUCTURE}}
 ```
 
-## Patterns
+## Key types
+
+The interfaces everything else is built on live in `{{TYPES_FILE}}`. Read them before adding new code — most "how do I represent this?" questions are already answered there.
+
+## Patterns in this codebase
 
 - {{KEY_PATTERN_1}}
 - {{KEY_PATTERN_2}}
 
-## Do / Don't
-
-| Do | Don't |
-|----|-------|
-| Use typed interfaces from `types.ts` | Use `any` |
-| Return errors explicitly | Throw across module boundaries |
-| Keep files under 200 lines | Put business logic in route handlers |
-
-## Key Types
-
-The main interfaces live in `{{TYPES_FILE}}`. Read it before adding new code.
+<!-- Add what a newcomer would otherwise have to infer from reading around:
+     which module owns what, how errors travel, where configuration is resolved,
+     a convention that is deliberate rather than accidental.
+     A rule that departs from code-style.md belongs in .claude/memory/decisions.md,
+     dated and with a reason — not silently here. -->

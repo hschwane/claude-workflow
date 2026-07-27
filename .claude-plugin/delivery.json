@@ -1,0 +1,74 @@
+{
+  "$comment": "Every path this plugin delivers into a project, and how /workflow-update treats it. A path missing from this file is a bug: the update reports it instead of guessing.",
+  "classes": {
+    "plugin": "Replaced wholesale. The project must not edit it.",
+    "mixed": "Replaced, except `project-specific: <id>` marker blocks, which are carried into the new version by id.",
+    "project": "Never touched after the initial creation.",
+    "merge": "Structurally merged — the file format cannot carry markers."
+  },
+  "entries": [
+    { "path": ".claude/skills/", "class": "plugin", "mirror": true },
+    { "path": ".claude/agents/", "class": "plugin", "mirror": true },
+    { "path": ".claude/guidelines/", "class": "plugin", "mirror": true,
+      "note": "Only the library files matched at init are installed; a newly shipped one is offered, never forced." },
+    { "path": ".claude/hooks/*.sh", "class": "mixed", "markerSyntax": "shell" },
+    { "path": ".claude/memory/.gitignore", "class": "plugin" },
+    { "path": ".claude/memory/decisions.md", "class": "project" },
+    { "path": ".claude/memory/gotchas.md", "class": "project" },
+    { "path": ".claude/memory/tech-debt.md", "class": "project" },
+    { "path": ".claude/memory/session-settings.md", "class": "project", "note": "gitignored; personal toggles" },
+    { "path": ".claude/memory/context-*.md", "class": "project", "note": "gitignored; runtime state" },
+    { "path": ".claude/settings.json", "class": "merge",
+      "merge": "Add missing hook entries and permissions.allow members; never remove; add statusLine only if absent; leave every other key." },
+    { "path": ".claude/workflow-source.json", "class": "plugin", "note": "rewritten by the update itself" },
+
+    { "path": "CLAUDE.md", "class": "mixed", "markerSyntax": "html",
+      "blocks": ["identity"],
+      "keyMerge": ["workflow-settings"] },
+    { "path": "CONTRIBUTING.md", "class": "mixed", "markerSyntax": "html", "blocks": ["contributing"] },
+    { "path": "README.md", "class": "project" },
+    { "path": "CHANGELOG.md", "class": "project" },
+
+    { "path": "src/CLAUDE.md", "class": "project" },
+    { "path": "tests/CLAUDE.md", "class": "project" },
+
+    { "path": "docs/dev/code-style.md", "class": "plugin" },
+    { "path": "docs/dev/architecture.md", "class": "project" },
+    { "path": "docs/dev/setup.md", "class": "project" },
+    { "path": "docs/dev/deploy.md", "class": "project" },
+    { "path": "docs/user/", "class": "project" },
+    { "path": "docs/specs/", "class": "project" },
+    { "path": "docs/changelog/", "class": "project" },
+    { "path": "docs/VISION.md", "class": "project" },
+
+    { "path": "scripts/ci.sh", "class": "mixed", "markerSyntax": "shell",
+      "blocks": ["format", "lint", "typecheck", "test-unit", "test-integration", "test-e2e", "build"] },
+    { "path": "scripts/release.sh", "class": "mixed", "markerSyntax": "shell",
+      "blocks": ["publish", "deploy"] },
+    { "path": "scripts/claude-loop.sh", "class": "plugin" },
+
+    { "path": ".github/workflows/ci.yml", "class": "mixed", "markerSyntax": "shell", "blocks": ["extra-steps"] },
+    { "path": ".github/workflows/release.yml", "class": "mixed", "markerSyntax": "shell", "blocks": ["extra-steps"] },
+    { "path": ".github/dependabot.yml", "class": "plugin" },
+
+    { "path": "railway.json", "class": "merge",
+      "merge": "Add build.watchPatterns only if absent; never overwrite tuned patterns; show a diff when the shipped default gained entries." },
+    { "path": "tsconfig*.json", "class": "project", "note": "delivered once at init; the project owns it afterwards" },
+    { "path": "eslint.config.js", "class": "project" },
+    { "path": ".prettierrc", "class": "project" },
+    { "path": ".gitignore", "class": "project" }
+  ],
+  "removedIn3": [
+    { "path": "docs/workflow/README.md", "reason": "plugin procedure — lives in the skills; the human-facing version is CONTRIBUTING.md" },
+    { "path": "docs/workflow/lifecycle.md", "reason": "same; 'one session per branch' moved to CLAUDE.md" },
+    { "path": "docs/workflow/conventions.md", "reason": "same; commit and branch conventions are in CONTRIBUTING.md and code-style.md" },
+    { "path": "docs/workflow/quality.md", "reason": "test strategy moved to docs/dev/code-style.md; the gate is described in CLAUDE.md and CONTRIBUTING.md" },
+    { "path": "docs/workflow/release.md", "reason": "version source and branching are settings; steps live in /release; required secrets moved to docs/dev/deploy.md" },
+    { "path": "docs/workflow/decisions.md", "reason": "replaced by the workflow-settings block in CLAUDE.md" },
+    { "path": "docs/workflow/deploy.md", "reason": "moved to docs/dev/deploy.md — it is project operations, not workflow procedure" },
+    { "path": "docs/dev/style-guide.md", "reason": "merged into docs/dev/code-style.md" },
+    { "path": "docs/dev/adr/", "reason": "retired; lasting decisions go to .claude/memory/decisions.md, detail to docs/dev/" },
+    { "path": ".claude/preferences/", "reason": "renamed to .claude/guidelines/" },
+    { "path": ".claude/project-notes/", "reason": "retired; deviations to decisions.md, traps to gotchas.md" }
+  ]
+}

@@ -1,22 +1,29 @@
-# Testing Conventions
+# Tests — {{PROJECT_NAME}}
+
+Loaded when you touch anything under `tests/`, and not when planning or writing production code.
+
+**Testing rules are not here.** What to test at which level, and the rules that hold at every level, live in [`docs/dev/code-style.md`](../docs/dev/code-style.md) under *Testing* — one source, maintained by the workflow. The configured depth is the `testing-scope` setting in the root `CLAUDE.md`. This file holds only what is true of *this* suite.
+
+## Running them
+
+Everything: `{{TEST_COMMAND}}`
+A single file: `{{TEST_SINGLE_COMMAND}}`
+
+Prefer `scripts/ci.sh` over calling the framework directly — `fast` for the per-subtask check, `full` before a merge or release. It is the same script CI runs, so a local pass means a remote pass.
 
 Framework: {{TEST_FRAMEWORK}}
-Run: `{{TEST_COMMAND}}`
 
-## Structure
+## Layout
 
-Test files mirror `src/` — e.g., `src/auth/oauth.ts` → `tests/auth/oauth.test.ts`
-
-## Patterns
+Test files mirror `src/` — `src/auth/oauth.ts` → `tests/auth/oauth.test.ts`.
 
 ```{{LANG}}
 {{TEST_EXAMPLE}}
 ```
 
-## Rules
+## Fixtures and helpers
 
-- Each test is independent — no shared mutable state
-- Test names describe behavior: `"returns 401 when token is expired"`
-- Arrange / Act / Assert structure
-- Mock only external I/O (network, filesystem, time) — never mock your own code
-- Tests must be deterministic — no random data, no time dependencies without mocking
+{{TEST_FIXTURES}}
+
+<!-- Shared builders, fake implementations, seeded data: where they live and how to use them.
+     Also worth recording: a test that is slow or flaky for a known reason, and why it stays. -->

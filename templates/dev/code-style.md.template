@@ -1,0 +1,132 @@
+# Code style and engineering standards
+
+Maintained by the claude-workflow plugin and replaced on `/workflow-update` — do not edit. Project-specific structure, patterns and key types live in `src/CLAUDE.md` and `tests/CLAUDE.md`; a project decision that departs from a rule here belongs in `.claude/memory/decisions.md`, dated and with a reason.
+
+Read by Claude when writing code, and by human contributors — `CONTRIBUTING.md` points here rather than repeating any of it.
+
+## Designing software
+
+- **Simple beats complex.** Don't build two ways to do the same thing. Don't add a layer for a flexibility nobody asked for — the cost is paid on every read of that code, the benefit only if the guess was right.
+- **One responsibility per unit.** A function does one thing; a module owns one concern; a file holds one module. Extract rather than grow past ~200 lines.
+- **Depend on interfaces, not implementations**, wherever the implementation could plausibly change — an external service, a platform API, a storage engine. The rest of the app depends on your interface; swapping the backing thing stays one adapter.
+- **Push decisions outward, keep the core pure.** Business rules take values and return values, with no I/O and no framework imports. That core is trivially testable; everything that talks to the world sits around it.
+- **Make impossible states impossible.** Prefer a type that cannot represent a bad combination over a runtime check that catches it. Discriminated unions over "this field is only set when that flag is true".
+- **Explicit over implicit.** No global mutable state, no clever shortcuts, no action at a distance. If a function's behavior depends on something, that something should be visible in its signature.
+- **Composition over inheritance.** Inheritance couples the child to the parent's internals; composition does not.
+- **Injectable side effects.** Clock, filesystem, network, randomness and SDK entry points are passed in with a real default. Tests supply a fake; production never changes.
+- **Clear code beats backward compatibility** — unless something actually depends on the old behavior, or it is a published API, CLI or file format, where the contract *is* the product.
+
+## Errors
+
+- **Never swallow an error.** No empty catch, no fallback that hides a failure, no logging-and-continuing where the caller needed to know.
+- **Fail fast on a violated precondition.** A wrong assumption should stop at the point it is detected, not three layers later as a confusing symptom.
+- **Return errors to callers with enough context to debug** — what operation, what identifier, what upstream status. A stringified stack with no queryable context is not enough.
+- **Expected failure paths are values, not exceptions.** `{ ok: true } | { ok: false, reason }` keeps control flow explicit and the function trivially testable. Reserve throwing for genuinely exceptional conditions, and don't throw across module boundaries.
+- **Never log raw user data.** Redact at the logging boundary *and* think at the call site — automatic redaction is the backstop, not the licence.
+
+## Naming
+
+- Variables and functions: `camelCase` (TS/JS) · `snake_case` (Python/Rust)
+- Types and classes: `PascalCase` · Constants: `UPPER_SNAKE_CASE`
+- Files: `kebab-case.ts` · `snake_case.py` · `snake_case.rs`
+- Booleans read as predicates: `isActive`, `hasAccess`, `shouldRetry`, `canPublish`
+- Name a function for **what it returns or does**, not how it works internally — the implementation is free to change, the name should not have to.
+- Avoid abbreviations that are not universal in the domain. `idx` is fine; `usrPrfSvc` is not.
+
+## Comments and documentation
+
+- **Comments say *why*, never *what*.** The code already says what. A comment restating it is noise — delete it.
+- **Doc-comments** only for: a function's usage and parameters where they are not obvious, a class or file's purpose, and genuinely tricky algorithms or decisions.
+- `TODO:` marks known debt — link a ticket where one exists. Anything larger belongs in `.claude/memory/tech-debt.md`.
+- **No dead code, no commented-out code, no leftover debug prints.** Git has the history.
+- Keep `docs/dev/architecture.md` current for what would be expensive to re-derive from the code: the data model, module boundaries, external interfaces, and the reasoning behind non-obvious structure.
+
+## Formatting
+
+Formatting is a tool's job, not a discussion. The project's formatter runs in `scripts/ci.sh fast`; match whatever it produces and never hand-format against it. Where the formatter has no opinion — line breaks in a long condition, argument grouping — favor the version that reads aloud most easily.
+
+## Security
+
+- **No secrets in code, ever** — environment variables or a secret store. A `.env` is protected by the file-protection hook and must never be committed.
+- Validate anything crossing a trust boundary against a schema, and reject silently-wrong shapes rather than trusting them.
+- Dependency audits run in the canonical gate. A new advisory is a ticket, not a warning to scroll past.
+- Authentication and authorization are checked **before** the handler does work, not inside it.
+- Security-sensitive diffs (auth, crypto, payments, personal data) get the `reviewer` agent during `/verify`, not just an inline self-review.
+
+## Testing
+
+**Configured scope is the `testing-scope` setting in `CLAUDE.md`.** Test the important behaviors — quality over coverage. Each acceptance criterion maps to the lowest level that meaningfully covers it.
+
+- **Unit** — isolated logic: pure functions, domain rules, validation, calculations. Error cases and boundaries live here. Mock only external I/O; never mock your own code.
+- **Integration** *(scope `unit+integration` and up)* — system boundaries: HTTP endpoints, database operations, service interactions, against real test dependencies (test DB or in-memory), with no mocks of your own layers. Don't repeat what unit tests cover.
+- **E2E** *(scope `unit+integration+e2e` only)* — critical user flows spanning UI, backend and storage that cannot be verified lower down. Cap at roughly 3–5 scenarios per feature, and only where an E2E framework is actually configured.
+
+Glue code — thin controllers, adapters, wrappers — is covered indirectly by integration tests and needs no dedicated unit test.
+
+**Rules that hold at every level:**
+- Deterministic and independent: no shared mutable state, no ordering dependence, no network, no wall-clock.
+- Name the behavior, not the function: `"returns 401 when the token is expired"`.
+- Arrange / Act / Assert, one concept per test.
+- Test through the public interface; reaching into internals couples the test to today's implementation.
+- Every bug fix gets a regression test that fails before it and passes after. A smoke-test finding becomes an automated test, not a note.
+
+## Debugging
+
+Treat a bug as a crime scene, not a puzzle to out-think.
+
+1. **Reproduce it** — deterministically, ideally as a failing test. A bug you cannot reproduce is a theory, not a bug.
+2. **Form one theory** and name the evidence that would disprove it.
+3. **Gather that evidence** — targeted logging, a breakpoint, a narrowed test. Not a scattering of print statements.
+4. **Fix the root cause**, never the symptom. If the fix is "add a null check", ask why it was null.
+5. **Keep the test.** The reproduction from step 1 is the regression test.
+
+A beautiful theory is not evidence. If two rounds of this have not moved you, `/consult` rather than guessing a third time.
+
+## Dependencies
+
+Standard library first, then what the project already uses, then project-owned code. A new dependency is the last option and never for something small or trivial.
+
+Before proposing one, check and **say what you checked**: actively maintained, licence compatible with this project, proportionate in size and transitive weight, no known advisories. A framework, ORM, or anything the architecture will be built around is a design decision, not a dependency choice — treat it as one, and record it in `decisions.md`.
+
+Pin versions, commit the lockfile, drop unused dependencies, and never upgrade unrelated ones as a drive-by.
+
+---
+
+# Language specifics
+
+All supported languages are listed here so that adding one to the project needs no edit — the rules are already present.
+
+## TypeScript / JavaScript
+
+- `strict: true` in `tsconfig.json`, no exceptions.
+- **No `any`.** Use `unknown` and narrow, or write the real type. `any` disables the checker precisely where you least want that.
+- Prefer `type` for plain shapes, `interface` where extension is intended.
+- Explicit return types on exported functions — inference is fine internally, but an export's signature is a contract.
+- Derive a union type from a runtime array (`typeof ARR[number]`), not the other way around: one list, never two.
+- ESM, `node: >=22`. Validate external input and config with a schema library (Zod or equivalent).
+- `const` by default; `let` only where reassignment is real. Never `var`.
+
+## Python
+
+- Type hints everywhere, checked with `mypy --strict`.
+- `from __future__ import annotations` at the top of every module.
+- Dataclasses or Pydantic models over passing plain dicts around.
+- Prefer `pathlib` over `os.path`, f-strings over `%` and `.format()`.
+- Context managers for anything with a lifetime — files, connections, locks.
+- Virtual environment always; dependencies pinned in the lockfile.
+
+## Rust
+
+- `#![deny(warnings)]` in CI; `clippy` clean with `-D warnings`.
+- Return `Result<T, E>` with a typed error (`thiserror` for libraries, `anyhow` at the binary boundary). `unwrap()` and `expect()` only where the invariant is locally provable, with a comment saying why.
+- Prefer borrowing over cloning; reach for `Rc`/`Arc` only when ownership is genuinely shared.
+- Make illegal states unrepresentable with enums — that is what the type system is for here.
+- `rustfmt` decides formatting.
+
+## C++
+
+- Modern standard (C++20 or later). RAII everywhere; no raw `new`/`delete`.
+- Smart pointers express ownership: `unique_ptr` by default, `shared_ptr` only for genuinely shared lifetime.
+- `const` correctness throughout; pass by `const&` for anything non-trivial to copy.
+- Prefer standard containers and algorithms over hand-rolled loops.
+- Compile warnings-as-errors; `clang-format` decides formatting, `clang-tidy` runs in the gate.
