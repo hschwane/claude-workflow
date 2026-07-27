@@ -1,11 +1,9 @@
 {
-  "$comment": "Every path this plugin delivers into a project, and how /workflow-update treats it. A path missing from this file is a bug: the update reports it instead of guessing.",
+  "$comment": "Every path this plugin delivers, and who owns it. Anything NOT listed here is the project's and is never touched. The update only ever touches a file the plugin actually changed between the installed and the target version.",
   "classes": {
-    "plugin": "Manifest-driven mirror: refresh the listed files, delete what a previous manifest listed and this one no longer does, and leave anything else alone. A project extends by ADDING a file here, never by editing a shipped one.",
-    "mixed": "Replaced, except `project-specific: <id>` marker blocks, which are carried into the new version by id.",
-    "project": "Never touched after the initial creation.",
-    "merge-interactive": "Only when the plugin changed this file between the installed and the target version: Claude performs a three-way merge (base = the old plugin version, ours = the project's file, theirs = the new plugin version), always showing the diff and asking before writing.",
-    "merge": "Merged mechanically by a fixed rule stated on the entry."
+    "project": "Created from a template once, then handed to the project. An update never rewrites it; when the upstream template changed, the update SUGGESTS how to fold that change in and lets the project decide. In practice these are rarely touched.",
+    "plugin": "Belongs to the plugin and is replaced on update. `project-specific: <id>` marker blocks inside such a file protect project content across the replacement.",
+    "mixed": "A plugin file where markers cannot work — the project's content and the plugin's are interleaved, or the format carries no comments. Claude merges these by hand, every time, always showing the diff."
   },
   "entries": [
     {
@@ -43,7 +41,7 @@
       "class": "project"
     },
     {
-      "path": ".claude/memory/settings.md",
+      "path": ".claude/memory/local-settings.md",
       "class": "project",
       "note": "gitignored; personal toggles"
     },
@@ -54,7 +52,7 @@
     },
     {
       "path": ".claude/settings.json",
-      "class": "merge",
+      "class": "mixed",
       "merge": "Add missing hook entries and permissions.allow members; never remove; add statusLine only if absent; leave every other key."
     },
     {
@@ -64,22 +62,24 @@
     },
     {
       "path": "CLAUDE.md",
-      "class": "mixed",
+      "class": "plugin",
       "markerSyntax": "html",
       "blocks": [
         "identity"
       ],
       "keyMerge": [
         "workflow-settings"
-      ]
+      ],
+      "note": "Plugin-owned; the marked project blocks survive replacement."
     },
     {
       "path": "CONTRIBUTING.md",
-      "class": "mixed",
+      "class": "plugin",
       "markerSyntax": "html",
       "blocks": [
         "contributing"
-      ]
+      ],
+      "note": "Plugin-owned; the marked project blocks survive replacement."
     },
     {
       "path": "README.md",
@@ -131,12 +131,12 @@
     },
     {
       "path": "scripts/ci.sh",
-      "class": "merge-interactive",
+      "class": "mixed",
       "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run."
     },
     {
       "path": "scripts/release.sh",
-      "class": "merge-interactive",
+      "class": "mixed",
       "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run."
     },
     {
@@ -145,11 +145,11 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "class": "merge-interactive"
+      "class": "mixed"
     },
     {
       "path": ".github/workflows/release.yml",
-      "class": "merge-interactive"
+      "class": "mixed"
     },
     {
       "path": ".github/dependabot.yml",
@@ -157,20 +157,23 @@
     },
     {
       "path": "railway.json",
-      "class": "merge-interactive",
-      "note": "Never overwrite tuned watchPatterns; surface what the shipped default gained."
+      "class": "project",
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
     },
     {
       "path": "tsconfig*.json",
-      "class": "merge-interactive"
+      "class": "project",
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
     },
     {
       "path": "eslint.config.js",
-      "class": "merge-interactive"
+      "class": "project",
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
     },
     {
       "path": ".prettierrc",
-      "class": "merge-interactive"
+      "class": "project",
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
     },
     {
       "path": ".gitignore",
@@ -222,5 +225,12 @@
       "path": ".claude/project-notes/",
       "reason": "retired; deviations to decisions.md, traps to gotchas.md"
     }
+  ],
+  "rules": [
+    "Not listed → project. Never touched.",
+    "Before creating a new file, check whether the project already has one by that name; if so, resolve it explicitly instead of overwriting.",
+    "Only files whose plugin version actually changed between the installed and target release are touched at all.",
+    "Mirroring a plugin directory refreshes the listed files and deletes what a previous manifest listed and this one no longer does — anything else in that directory belongs to the project and stays.",
+    "Removing or moving a file: inspect what project content it holds first and resolve that case specifically. Never delete a path without accounting for the project's share of it."
   ]
 }
