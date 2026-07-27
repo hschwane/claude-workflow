@@ -86,7 +86,7 @@ scripts/ci.sh, scripts/release.sh, scripts/claude-loop.sh
 - `.claude/project-notes/` — the project's own standing rules; only ever **added to** (step 5f migration), never edited or removed
 - `CONTRIBUTING.md`
 - `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
-- `.claude/memory/` — **except** `.claude/memory/.gitignore` (plugin-owned runtime-pattern list, refreshed in step 5); the state files themselves (decisions.md, context-*, settings.md, …) are never touched
+- `.claude/memory/` — **except** `.claude/memory/.gitignore` (plugin-owned runtime-pattern list, refreshed in step 5); the state files themselves (decisions.md, context-*, local-settings.md, …) are never touched
 - `.claude/workflow-source.json` (updated separately in step 6)
 - Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** any of the template's `permissions.allow` entries that the project is missing (union, never remove)
 - Any project source files

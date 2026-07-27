@@ -13,10 +13,10 @@ SHIP="$MEM/context-ship.md"   # /ship orchestration state — branch-independent
 
 # Unsupervised? (drives auto-run /resume vs suggest — no marker files needed)
 UNSUP=no
-[ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=yes
+[ -f "$MEM/local-settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/local-settings.md" && UNSUP=yes
 # Auto-resume? (independent of unsupervised — governs the recovery heartbeat)
 AUTORES=no
-[ -f "$MEM/settings.md" ] && grep -qi '^auto_resume:[[:space:]]*true' "$MEM/settings.md" && AUTORES=yes
+[ -f "$MEM/local-settings.md" ] && grep -qi '^auto_resume:[[:space:]]*true' "$MEM/local-settings.md" && AUTORES=yes
 
 # A blocker always takes priority — surface it, never auto-resume past it.
 BLK=""

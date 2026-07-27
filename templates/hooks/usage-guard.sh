@@ -14,7 +14,7 @@
 #         --status  print current usage + threshold (for /unsupervised).
 set -uo pipefail
 MEM="${CLAUDE_PROJECT_DIR:-.}/.claude/memory"
-SETTINGS="$MEM/settings.md"; CACHE="$MEM/usage-cache.json"
+SETTINGS="$MEM/local-settings.md"; CACHE="$MEM/usage-cache.json"
 CRED="${CLAUDE_CREDENTIALS:-$HOME/.claude/.credentials.json}"
 MODE="${1:-hook}"
 

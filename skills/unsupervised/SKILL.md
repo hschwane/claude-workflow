@@ -22,20 +22,20 @@ In unsupervised mode Claude never asks questions, applies autonomous defaults, a
 ## Instructions
 
 ### `on [threshold]`
-Write to `.claude/memory/settings.md` (create if missing; default threshold 90):
+Write to `.claude/memory/local-local-settings.md` (create if missing; default threshold 90):
 ```
 unsupervised: true
 usage_threshold: {threshold or 90}
 ```
-**Always ensure auto-resume is on too** (an unsupervised run must be able to recover after a limit kill): if `auto_resume: true` isn't already in settings.md, add it now, and — if in-progress work exists and this is a cloud session — arm the recovery heartbeat (idempotent, per `/auto-resume`). Don't disturb it if it's already on.
+**Always ensure auto-resume is on too** (an unsupervised run must be able to recover after a limit kill): if `auto_resume: true` isn't already in local-settings.md, add it now, and — if in-progress work exists and this is a cloud session — arm the recovery heartbeat (idempotent, per `/auto-resume`). Don't disturb it if it's already on.
 
 Print what it will do (never ask): the autonomous defaults below, the proactive pause at the threshold where usage is readable, and that auto-resume is now on (was already on / just enabled) so an interrupted run wakes itself after the limit resets.
 
 ### `off`
-Remove the `unsupervised:` / `usage_threshold:` lines from settings.md. Print `Unsupervised mode OFF.` **Leaves `auto_resume` and any heartbeat as-is** — auto-resume was auto-enabled but is not auto-disabled here (turn it off deliberately with `/auto-resume off` if you no longer want limit-recovery).
+Remove the `unsupervised:` / `usage_threshold:` lines from local-settings.md. Print `Unsupervised mode OFF.` **Leaves `auto_resume` and any heartbeat as-is** — auto-resume was auto-enabled but is not auto-disabled here (turn it off deliberately with `/auto-resume off` if you no longer want limit-recovery).
 
 ### (no argument)
-Print unsupervised state + threshold from settings.md, then `bash .claude/hooks/usage-guard.sh --status`.
+Print unsupervised state + threshold from local-settings.md, then `bash .claude/hooks/usage-guard.sh --status`.
 
 ## Autonomous defaults (when `unsupervised: true`)
 - **Never** ask the user — apply the most reasonable default and note assumptions.

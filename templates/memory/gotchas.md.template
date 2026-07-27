@@ -1,0 +1,27 @@
+# Gotchas — {{PROJECT_NAME}}
+
+Things that cost someone time and would cost the next person the same. Facts about this codebase, its dependencies or its environment that are **not** derivable from reading the code. Read during `/plan`.
+
+**Topics:** _(none yet)_
+<!-- One word or phrase per entry, comma-separated. This line is the index: a reader loads
+     only the head of this file and reads further only on a hit. An unlisted entry is an
+     entry nobody will find. -->
+
+## What belongs here
+
+A surprise, not a rule. "The staging DB has no `uuid-ossp`, so generate UUIDs in app code" is a gotcha. "Always generate UUIDs in app code" is a decision — that goes in `decisions.md`.
+
+One line for the trap, one for what to do instead. If the explanation is long, link `docs/dev/`.
+
+When a gotcha stops being true — the dependency was fixed, the environment changed — delete it. A stale trap is worse than none, because it is believed.
+
+---
+
+<!-- Newest first. Format:
+
+## Playwright cannot reach the dev deploy over IPv6
+
+The runner resolves the host to AAAA first and times out with no error text.
+Force IPv4 in the test config (`--host 0.0.0.0` on the server side is not enough).
+
+-->

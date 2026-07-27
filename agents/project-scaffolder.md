@@ -225,7 +225,7 @@ Write empty `{TARGET_DIR}/.claude/memory/gotchas.md` (just a `# Gotchas` heading
 Write empty `{TARGET_DIR}/.claude/memory/tech-debt.md` (just a `# Tech Debt` heading).
 
 Copy `{PLUGIN_SOURCE_DIR}/templates/memory/.gitignore` → `{TARGET_DIR}/.claude/memory/.gitignore`
-(This prevents runtime state files — settings.md, context-*.md, *.active, *.log, usage-cache.json — from being committed to git.)
+(This prevents runtime state files — local-settings.md, context-*.md, *.active, *.log, usage-cache.json — from being committed to git.)
 
 ## Step I: MkDocs Setup (if DOCS_TYPE = "MkDocs HTML")
 

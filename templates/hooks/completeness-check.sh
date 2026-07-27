@@ -34,7 +34,7 @@ else
 fi
 
 UNSUP=false
-[ -f "$MEM/settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/settings.md" && UNSUP=true
+[ -f "$MEM/local-settings.md" ] && grep -qi '^unsupervised:[[:space:]]*true' "$MEM/local-settings.md" && UNSUP=true
 
 if [ "$UNSUP" = true ] && [ "$STOP_ACTIVE" != true ]; then
   REASON="Unsupervised mode: work is still in progress ($UNCHECKED unchecked subtask(s) in ${SPEC#$ROOT/}). Continue with /implement or /ship. If genuinely blocked, write a ## Blocked section to the branch context file. If everything is done, finish the spec (move it to completed/) and clear any ## Ship note. If the usage-guard asked you to pause, stop cleanly — you will resume automatically."

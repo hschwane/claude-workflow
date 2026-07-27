@@ -1,0 +1,25 @@
+# Tech debt — {{PROJECT_NAME}}
+
+Shortcuts taken knowingly, with the reason and what it would take to undo them. Not a bug list — bugs go to `docs/specs/backlog/` as `BUG-` tickets.
+
+**Topics:** _(none yet)_
+<!-- One word or phrase per entry, comma-separated. This line is the index. -->
+
+## What belongs here
+
+Something you would do differently with more time, that is not currently broken. A `TODO:` in the code marks the spot; this file explains why it is there and what paying it off involves.
+
+One line for the shortcut, one for the cost of keeping it, one for the way out. Link a ticket if one exists — and when the ticket lands, delete the entry rather than marking it done.
+
+If an item has been here long enough that nobody remembers the tradeoff, that is a signal: either it stopped mattering (delete it) or it needs a ticket.
+
+---
+
+<!-- Newest first. Format:
+
+## Probe results are purged by a cron, not by the writer
+
+Cheaper to ship, but a purge failure is silent until storage fills.
+Undo: move the retention window into the write path. ~half a day. BUG-031.
+
+-->

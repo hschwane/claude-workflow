@@ -1,9 +1,9 @@
 # Runtime state — never commit these.
-# Tracked (shared knowledge): decisions.md, gotchas.md, tech-debt.md
+# Tracked (shared knowledge): decisions.md, gotchas.md, tech-debt.md — everything else in .claude/ is tracked too
 # Everything else is ephemeral per-session/per-branch state.
 
-# Unsupervised flag + threshold + recovery-trigger id
-settings.md
+# Personal toggles: unsupervised, auto_resume, threshold, recovery-trigger id
+local-settings.md
 
 # Branch orchestration/blocker notes (## Ship / ## Blocked) and legacy checkpoints
 context.md

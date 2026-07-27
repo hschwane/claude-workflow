@@ -53,7 +53,7 @@ LINE="$MODEL"
 [ -n "${P5:-}" ] && LINE="$LINE | 5h ${P5}%"
 [ -n "${P7:-}" ] && LINE="$LINE | 7d ${P7}%"
 # Show the unsupervised threshold when set
-TH=$(sed -nE 's/^usage_threshold:[[:space:]]*([0-9]+).*/\1/p' "$MEM/settings.md" 2>/dev/null | head -1)
+TH=$(sed -nE 's/^usage_threshold:[[:space:]]*([0-9]+).*/\1/p' "$MEM/local-settings.md" 2>/dev/null | head -1)
 [ -n "$TH" ] && LINE="$LINE (limit ${TH}%)"
 echo "$LINE"
 

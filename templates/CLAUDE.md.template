@@ -20,7 +20,7 @@ ci-on-claude: {{CI_ON_CLAUDE}}
 release-runner: {{RELEASE_RUNNER}}
 <!-- workflow-settings: end -->
 
-Change one with `/workflow-settings` — it knows the allowed values and what each means, so they are not repeated here. Personal toggles (`unsupervised`, `auto_resume`, the usage threshold) are not project settings; they live in `.claude/memory/settings.md` and are never committed.
+Change one with `/workflow-settings` — it knows the allowed values and what each means, so they are not repeated here. Personal toggles (`unsupervised`, `auto_resume`, the usage threshold) are not project settings; they live in `.claude/memory/local-settings.md`, which is gitignored.
 
 ## How to edit this file
 
@@ -132,7 +132,7 @@ Act on the SessionStart hook's `=== … ===` markers — each states what to do.
 
 **One session per branch.** Several sessions in parallel are fine on *different* branches — state lives in the repo, so they cannot collide. Two sessions on the same branch race on the same files; don't.
 
-**Two independent toggles** in `.claude/memory/settings.md`:
+**Two independent toggles** in `.claude/memory/local-settings.md`:
 - **`unsupervised`** — *how* you work. `true`: never ask, green-commit every subtask, `## Blocked` + stop on a real blocker, short report at the end; at the usage threshold (default 90%) finish the step, commit, end the turn. Default: ask as normal, run to the hard limit.
 - **`auto_resume`** — *whether* an interrupted run wakes itself after a limit reset, in either mode. Mechanics in `/auto-resume`.
 - `/unsupervised on` turns `auto_resume` on too; `off` leaves it on.
@@ -146,9 +146,9 @@ Act on the SessionStart hook's `=== … ===` markers — each states what to do.
 | `decisions.md` | *Why* was this decided, and what follows from it? Dated, append-only. Read during `/plan` | yes |
 | `gotchas.md` | What surprised someone here? Non-obvious facts that cost time. Read during `/plan` | yes |
 | `tech-debt.md` | What shortcut did we knowingly take, and why? Ideally with a ticket | yes |
-| `settings.md` | The two toggles above, the usage threshold, the recovery-heartbeat id | no — personal |
+|  `local-settings.md` | The two toggles above, the usage threshold, the recovery-heartbeat id — gitignored | no — personal |
 | `context-*.md` | Runtime notes: `## Blocked` per branch, `## Ship` for an orchestration run | no — ephemeral |
 
-Memory records **the past**; a decision that should change future behavior says so explicitly, because `/plan` reads it. Deep explanation belongs in `docs/dev/` — `decisions.md` keeps the choice and the reason, not the essay.
+Each of the three tracked files opens with a **topic index** — load the head first and read on only if a topic matches. Memory records **the past**; a decision that should change future behavior says so explicitly, because `/plan` reads it. Deep explanation belongs in `docs/dev/` — `decisions.md` keeps the choice and the reason, not the essay.
 
 `context-{branch}.md` uses the git branch with every `/` replaced by `-` (`feature/feat-001-x` → `context-feature-feat-001-x.md`); hooks compute it that way, so skills must too. `/ship` state lives in the fixed, branch-independent `context-ship.md`, because a ship run spans many branches.

@@ -32,7 +32,7 @@ Set the spec frontmatter `status: in-progress`. If `github_issue` is set and `.c
 
 Multiple sessions may run on different branches concurrently — that's fine; each owns its branch.
 
-If `.claude/memory/settings.md` has `auto_resume: true` and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`) so a limit kill mid-build is recovered automatically.
+If `.claude/memory/local-local-settings.md` has `auto_resume: true` and this is a cloud session, ensure the recovery heartbeat is armed (idempotent — see `/auto-resume`) so a limit kill mid-build is recovered automatically.
 
 ### 2. Implement each subtask (in order)
 

@@ -1,0 +1,29 @@
+# Decisions — {{PROJECT_NAME}}
+
+Why things are the way they are, and what follows from it. Read during `/plan`; written by `/consult`, `/plan` and `/implement` whenever a choice gets made that a later reader would otherwise have to reverse-engineer.
+
+**Topics:** _(none yet)_
+<!-- One word or phrase per entry, comma-separated, newest last. This line is the index:
+     a reader loads only the head of this file, and reads further only on a hit.
+     Keep it current — an entry that is not listed here is an entry nobody will find. -->
+
+## How to write an entry
+
+One line for the decision, one for the reason, and a link if there is more to say. The essay belongs in `docs/dev/` — this file stays skimmable.
+
+If a decision departs from a `.claude/guidelines/` file, **name the guideline**. That makes it a settled deviation: `/plan` applies it and stops re-asking. A contradiction that does not name what it contradicts looks like an accident and gets queried every time.
+
+Archive superseded entries under `## Superseded` at the bottom rather than deleting them — a reversed decision is itself information — and keep them out of the topic index.
+
+---
+
+<!-- Newest first. Format:
+
+## 2026-07-24 — Probe timeouts are explicit
+
+Every probe declares its own timeout; there is no implicit default.
+An inherited default made a slow upstream look like a probe bug twice.
+Departs from `guidelines/background-jobs.md`, which suggests a shared default.
+Detail: `docs/dev/architecture.md#probes`
+
+-->

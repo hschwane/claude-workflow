@@ -25,4 +25,4 @@ Resume at the first unchecked subtask per `/implement`; if all are done, `/verif
 An agent that died mid-run (`runner`, `smoke-tester`) is simply re-run — they're idempotent, there's nothing to recover.
 
 ### 4. Heartbeat
-If `.claude/memory/settings.md` has `auto_resume: true` and this is a cloud session with work to continue, ensure the heartbeat is armed (idempotent — see `/auto-resume`); this is what re-arms it after each firing. Tear it down when the work completes or a `## Blocked` note is written.
+If `.claude/memory/local-local-settings.md` has `auto_resume: true` and this is a cloud session with work to continue, ensure the heartbeat is armed (idempotent — see `/auto-resume`); this is what re-arms it after each firing. Tear it down when the work completes or a `## Blocked` note is written.

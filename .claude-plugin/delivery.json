@@ -30,15 +30,18 @@
     },
     {
       "path": ".claude/memory/decisions.md",
-      "class": "project"
+      "class": "project",
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
     },
     {
       "path": ".claude/memory/gotchas.md",
-      "class": "project"
+      "class": "project",
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
     },
     {
       "path": ".claude/memory/tech-debt.md",
-      "class": "project"
+      "class": "project",
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
     },
     {
       "path": ".claude/memory/local-settings.md",
