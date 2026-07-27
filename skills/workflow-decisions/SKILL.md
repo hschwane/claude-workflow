@@ -1,5 +1,5 @@
 ---
-name: workflow-decisions
+name: workflow-settings
 description: View or change a workflow decision (testing scope, branching, deploy target, ci-on-claude, release-runner, pause threshold, …) — edits the live value and keeps docs/workflow/decisions.md in sync
 argument-hint: "[setting | natural-language change] — e.g. \"ci-on-claude\" | \"testing scope\""
 disable-model-invocation: true
@@ -13,10 +13,10 @@ disable-model-invocation: true
 
 ## Usage
 ```
-/workflow-decisions                          # list settings, pick one to change
-/workflow-decisions ci-on-claude             # jump straight to a setting
-/workflow-decisions "run CI on my commits too for this library"
-/workflow-decisions "release through CI to keep publish secrets off my machine"
+/workflow-settings                          # list settings, pick one to change
+/workflow-settings ci-on-claude             # jump straight to a setting
+/workflow-settings "run CI on my commits too for this library"
+/workflow-settings "release through CI to keep publish secrets off my machine"
 ```
 
 ## Instructions

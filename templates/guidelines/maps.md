@@ -1,6 +1,6 @@
 # Maps (interactive map UX)
 
-Standing preferences for interactive maps. Extracted from the island-planner map (imperative Leaflet + PWA), generalized.
+Standing guidelines for interactive maps. Extracted from the island-planner map (imperative Leaflet + PWA), generalized.
 
 ## Library
 - **Leaflet** is the default for raster/tile maps — used **imperatively** (`L.map(...)`, own layers/effects) rather than through wrapper JSX components, so marker/layer updates stay under direct control. Reach for MapLibre GL / vector rendering only when you genuinely need GPU vector styling.

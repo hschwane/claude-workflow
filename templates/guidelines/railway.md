@@ -1,6 +1,6 @@
 # Railway deployment
 
-Standing preferences that apply whenever this project deploys on Railway. (Railway is the preferred deploy target in general — that hint stays in the workflow; these are the details.)
+Standing guidelines that apply whenever this project deploys on Railway. (Railway is the preferred deploy target in general — that hint stays in the workflow; these are the details.)
 
 ## Configuration
 - **Scale-to-zero** enabled — the app sleeps when idle, so it must tolerate cold starts.

@@ -1,6 +1,6 @@
 # Backend / service architecture
 
-Standing preferences for any non-trivial backend, service, or long-running app (API, bot, daemon). Extracted independently from `eat-repeat-bot` and `plant-o-tron-2` — both document the same layering as a deliberate ADR, which is a strong signal it generalizes.
+Standing guidelines for any non-trivial backend, service, or long-running app (API, bot, daemon). Extracted independently from `eat-repeat-bot` and `plant-o-tron-2` — both document the same layering as a deliberate architecture decision, which is a strong signal it generalizes.
 
 ## Layered architecture (required for non-trivial services)
 - **Domain** — pure business rules, zero I/O, zero framework imports. Functions take values, return values.

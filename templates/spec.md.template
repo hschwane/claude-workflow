@@ -30,7 +30,7 @@ As a [user], I want [goal], so that [benefit].
 // interfaces / signatures
 ```
 
-<!-- Applied preferences: <.claude/preferences/x.md, …>   (added by /plan when a preference matched; treated as
+<!-- Applied preferences: <.claude/guidelines/x.md, …>   (added by /plan when a preference matched; treated as
      recommendations — note anything adapted or deliberately rejected + why, not just a bare file list;
      /implement re-reads these) -->
 

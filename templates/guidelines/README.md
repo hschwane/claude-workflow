@@ -23,4 +23,4 @@ A matching guideline is a strong default worth starting from — not a mandate t
 
 ## Which files are here
 
-Only the library preferences that matched this project at init/onboard time, refreshed on every update. `/workflow-update` offers newly-matching ones as the project grows — it never force-installs a file you removed.
+Only the library guidelines that matched this project at init/onboard time, refreshed on every update. `/workflow-update` offers newly-matching ones as the project grows — it never force-installs a file you removed.

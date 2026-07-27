@@ -88,12 +88,12 @@ Write `.claude/workflow-source.json`. Read the `repository` and `version` fields
 Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
 
 **Two standing-guidance folders:**
-- `.claude/preferences/` (**plugin-owned** — replaced wholesale on `/workflow-update`): copy `templates/preferences/{README.md, INDEX.md.template→INDEX.md}`; the rows come from the library install below.
+- `.claude/guidelines/` (**plugin-owned** — replaced wholesale on `/workflow-update`): copy `templates/guidelines/{README.md, INDEX.md.template→INDEX.md}`; the rows come from the library install below.
 - `.claude/project-notes/` (**project-owned** — never touched by an update): copy `templates/project-notes/{README.md, INDEX.md.template→INDEX.md, example.md.template→example.md}`. This is where anything project-specific goes, including a deliberate deviation from a workflow preference.
 
 Ensure the root `CLAUDE.md` carries the pointer to both (from `templates/CLAUDE.md.template`) so the indexes are discoverable for ad-hoc work. If the codebase analysis surfaced local conventions worth keeping (a house rule, a deliberate deviation), write them as project notes now.
 
-**Install matching library preferences:** consult `templates/preferences/LIBRARY.md` and, from the codebase analysis, detect which library preferences fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below); a backend/service with a domain/application/infrastructure-style layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines; skip all if none match.
+**Install matching library preferences:** consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, detect which library preferences fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below); a backend/service with a domain/application/infrastructure-style layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines; skip all if none match.
 
 **Check the developer-utility baseline and draft tickets for what's missing.** For anything bigger than a small script, check what `app-baseline.md` requires against what the project actually has — structured logging with adjustable levels, version visibility, an update mechanism, an in-app changelog, a way for Claude to smoke-test a live instance, and an access gate / API token auth where applicable. For each gap, create a backlog draft (`/draft`-style, in `docs/specs/backlog/`) and tell the user it's there. These are debugging and development infrastructure, so they're worth doing before the next feature — say that, but don't block onboarding on them; the user decides when to pull them in. A gap the user judges irrelevant for this project gets dropped with a stated reason, not silently.
 
@@ -112,10 +112,10 @@ docs/workflow/
 ├── conventions.md    ← templates/workflow/conventions.md.template
 ├── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
 ├── release.md        ← templates/workflow/release.md.template (fill `{{BRANCHING_MODEL}}`; /release and decisions.md reference this file)
-└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2, `{{DEPLOY_TARGET}}` = detected/asked deploy target, `{{CI_ON_CLAUDE}}` = `no` (or `yes` for a cross-platform library), `{{RELEASE_RUNNER}}` = `local`). The record of all tunable workflow settings; changeable later via `/workflow-decisions`.
+└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2, `{{DEPLOY_TARGET}}` = detected/asked deploy target, `{{CI_ON_CLAUDE}}` = `no` (or `yes` for a cross-platform library), `{{RELEASE_RUNNER}}` = `local`). The record of all tunable workflow settings; changeable later via `/workflow-settings`.
 docs/dev/
 ├── setup.md          ← templates/dev/setup.md.template
-└── style-guide.md    ← templates/dev/style-guide.md.template
+└── style-guide.md    ← templates/dev/code-style.md.template
 ```
 
 If `docs/` already exists, only create files that are missing — never overwrite existing docs.
@@ -154,7 +154,7 @@ Copy the matching `templates/github/ci-{language}.yml` as `.github/workflows/ci.
 
 **e2) Railway deployment (if deployed on Railway):**
 If the project already deploys on Railway (a `railway.json`/`railway.toml` at the repo root, a Railway CI step, or the user confirms it):
-- **Install the Railway preference** — copy `templates/preferences/railway.md` → `.claude/preferences/railway.md` and add its row to `.claude/preferences/INDEX.md`: `| Railway deploy, railway.json, deployment/hosting | .claude/preferences/railway.md |`. This carries the standing details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the Railway-specifics-behind-an-interface portability rule) so `/plan` picks them up when a ticket touches deployment.
+- **Install the Railway preference** — copy `templates/guidelines/railway.md` → `.claude/guidelines/railway.md` and add its row to `.claude/guidelines/INDEX.md`: `| Railway deploy, railway.json, deployment/hosting | .claude/guidelines/railway.md |`. This carries the standing details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the Railway-specifics-behind-an-interface portability rule) so `/plan` picks them up when a ticket touches deployment.
 - **Watch paths** — ensure `build.watchPatterns` are set so the workflow's constant docs/spec commits don't trigger redeploys:
   - If **no** `railway.json`/`railway.toml` exists: offer to copy `templates/configs/railway.json` → repo root `railway.json` (watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown).
   - If one **already exists** with no `build.watchPatterns`: offer to add the `watchPatterns` array (merge into the existing `build` object; don't clobber other keys).

@@ -1,6 +1,6 @@
 # Web apps / PWAs
 
-Standing preferences for any browser-delivered app (SPA or installable PWA).
+Standing guidelines for any browser-delivered app (SPA or installable PWA).
 
 ## Version visibility (required)
 - The app **always shows its version** somewhere unobtrusive but reachable — an About/Settings screen, a footer, or a menu line. Show a human-readable version **plus** the exact build (`v1.4.2 · a1b9c3f` — semver + short git sha), so a bug report pins the exact deployed build.

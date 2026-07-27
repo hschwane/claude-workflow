@@ -1,6 +1,6 @@
 # UI / frontend design process
 
-Standing preferences for how a UI gets designed and built, not what any specific UI looks like.
+Standing guidelines for how a UI gets designed and built, not what any specific UI looks like.
 
 ## When to read this file
 Read this **in full** when a UI is first being created, or when a project's very first real design pass happens. After that pass produces the project's own condensed design-guidelines doc (see "Capture the system" below), **that** doc is what stays in context for day-to-day UI work — this file becomes a read-if-necessary reference, not something reread on every UI change.

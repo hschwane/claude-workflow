@@ -6,14 +6,14 @@
 <!-- Railway is the preferred default. When deploying on Railway, the specifics
      (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the
      rule that Railway-specific features live behind a project-defined interface for
-     portability) live in the standing preference `.claude/preferences/railway.md` —
+     portability) live in the standing preference `.claude/guidelines/railway.md` —
      keep them there, not duplicated here. -->
 
 ## Platform Settings
 {{PLATFORM_SETTINGS}}
 <!-- Record region, scaling (scale-to-zero?), domain/URL, and other platform config here.
      On Railway, `railway.json` at the repo root pins these as config-as-code
-     (see .claude/preferences/railway.md). -->
+     (see .claude/guidelines/railway.md). -->
 
 <!-- Watch-path exceptions (if any): none — using default railway.json patterns -->
 

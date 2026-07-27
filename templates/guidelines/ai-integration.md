@@ -1,6 +1,6 @@
 # AI integration (Claude Agent SDK)
 
-Standing preferences for any app that integrates AI features. Referenced prior art: `cshop` and `octofood` — both integrate the Claude Agent SDK in production; specifics below are cross-checked against both and flagged where they diverge or where a requirement goes beyond what's shipped today.
+Standing guidelines for any app that integrates AI features. Referenced prior art: `cshop` and `octofood` — both integrate the Claude Agent SDK in production; specifics below are cross-checked against both and flagged where they diverge or where a requirement goes beyond what's shipped today.
 
 ## Stack (required)
 - Build AI integration on the **Claude Agent SDK**, not a hand-rolled API client.

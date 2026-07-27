@@ -1,6 +1,6 @@
 # Preference library (workflow-provided)
 
-Ready-made standing preferences shipped with the workflow — the maintainer's cross-project "how I like X done" notes, extracted from real projects. `/project-init` and `/project-onboard` install the ones that match a project into its `.claude/guidelines/` (copy the file + add the INDEX row); you can also copy any by hand. They are **not** all installed everywhere — only the matching ones, so a project's index stays small.
+Ready-made standing guidelines shipped with the workflow — the maintainer's cross-project "how I like X done" notes, extracted from real projects. `/project-init` and `/project-onboard` install the ones that match a project into its `.claude/guidelines/` (copy the file + add the INDEX row); you can also copy any by hand. They are **not** all installed everywhere — only the matching ones, so a project's index stays small.
 
 Installing a file doesn't mean applying it verbatim — see the note in `README.md`: these are recommendations `/plan` adapts to the project or deliberately rejects with a reason, never blind rules.
 
@@ -21,7 +21,7 @@ A project's `.claude/guidelines/` is **plugin-owned**: `/workflow-update` overwr
 | `ui-frontend.md` | has a UI being newly created, or getting its first real design pass | UI design, mockup, design system, icons, responsive layout, tooltips |
 | `ai-integration.md` | integrates AI/LLM features | AI integration, Claude Agent SDK, AI features, LLM, transcripts, token budget |
 
-**To install one:** copy `templates/guidelines/<file>` → `<project>/.claude/preferences/<file>`, then add a row to the project's `.claude/preferences/INDEX.md`:
-`| <trigger row from the table above> | .claude/preferences/<file> |`
+**To install one:** copy `templates/guidelines/<file>` → `<project>/.claude/guidelines/<file>`, then add a row to the project's `.claude/guidelines/INDEX.md`:
+`| <trigger row from the table above> | .claude/guidelines/<file> |`
 
 **To add a new library preference:** drop a `<topic>.md` here and add a row above. Keep each file short and specific — the standing rules you'd otherwise repeat every time you touch that tech/feature.

@@ -1,6 +1,6 @@
 # Logging
 
-Standing preferences for logging. **Mandatory for anything beyond a small script** — any backend/service, long-running or not. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
+Standing guidelines for logging. **Mandatory for anything beyond a small script** — any backend/service, long-running or not. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
 
 ## Typed, catalogued events (not free-text channels)
 - Log through **one typed interface** backed by a closed union of named event types, rather than ad hoc `log.info("some string")` calls scattered around. Adding a new kind of log line means adding a new event type, not inventing a new string format — keeps log output structured and greppable/queryable. (`cshop` uses free-text namespaced strings instead of a closed union today — that's a gap to close there, not license to skip the enum elsewhere.)

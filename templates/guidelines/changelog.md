@@ -1,6 +1,6 @@
 # In-app changelog
 
-Standing preferences for an in-app changelog view — visible to end users, distinct from the repo's `CHANGELOG.md` (which `/release` maintains for the project's own history). A ready-to-reskin implementation ships at `templates/ui/changelog-template.html`.
+Standing guidelines for an in-app changelog view — visible to end users, distinct from the repo's `CHANGELOG.md` (which `/release` maintains for the project's own history). A ready-to-reskin implementation ships at `templates/ui/changelog-template.html`.
 
 ## Presence & access (required)
 - The changelog is built into the app itself — its own page/view/window — not a link out to a repo file or external page.
@@ -32,4 +32,4 @@ Its palette is deliberately **neutral — a starting point to replace, not a loo
 - **Keep:** four mutually distinguishable category colors, used consistently wherever a category appears and distinct from the accent (which marks versions); a highlight color distinct from all of them; both themes with the `[data-theme]` overrides intact; the card's reading order (summary → description → tags) and tag order (version, category, ticket); and the heading logic — headings drop away under search, version headings also under a version filter, because the cards' own tags already carry that.
 
 ## Known gap in the reference projects
-`octofood`'s in-app changelog today is lighter than everything above — a static `changelog.json` generated at build time, a single version-select filter, no search, no pagination, no structured type/ticket fields. That's a gap to close there, not a model to copy: the full feature set above is the standard for new work. Skipping part of it is only legitimate the normal way — a deliberate, stated reason recorded via `/plan` (see the preferences `README.md`), not by default because a past project shipped less.
+`octofood`'s in-app changelog today is lighter than everything above — a static `changelog.json` generated at build time, a single version-select filter, no search, no pagination, no structured type/ticket fields. That's a gap to close there, not a model to copy: the full feature set above is the standard for new work. Skipping part of it is only legitimate the normal way — a deliberate, stated reason recorded via `/plan` (see the guidelines `README.md`), not by default because a past project shipped less.

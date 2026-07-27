@@ -95,10 +95,10 @@ For the hooks merge: read the `hooks` key of the current `.claude/settings.json`
 
 ### 5b. Re-apply Workflow Decisions (reconcile after overwrite)
 
-Mirroring `.claude/skills/` in step 5 reset any settings the user tuned via `/workflow-decisions` whose live value lives inside a skill (e.g. `release-runner`). Most settings now live in project docs (`quality.md`, `lifecycle.md`, `release.md`, `deploy.md`, `.claude/memory/decisions.md`) which are preserved — but replay the record to be safe. `docs/workflow/decisions.md` is the record of chosen values:
+Mirroring `.claude/skills/` in step 5 reset any settings the user tuned via `/workflow-settings` whose live value lives inside a skill (e.g. `release-runner`). Most settings now live in project docs (`quality.md`, `lifecycle.md`, `release.md`, `deploy.md`, `.claude/memory/decisions.md`) which are preserved — but replay the record to be safe. `docs/workflow/decisions.md` is the record of chosen values:
 
 1. Read `docs/workflow/decisions.md`. If it doesn't exist, skip this step (older project — offer to create it from the template).
-2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-decisions` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.
+2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-settings` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.
 3. If the update **added new settings** to the template, append those new entries (with their defaults) to `docs/workflow/decisions.md` so the record stays complete. If it **changed a setting's format**, note the change for the user.
 4. Bump `Last updated:` in `docs/workflow/decisions.md` to today.
 
@@ -149,20 +149,20 @@ Workflow preferences are **plugin-owned** and refresh wholesale; anything projec
 **a) Migrate, if the project predates the split** (no `.claude/project-notes/` yet). One-time, and it must run before the refresh in (b) overwrites anything:
 
 1. Create `.claude/project-notes/` from `{UPDATE_DIR}/templates/project-notes/` (`README.md`, `INDEX.md.template`→`INDEX.md`; skip the example if the project already has real notes to move).
-2. Classify every file in `.claude/preferences/`. **A "library file" is one whose name appears as a row in `{UPDATE_DIR}/templates/preferences/LIBRARY.md`** — `README.md`, `INDEX.md` and `LIBRARY.md` itself are infrastructure, not library files, and are never migrated.
+2. Classify every file in `.claude/guidelines/`. **A "library file" is one whose name appears as a row in `{UPDATE_DIR}/templates/guidelines/LIBRARY.md`** — `README.md`, `INDEX.md` and `LIBRARY.md` itself are infrastructure, not library files, and are never migrated.
    - **`README.md` / `INDEX.md`** → leave them; (b) refreshes both.
    - **`example.md`** → if it still looks like the shipped example (its first line says it's an example to delete or replace), delete it; if the user replaced its contents with something real, treat it as a user-authored file below.
    - **User-authored file** (not in LIBRARY.md) → **move** it to `.claude/project-notes/`, and move its `INDEX.md` row along, repointing the path to `.claude/project-notes/<name>.md`.
    - **Library file, unmodified** → leave it; (b) refreshes it.
-   - **Library file, locally modified** → **conflict, ask**: show the diff and offer (i) take the new plugin version and keep the local edit as a project note, (ii) take the new version and drop the edit, (iii) keep the local file as a project note and don't install the library version. Never decide this silently — a local edit here was deliberate, and after this migration edits in `.claude/preferences/` are overwritten without warning, so this is the one chance to rescue it.
-3. To tell modified from unmodified, compare against the version the project came from: `git -C {UPDATE_DIR} show v{current}:templates/preferences/<name>.md` (the clone is shallow — `git -C {UPDATE_DIR} fetch --unshallow --tags` first if that fails). If the old version can't be retrieved at all, fall back to comparing against the **new** version and ask about every file that differs — that over-asks on files upstream simply changed, which is the safe direction.
+   - **Library file, locally modified** → **conflict, ask**: show the diff and offer (i) take the new plugin version and keep the local edit as a project note, (ii) take the new version and drop the edit, (iii) keep the local file as a project note and don't install the library version. Never decide this silently — a local edit here was deliberate, and after this migration edits in `.claude/guidelines/` are overwritten without warning, so this is the one chance to rescue it.
+3. To tell modified from unmodified, compare against the version the project came from: `git -C {UPDATE_DIR} show v{current}:templates/guidelines/<name>.md` (the clone is shallow — `git -C {UPDATE_DIR} fetch --unshallow --tags` first if that fails). If the old version can't be retrieved at all, fall back to comparing against the **new** version and ask about every file that differs — that over-asks on files upstream simply changed, which is the safe direction.
 4. Report what moved.
 
 **b) Refresh the installed preferences** (every update):
-- For each library file **already present** in `.claude/preferences/`: overwrite it from `{UPDATE_DIR}/templates/preferences/` — no diff, no asking. This is the whole point of the split, and it's how a fixed preference reaches an existing project.
-- Refresh `README.md`, and **regenerate** the `INDEX.md` rows for installed library files from `{UPDATE_DIR}/templates/preferences/LIBRARY.md` (triggers change too).
-- For a library file **not present**: offer it only if it is **newly shipped** — added to `LIBRARY.md` between `v{current}` and `{target}` (`git -C {UPDATE_DIR} show v{current}:templates/preferences/LIBRARY.md` and diff the table). Anything that already existed at the project's current version was considered at init/onboard time and declined or not matched; re-offering it every update is exactly the recurring question this design exists to kill. Of the newly-shipped ones, check `LIBRARY.md`'s "install when" against what the project actually is (its stack, deploy target, whether it has a UI, AI features, background work) and offer only genuine matches: "This version adds `changelog.md`, which fits this project — install? [yes / no]". No new library files, or none matching → say nothing.
-- If `.claude/preferences/` is missing entirely (project predates preferences), there is no prior decision to respect: create it and offer the full matching set.
+- For each library file **already present** in `.claude/guidelines/`: overwrite it from `{UPDATE_DIR}/templates/guidelines/` — no diff, no asking. This is the whole point of the split, and it's how a fixed preference reaches an existing project.
+- Refresh `README.md`, and **regenerate** the `INDEX.md` rows for installed library files from `{UPDATE_DIR}/templates/guidelines/LIBRARY.md` (triggers change too).
+- For a library file **not present**: offer it only if it is **newly shipped** — added to `LIBRARY.md` between `v{current}` and `{target}` (`git -C {UPDATE_DIR} show v{current}:templates/guidelines/LIBRARY.md` and diff the table). Anything that already existed at the project's current version was considered at init/onboard time and declined or not matched; re-offering it every update is exactly the recurring question this design exists to kill. Of the newly-shipped ones, check `LIBRARY.md`'s "install when" against what the project actually is (its stack, deploy target, whether it has a UI, AI features, background work) and offer only genuine matches: "This version adds `changelog.md`, which fits this project — install? [yes / no]". No new library files, or none matching → say nothing.
+- If `.claude/guidelines/` is missing entirely (project predates preferences), there is no prior decision to respect: create it and offer the full matching set.
 
 **c) Check compliance and draft the gaps** (after the refresh, so it checks against current rules):
 For every preference now installed, check whether the project actually satisfies its **required** items — the baseline in `app-baseline.md` (logging, in-app changelog, update mechanism, Claude-testable live instance), `web-app-pwa.md`'s version display / update control / access gate, `logging.md`'s adjustable levels, and so on. For each real gap, create a backlog draft in `docs/specs/backlog/` naming the preference it comes from, and list them in the report. Don't fix anything here and don't block the update — the drafts are the deliverable, the user decides when to pull them in. A gap that doesn't apply to this project is dropped with a stated reason instead of drafted.
@@ -178,7 +178,7 @@ Write updated `.claude/workflow-source.json`:
 ### 7. Clean Up and Commit
 ```
 rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/preferences/ .claude/project-notes/ .claude/settings.json .claude/workflow-source.json docs/specs/backlog/ docs/workflow/decisions.md CLAUDE.md
+git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/guidelines/ .claude/project-notes/ .claude/settings.json .claude/workflow-source.json docs/specs/backlog/ docs/workflow/decisions.md CLAUDE.md
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 

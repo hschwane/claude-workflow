@@ -1,6 +1,6 @@
 # Telegram bots
 
-Standing preferences for building Telegram bots. Extracted from `plant-o-tron` and `eat-repeat-bot`, generalized to best-of-both.
+Standing guidelines for building Telegram bots. Extracted from `plant-o-tron` and `eat-repeat-bot`, generalized to best-of-both.
 
 ## Stack
 - **grammY** on **TypeScript / ESM, Node ≥22**; validate config with **zod**. Add `@grammyjs/i18n` (Fluent) when the bot needs more than one language.

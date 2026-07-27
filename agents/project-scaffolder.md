@@ -59,12 +59,12 @@ Create all required directories (use `mkdir -p`):
 {TARGET_DIR}/.claude/agents/
 {TARGET_DIR}/.claude/skills/
 {TARGET_DIR}/.claude/memory/
-{TARGET_DIR}/.claude/preferences/
+{TARGET_DIR}/.claude/guidelines/
 {TARGET_DIR}/.claude/project-notes/
 {TARGET_DIR}/scripts/
 ```
 
-Into `.claude/preferences/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/preferences/README.md` → `README.md` and `templates/preferences/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
+Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/README.md` → `README.md` and `templates/guidelines/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
 
 Into `.claude/project-notes/` (project-owned): copy `{PLUGIN_SOURCE_DIR}/templates/project-notes/README.md` → `README.md`, `INDEX.md.template` → `INDEX.md`, and `example.md.template` → `example.md`.
 
@@ -118,11 +118,11 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **Library preferences — install the ones listed in `LIBRARY_PREFERENCES`:**
 `LIBRARY_PREFERENCES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
-- Copy `{PLUGIN_SOURCE_DIR}/templates/preferences/<name>.md` → `{TARGET_DIR}/.claude/preferences/<name>.md`.
-- Append its row to `{TARGET_DIR}/.claude/preferences/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/preferences/LIBRARY.md`:
-  `| <trigger row> | .claude/preferences/<name>.md |`
+- Copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md` → `{TARGET_DIR}/.claude/guidelines/<name>.md`.
+- Append its row to `{TARGET_DIR}/.claude/guidelines/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md`:
+  `| <trigger row> | .claude/guidelines/<name>.md |`
 
-`.claude/preferences/` is **plugin-owned** — `/workflow-update` replaces it wholesale, so nothing project-specific goes in it. Also create the project-owned counterpart `{TARGET_DIR}/.claude/project-notes/` from `{PLUGIN_SOURCE_DIR}/templates/project-notes/`: `README.md`, `INDEX.md.template` → `INDEX.md`, `example.md.template` → `example.md`.
+`.claude/guidelines/` is **plugin-owned** — `/workflow-update` replaces it wholesale, so nothing project-specific goes in it. Also create the project-owned counterpart `{TARGET_DIR}/.claude/project-notes/` from `{PLUGIN_SOURCE_DIR}/templates/project-notes/`: `README.md`, `INDEX.md.template` → `INDEX.md`, `example.md.template` → `example.md`.
 
 These carry the maintainer's standing "how I like X done" rules (Railway details + interface-for-portability, map caching/clustering/tooltips, chart UX, Telegram-bot structure, PWA version+update). `/plan` picks the matching one up when a ticket touches that area. If the list is empty, skip.
 
@@ -136,7 +136,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 - `workflow/quality.md.template` → `{TARGET_DIR}/docs/workflow/quality.md` (also fill `{{TESTING_SCOPE}}` → TESTING_SCOPE)
 - `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}`, `{{GITHUB_INTEGRATION}}` = `no` if GITHUB_REPO is `no` else `yes`, `{{DEPLOY_TARGET}}` → DEPLOY, `{{CI_ON_CLAUDE}}` → CI_ON_CLAUDE (default `no`; `yes` for cross-platform libraries), `{{RELEASE_RUNNER}}` → RELEASE_RUNNER (default `local`))
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
-- `dev/style-guide.md.template` → `{TARGET_DIR}/docs/dev/style-guide.md`
+- `dev/code-style.md.template` → `{TARGET_DIR}/docs/dev/code-style.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`
 - `CHANGELOG.md.template` → `{TARGET_DIR}/CHANGELOG.md`
 - `CONTRIBUTING.md.template` → `{TARGET_DIR}/CONTRIBUTING.md`

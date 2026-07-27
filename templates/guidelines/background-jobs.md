@@ -1,8 +1,8 @@
 # Background jobs, scheduling & resilience
 
-Standing preferences for scheduled/periodic work, retries, and graceful process lifecycle in a **backend/service**. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
+Standing guidelines for scheduled/periodic work, retries, and graceful process lifecycle in a **backend/service**. Extracted independently from `eat-repeat-bot` and `plant-o-tron-2`.
 
-**Scope: backend only.** This does not apply to frontend/client code, and not to a backend with no scheduled/periodic/retry work at all — a stateless request/response API needs none of this. Skip anything below that doesn't apply, and say why (see the preferences README on treating these as recommendations, not rules).
+**Scope: backend only.** This does not apply to frontend/client code, and not to a backend with no scheduled/periodic/retry work at all — a stateless request/response API needs none of this. Skip anything below that doesn't apply, and say why (see the guidelines README on treating these as recommendations, not rules).
 
 ## Deployment-aware triggering (required whenever more than one deploy target is realistic)
 **How** a job gets triggered depends on the deployment:

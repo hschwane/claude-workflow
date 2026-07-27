@@ -70,7 +70,7 @@ The development lifecycle:
 | `/consult "question"` | Delegate hard thinking to the `advisor` agent (best/high) — a decision, a design/architecture or debugging idea, or when unsure. You stay on your model (no switch, no cache churn); you brief the advisor with a focused question + curated context. Records the decision in `.claude/memory/decisions.md` when one is made |
 | `/unsupervised on [90]\|off` | Toggle autonomous mode (no questions + proactive 90% pause) — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 | `/auto-resume on\|off` | Toggle auto-recovery after a session/rate-limit reset — **independent** of unsupervised; works in supervised too |
-| `/workflow-decisions [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
+| `/workflow-settings [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
 
 ## Agents
 

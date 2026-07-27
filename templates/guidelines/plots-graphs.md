@@ -1,6 +1,6 @@
 # Plots & graphs (data-viz UX)
 
-Standing preferences for charts/graphs (time-series, bar, line, field/heat overlays). Extracted from the island-planner weather charts, generalized to best practice.
+Standing guidelines for charts/graphs (time-series, bar, line, field/heat overlays). Extracted from the island-planner weather charts, generalized to best practice.
 
 ## Library vs hand-rolled
 - For a **small number of specific, controlled charts**, a hand-rolled **inline SVG** component (line/bar) is preferred over pulling in a charting library — full control of layout, hover, and theming, no dependency weight. The island-planner weather plot is one self-contained SVG component doing its own scaling + hover.

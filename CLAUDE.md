@@ -61,7 +61,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/consult` | Delegate hard thinking to the top-tier `advisor` agent — a decision, a design/debugging idea, or when unsure. Session stays on its model (no switch); it briefs the advisor and delegates |
 | `/unsupervised` | Toggle unsupervised mode (no questions, autonomous defaults, proactive 90% pause) |
 | `/auto-resume` | Toggle auto-recovery after a limit reset (independent of unsupervised; cloud heartbeat / local loop) |
-| `/workflow-decisions` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
+| `/workflow-settings` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
 | `/workflow-update` | Update plugin files to a newer version |
 
 ## Agents
