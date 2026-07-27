@@ -22,7 +22,7 @@ In unsupervised mode Claude never asks questions, applies autonomous defaults, a
 ## Instructions
 
 ### `on [threshold]`
-Write to `.claude/memory/local-local-settings.md` (create if missing; default threshold 90):
+Write to `.claude/memory/local-settings.md` (create if missing; default threshold 90):
 ```
 unsupervised: true
 usage_threshold: {threshold or 90}

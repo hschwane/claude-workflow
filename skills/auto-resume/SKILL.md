@@ -26,7 +26,7 @@ Independent of `/unsupervised`. When ON, an interrupted run (rate-limit / sessio
 ## Instructions
 
 ### `on`
-Write to `.claude/memory/local-local-settings.md` (create if missing; leave any `unsupervised:`/`usage_threshold:` lines untouched):
+Write to `.claude/memory/local-settings.md` (create if missing; leave any `unsupervised:`/`usage_threshold:` lines untouched):
 ```
 auto_resume: true
 ```
