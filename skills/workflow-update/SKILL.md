@@ -1,203 +1,156 @@
 ---
 name: workflow-update
-description: Update the claude-workflow files in this project to a newer plugin version without touching project-specific files
-argument-hint: "[version tag, e.g. v1.3.0]"
+description: Update this project's claude-workflow files to a newer plugin version, driven by the delivery manifest — plugin files are replaced, project content is preserved, and anything the two share is merged with you watching.
+argument-hint: "[version tag, e.g. v3.1.0]"
 disable-model-invocation: true
 ---
 
 # Workflow Update
 
-Updates the claude-workflow plugin files in this project to a newer version without overwriting project-specific files.
+Pulls a newer plugin version into this project. Three rules decide everything:
+
+1. **Only files the plugin actually changed** between the installed and the target version are touched at all.
+2. **The manifest decides ownership** — anything not listed in it belongs to the project and is never touched.
+3. **Nothing is lost silently.** Where the two sides overlap, you see a diff before anything is written.
 
 ## Usage
 ```
 /workflow-update
-/workflow-update v1.3.0
+/workflow-update v3.1.0
 ```
 
 ## Instructions
 
-### 1. Read Current State
-Read `.claude/workflow-source.json`:
-```json
-{ "repo": "https://github.com/...", "version": "1.2.0", "installed": "2026-01-01" }
-```
-If this file doesn't exist: print an error explaining this project wasn't set up with `/project-init` or `/project-onboard` and offer to create it manually.
+### 1. Read the current state
 
-### 2. Fetch Latest Version
-Clone the workflow repo into a temp directory. Pick the temp path for the shell you are actually using — detect it, don't assume:
-- Bash / Git Bash (also on Windows): `UPDATE_DIR="${TMPDIR:-/tmp}/claude-workflow-update"`
+Read `.claude/workflow-source.json` for `repo` and `version`. If it is missing, this project was not set up by `/project-init` or `/project-onboard` — say so and offer to create it.
+
+Require a clean working tree (`git status`). The update writes across many files and lands in one commit; starting dirty makes a partial failure impossible to unpick. Stop and say so if it isn't clean.
+
+### 2. Fetch the target version
+
+Clone into a temp directory — detect the shell rather than assuming:
+- Bash / Git Bash: `UPDATE_DIR="${TMPDIR:-/tmp}/claude-workflow-update"`
 - PowerShell: `$UPDATE_DIR = "$env:TEMP\claude-workflow-update"`
 
-If the directory already exists from a previous run, delete it first. Then:
-```
-git clone --depth 1 {repo_url} {UPDATE_DIR}
-```
-Get the latest version tag:
-```
-git -C {UPDATE_DIR} tag --sort=-version:refname | head -1
-```
+Delete a leftover directory from a previous run, then `git clone {repo_url} {UPDATE_DIR}`. **Do not use `--depth 1`**: the whole update needs the *installed* version's files as a merge base, so the history must be there. Target = the argument, or `git -C {UPDATE_DIR} tag --sort=-version:refname | head -1`.
 
-If a target version was specified as an argument: use that instead of latest.
+Throughout, `OLD` means `git -C {UPDATE_DIR} show v{current}:<path>` and `NEW` means the file at that path in the clone. If `v{current}` cannot be resolved (a hand-installed project, a deleted tag), say so and treat every plugin file as changed — that is the safe direction, because it surfaces everything rather than skipping silently.
 
-### 3. Show What Changed
-- If `{UPDATE_DIR}/CHANGELOG.md` exists: read it and extract the entries between current version and target version.
-- Otherwise (the plugin repo ships no changelog): derive the changes from git history. The clone from step 2 is shallow, so fetch history and tags first:
-  ```
-  git -C {UPDATE_DIR} fetch --unshallow --tags 2>/dev/null || git -C {UPDATE_DIR} fetch --tags
-  git -C {UPDATE_DIR} log v{current}..{target} --oneline
-  ```
-- Display the changes to the user
+### 3. Show what changed
 
-Check for breaking changes: if the changelog or commit list contains `BREAKING`, `[BREAKING]`, or a conventional-commit `!` marker (e.g. `feat!:`), highlight them prominently.
+`git -C {UPDATE_DIR} log v{current}..{target} --oneline`. Highlight `BREAKING`, `[BREAKING]` or a `!` marker prominently.
+
+Then compute the **actual work list**: for every path in `{UPDATE_DIR}/.claude-plugin/delivery.json`, diff OLD against NEW. A path where they are identical is **not touched** and is not mentioned again. Report the count: "14 of 37 delivered paths changed."
 
 ### 4. Confirm
-Ask the user (ask in chat):
-- "Update from {current} to {target}? [yes / choose different version / cancel]"
 
-If breaking changes exist, show them explicitly and ask separately: "This update has breaking changes. Review them above. Continue?"
+Show the work list grouped by manifest class, then ask: "Update from {current} to {target}? [yes / choose another version / cancel]". If there are breaking changes, ask about those separately.
 
-### 5. Apply Update
-Copy the **system files** from the temp clone into this project's `.claude/`. Agents and skills are plugin-owned wholesale, so **mirror** them — replace the directory contents AND delete any skill/agent the new version no longer ships (e.g. on the 2.x upgrade: `route-*`, `prioritize`, `brainstorm` skills; `test-writer`, `requirements-engineer`, `tech-planner`, `documentation-writer`, `product-owner`, `workflow-coach`, `test-runner`, `code-reviewer`, `security-reviewer`, `architect-reviewer` agents). Leaving stale files behind is a real bug.
+### 5. Apply, class by class
+
+Read `{UPDATE_DIR}/.claude-plugin/delivery.json`. It gives every delivered path a class, and **a path that is not listed belongs to the project — never touch it.** If the new version delivers a path the manifest does not list, stop and report it: that is a plugin bug, and guessing is how a project's file gets overwritten.
+
+**Before creating any file that did not exist before, check whether the project already has one at that path.** If it does, do not overwrite — treat it as a `mixed` case and merge with confirmation.
+
+#### `plugin` — replace, but mirror by manifest
+
+For a directory (`.claude/skills/`, `.claude/agents/`, `.claude/guidelines/`, `.claude/hooks/`):
+- **Refresh** the files the new manifest lists, where OLD ≠ NEW.
+- **Delete** files that a *previous* manifest listed and this one no longer does. Use the manifest's `removedIn{N}` list plus the old version's manifest if present; on the 2.x→3.0 step, the removals are in `removedIn3`.
+- **Leave everything else alone.** A hook, skill or agent the project added itself is not yours to delete. This is the whole reason mirroring is manifest-driven rather than delete-then-copy.
+
+For a single file (`docs/dev/code-style.md`, `scripts/claude-loop.sh`), replace it when it changed.
+
+**Files with marker blocks** (`CLAUDE.md`, `CONTRIBUTING.md`) are plugin files too, but their project blocks survive:
+1. Parse the project's copy for `project-specific: start: <id>` / `end: <id>`. **A marker counts only when it is the entire line** after trimming — the same text inside a sentence, inline code or a fenced block is prose, and every shipped `CLAUDE.md` contains exactly that as documentation.
+2. **Unpaired marker → stop and ask.** Never guess where a block ends; guessing deletes the rest of the file.
+3. **Duplicate id → stop and ask.** The id is what makes re-insertion unambiguous.
+4. Take NEW as the base and fill each of its blocks with the project's content for the same id.
+5. A rescued block whose id NEW no longer has: append it at the end under `## Unplaced project content`, and **say so in the report**. Never drop it.
+6. Before replacing, diff the project's *plugin* regions against OLD. If the project edited one, that edit is about to be lost — show it and ask, rather than replacing quietly.
+
+**The `workflow-settings` block is merged, not replaced:** keys from NEW, values from the project. A newly shipped setting appears with its default, a retired one disappears, a tuned value stays. Report added and removed keys.
+
+#### `mixed` — merge by hand, every time
+
+`scripts/ci.sh`, `scripts/release.sh`, the two workflow YAMLs, `.claude/settings.json`. Markers cannot work here: the plugin's scaffolding and the project's content are interleaved, or the format carries no comments.
+
+Only when OLD ≠ NEW: perform a three-way merge — **base** OLD, **ours** the project's file, **theirs** NEW. Carry the plugin's change into the project's file while keeping everything the project put there. Then **show the resulting diff and ask before writing.**
+
+For `scripts/ci.sh` and `release.sh` specifically: the project's real commands live in the body. A merge that leaves a stage empty produces a script that **exits 0 with nothing to run** — a gate that passes on nothing, silently. After merging, verify each stage still contains a real command and not just a comment; if one is empty, stop and ask.
+
+`.claude/settings.json` has a fixed rule and needs no diff: add hook entries from `templates/hooks/hooks.json` that are missing, add `statusLine` only if absent, union `permissions.allow`, and never remove anything.
+
+#### `project` — suggest, never rewrite
+
+`README.md`, `docs/**`, `src/CLAUDE.md`, `tests/CLAUDE.md`, the configs, `.claude/memory/*`. These were handed to the project at creation.
+
+When the upstream **template** changed, do not touch the file. Instead, describe what changed and suggest how it might apply here — as a note in the report, for the user to act on or ignore. Most updates will have nothing to say.
+
+### 5b. One-time migration, v2.x → v3.0
+
+Run only when the recorded version is below 3.0.0. **Order matters** — later steps delete what earlier steps read.
+
+1. **Collect the settings first, before anything is deleted.** Read the *Current* column of `docs/workflow/decisions.md`. If it is missing, fall back to the live locations: `docs/workflow/quality.md` (testing scope), `lifecycle.md` (branching), `release.md` (version source), `deploy.md` (deploy target), the `/release` skill (`release-runner`), `.claude/memory/decisions.md` (GitHub integration). Anything still unresolved: **ask, do not guess.** Defaults if the user has no opinion: `testing-scope: unit+integration`, `branching: main-only`, `github: yes`, `ci-on-claude: no`, `release-runner: local`, `deploy: none`, `version-source` from whichever manifest the project actually has.
+2. **`.claude/preferences/` → `.claude/guidelines/`.** Rename. Overwrite the library files from the new version and regenerate their INDEX rows from `LIBRARY.md`. A file the project wrote itself (not in `LIBRARY.md`) is not a guideline: show it and ask whether it becomes an entry in `decisions.md` (a rule) or `gotchas.md` (a fact). Never delete it.
+3. **`.claude/project-notes/` → memory.** For each note, show it and ask which file it belongs in. These were trigger-indexed and will now be read during `/plan` instead — say that, because it changes when they fire.
+4. **`CLAUDE.md`.** Collect the title, description, architecture summary, stack and any project-authored `##` sections into the `identity` block of the new template. Diff the plugin sections against OLD first and surface anything the project edited (step 5). Fill the `workflow-settings` block from step 1.
+5. **`CONTRIBUTING.md`.** Diff against OLD. Anything the project added goes into the `contributing` block; the rest is replaced. The v2 file contradicts the current rules — it claims merges only happen via `/pr` and names four agents deleted in 2.x — so replacing it is the point.
+6. **`docs/workflow/`.** Move `deploy.md` → `docs/dev/deploy.md` and append the Required Secrets section from `release.md`. Then delete `README.md`, `lifecycle.md`, `conventions.md`, `quality.md`, `release.md` **and `decisions.md`**. Before deleting each, diff it against OLD: if the project edited it, that content is project-owned — show it and ask where it should go.
+7. **`docs/dev/style-guide.md`.** Install `code-style.md`, then diff the old style guide against OLD; anything the project added is offered for `decisions.md` or `src/CLAUDE.md`. Then delete it.
+8. **`docs/dev/adr/`.** Retired. Each ADR is real project content: offer to move it into `docs/dev/` as a normal document, with a one-line entry in `decisions.md` pointing at it. Never delete an ADR silently.
+9. **`.claude/memory/settings.md` → `local-settings.md`.** Rename the file, and make sure the new `.gitignore` is in place first — the old name is what it ignores, and this file holds the recovery-trigger id.
+10. **`src/CLAUDE.md` and `tests/CLAUDE.md`.** The v3 versions are much smaller because the rules moved to `code-style.md`. These are `project` files: leave them, and tell the user what moved so they can trim their own copies.
+
+### 6. Check for dead references
+
+The update renamed and removed paths. Grep the **project-owned** files — `README.md`, `docs/**`, `CONTRIBUTING.md`'s project block, `src/CLAUDE.md`, `tests/CLAUDE.md`, `mkdocs.yml` — for every path this update removed or moved. Offer a targeted correction for each hit. Do not rewrite the file wholesale; these are the project's.
+
+### 7. Review before committing
+
+Verify, and report each check:
+- Every `project-specific` marker is paired, and no id appears twice.
+- No rescued block was dropped — the count going in equals the count coming out, plus anything listed under `## Unplaced project content`.
+- The `workflow-settings` block has every key the new version ships and no stale ones.
+- `scripts/ci.sh` has a real command in every stage.
+- No dead references remain, or the remaining ones were explicitly declined.
+- Hooks are executable (`chmod +x .claude/hooks/*.sh`) and pass `bash -n`.
+
+If a check fails, fix it or stop — never commit a half-migrated project.
+
+### 8. Record and commit
+
 ```
-# Mirror (delete-then-copy so removed files don't linger):
-.claude/agents/          ← mirror temp clone agents/       (removes deleted agents)
-.claude/skills/          ← mirror temp clone skills/       (removes deleted skills; {name}/SKILL.md)
-.claude/hooks/*.sh       ← copy all from temp clone templates/hooks/*.sh; chmod +x
-.claude/memory/.gitignore ← copy from temp clone templates/memory/.gitignore (only file touched under memory/)
-
-# Canonical scripts — ADD if missing, NEVER overwrite (they are project-customized after init):
-scripts/ci.sh, scripts/release.sh, scripts/claude-loop.sh
-                         ← if the project has none, copy from temp clone templates/scripts/ and
-                           tell the user to fill in the {{...}} command placeholders. If they exist,
-                           leave them — the project tuned them.
-
-# Smart merge (settings.json — add, never remove):
-.claude/settings.json    ← merge the "hooks" key from templates/hooks/hooks.json (add new entries);
-                           add "statusLine" only if the project has none;
-                           union "permissions.allow" — add every template entry the project lacks,
-                           never remove existing ones
-```
-
-**Preferences and project notes** are handled in step 5f — they need their own pass (mirror + migration + compliance), not a one-line rule here.
-
-**Never touch** (project-specific files):
-- `CLAUDE.md` — **except** the plugin-owned workflow sections, refreshed in step 5c; the title, description, `## Architecture`, and any project-authored sections are never modified
-- `.claude/project-notes/` — the project's own standing rules; only ever **added to** (step 5f migration), never edited or removed
-- `CONTRIBUTING.md`
-- `docs/` (exception: `docs/workflow/decisions.md` is reconciled in step 5b — its **Current** values are re-applied, and newly added settings appended; existing tuned values are preserved, not reset)
-- `.claude/memory/` — **except** `.claude/memory/.gitignore` (plugin-owned runtime-pattern list, refreshed in step 5); the state files themselves (decisions.md, context-*, local-settings.md, …) are never touched
-- `.claude/workflow-source.json` (updated separately in step 6)
-- Any other keys in `.claude/settings.json` (env, etc.) — and within `permissions`, preserve everything the project set; the only change permitted is **adding** any of the template's `permissions.allow` entries that the project is missing (union, never remove)
-- Any project source files
-
-For the hooks merge: read the `hooks` key of the current `.claude/settings.json`, read the new `templates/hooks/hooks.json`, add any new hook entries that don't exist yet. Do not remove entries the project added.
-
-### 5b. Re-apply Workflow Decisions (reconcile after overwrite)
-
-Mirroring `.claude/skills/` in step 5 reset any settings the user tuned via `/workflow-settings` whose live value lives inside a skill (e.g. `release-runner`). Most settings now live in project docs (`quality.md`, `lifecycle.md`, `release.md`, `deploy.md`, `.claude/memory/decisions.md`) which are preserved — but replay the record to be safe. `docs/workflow/decisions.md` is the record of chosen values:
-
-1. Read `docs/workflow/decisions.md`. If it doesn't exist, skip this step (older project — offer to create it from the template).
-2. For each setting whose **Current** value differs from the plugin default now sitting in its **Live in** skill file, re-apply the **Current** value to that live location (the same edit `/workflow-settings` performs). Doc-based settings (`quality.md`, `release.md`, `.claude/memory/decisions.md`) are project files and were never overwritten — leave them.
-3. If the update **added new settings** to the template, append those new entries (with their defaults) to `docs/workflow/decisions.md` so the record stays complete. If it **changed a setting's format**, note the change for the user.
-4. Bump `Last updated:` in `docs/workflow/decisions.md` to today.
-
-Report how many tuned settings were re-applied so the user can confirm nothing was lost.
-
-### 5c. Reconcile Workflow Guidance in CLAUDE.md
-
-The project's root `CLAUDE.md` is **never overwritten** (it holds project-specific content: title, description, architecture summary, custom conventions). But the template also carries **workflow-owned sections** that describe how the *plugin* behaves — and those go stale when the plugin updates. These sections are plugin-owned, not project-specific:
-
-> `## Quick Reference` · `## Models` · `## Agents — delegate proactively` · `## Skills — invoke proactively` · `## Scope — build the whole ticket` · `## Merging` · `## GitHub via `gh`` · `## Documentation policy` · `## Asking the user` · `## Session Behavior` · `## Memory`
-
-(These changed in 2.x — old projects may still have `## Model & Effort Routing`, `## Multi-Task Sessions`, `## Context Management`. Those are now **retired**: remove them, and insert the new sections in template order.)
-
-Reconcile them without disturbing the rest:
-
-1. Read the new `{UPDATE_DIR}/templates/CLAUDE.md.template` and the project's current `CLAUDE.md`.
-2. For each workflow-owned section: if the project's differs from the template's (ignoring `{{PLACEHOLDER}}` fills), **replace just that section** (match a top-level `## ` heading at column 0; replace to the next such heading — ignoring any `##` inside a fenced code block). Insert sections that are **absent** in template order; **delete** retired sections listed above.
-3. **Never touch** anything else — `# {title}`, the intro, `## Architecture`, and any project-authored sections. (The standing-guidance pointer near Architecture is plugin-owned prose and may be refreshed; the project's own rules live in the separately-protected `.claude/project-notes/`.) If a workflow-owned section was renamed/heavily customized, don't silently overwrite: note it and show the new version for a hand-merge.
-4. If `CLAUDE.md` changed, stage it in step 7's commit.
-
-So skills/agents mirror wholesale, decisions replay their tuned values, and CLAUDE.md's workflow sections refresh — the update reaches existing projects, not just new ones.
-
-### 5d. Reconcile Railway Watch Paths (if deployed on Railway)
-
-`railway.json` lives at the repo root (not under `.claude/`), so step 5 never touches it. If the project deploys on Railway (a `railway.json`/`railway.toml` exists, or a Railway CI step is present):
-
-1. If **no** `railway.json`/`railway.toml` exists but the project deploys on Railway: offer to add one from `{UPDATE_DIR}/templates/configs/railway.json` so docs/spec commits stop triggering redeploys.
-2. If `railway.json` exists **without** `build.watchPatterns`: offer to add the template's `watchPatterns` (merge into `build`, preserve other keys).
-3. If it exists **with** `watchPatterns`: never overwrite them (the project may have tuned exceptions for content it serves at runtime). If the template's default list has gained new entries since, show the diff and let the user decide.
-
-Report any change (or offer) so the user knows the watch-path config was checked.
-
-### 5e. Offer to compact project-authored workflow content (crossing v2.11.1)
-
-v2.11.1 compacted the plugin's always-loaded instructions — the `CLAUDE.md` workflow sections + the agent/skill descriptions — tightening prose to direct instructions and moving on-demand detail out, without dropping a single behavioral trigger. Steps 5/5c already applied that to the **plugin-owned** files. But content the **project itself added or adapted** still carries the old, longer style: project-authored `## ` sections in `CLAUDE.md`, any skills or agents this project added locally (not shipped by the plugin), and its own files under `.claude/project-notes/`.
-
-**Only when the recorded version is < 2.11.1** (this is a one-time migration — skip it on later updates): **offer** to apply the same compaction to that project-owned content. If the user agrees, for each such file:
-- tighten prose to direct, on-the-point instructions — no filler, no restated rationale;
-- move detail that's only needed on demand into the file that loads it then (a skill body, a `docs/` page, a preference file) and leave a pointer where it was;
-- **keep every behavioral trigger, rule, and "when to use" keyword** — this is a wording pass, never a scope or behavior cut.
-
-Do this **with confirmation and per file**, showing before/after — it edits project-owned content the update otherwise never touches. If the user declines, skip silently. Don't re-touch plugin-owned files (already compacted).
-
-### 5f. Refresh Workflow Preferences, Split Out Project Notes, Check Compliance
-
-Workflow preferences are **plugin-owned** and refresh wholesale; anything project-specific lives in `.claude/project-notes/`, which this step only ever adds to.
-
-**a) Migrate, if the project predates the split** (no `.claude/project-notes/` yet). One-time, and it must run before the refresh in (b) overwrites anything:
-
-1. Create `.claude/project-notes/` from `{UPDATE_DIR}/templates/project-notes/` (`README.md`, `INDEX.md.template`→`INDEX.md`; skip the example if the project already has real notes to move).
-2. Classify every file in `.claude/guidelines/`. **A "library file" is one whose name appears as a row in `{UPDATE_DIR}/templates/guidelines/LIBRARY.md`** — `README.md`, `INDEX.md` and `LIBRARY.md` itself are infrastructure, not library files, and are never migrated.
-   - **`README.md` / `INDEX.md`** → leave them; (b) refreshes both.
-   - **`example.md`** → if it still looks like the shipped example (its first line says it's an example to delete or replace), delete it; if the user replaced its contents with something real, treat it as a user-authored file below.
-   - **User-authored file** (not in LIBRARY.md) → **move** it to `.claude/project-notes/`, and move its `INDEX.md` row along, repointing the path to `.claude/project-notes/<name>.md`.
-   - **Library file, unmodified** → leave it; (b) refreshes it.
-   - **Library file, locally modified** → **conflict, ask**: show the diff and offer (i) take the new plugin version and keep the local edit as a project note, (ii) take the new version and drop the edit, (iii) keep the local file as a project note and don't install the library version. Never decide this silently — a local edit here was deliberate, and after this migration edits in `.claude/guidelines/` are overwritten without warning, so this is the one chance to rescue it.
-3. To tell modified from unmodified, compare against the version the project came from: `git -C {UPDATE_DIR} show v{current}:templates/guidelines/<name>.md` (the clone is shallow — `git -C {UPDATE_DIR} fetch --unshallow --tags` first if that fails). If the old version can't be retrieved at all, fall back to comparing against the **new** version and ask about every file that differs — that over-asks on files upstream simply changed, which is the safe direction.
-4. Report what moved.
-
-**b) Refresh the installed preferences** (every update):
-- For each library file **already present** in `.claude/guidelines/`: overwrite it from `{UPDATE_DIR}/templates/guidelines/` — no diff, no asking. This is the whole point of the split, and it's how a fixed preference reaches an existing project.
-- Refresh `README.md`, and **regenerate** the `INDEX.md` rows for installed library files from `{UPDATE_DIR}/templates/guidelines/LIBRARY.md` (triggers change too).
-- For a library file **not present**: offer it only if it is **newly shipped** — added to `LIBRARY.md` between `v{current}` and `{target}` (`git -C {UPDATE_DIR} show v{current}:templates/guidelines/LIBRARY.md` and diff the table). Anything that already existed at the project's current version was considered at init/onboard time and declined or not matched; re-offering it every update is exactly the recurring question this design exists to kill. Of the newly-shipped ones, check `LIBRARY.md`'s "install when" against what the project actually is (its stack, deploy target, whether it has a UI, AI features, background work) and offer only genuine matches: "This version adds `changelog.md`, which fits this project — install? [yes / no]". No new library files, or none matching → say nothing.
-- If `.claude/guidelines/` is missing entirely (project predates preferences), there is no prior decision to respect: create it and offer the full matching set.
-
-**c) Check compliance and draft the gaps** (after the refresh, so it checks against current rules):
-For every preference now installed, check whether the project actually satisfies its **required** items — the baseline in `app-baseline.md` (logging, in-app changelog, update mechanism, Claude-testable live instance), `web-app-pwa.md`'s version display / update control / access gate, `logging.md`'s adjustable levels, and so on. For each real gap, create a backlog draft in `docs/specs/backlog/` naming the preference it comes from, and list them in the report. Don't fix anything here and don't block the update — the drafts are the deliverable, the user decides when to pull them in. A gap that doesn't apply to this project is dropped with a stated reason instead of drafted.
-
-Keep this proportionate: an update that changed no preference bodies has nothing to re-check — compare the preference files between the old and new version first and only check what actually changed, plus anything newly installed.
-
-### 6. Update Version Record
-Write updated `.claude/workflow-source.json`:
-```json
 { "repo": "{repo_url}", "version": "{new_version}", "installed": "{today}" }
 ```
 
-### 7. Clean Up and Commit
 ```
-rm -rf {UPDATE_DIR}
-git add .claude/agents/ .claude/skills/ .claude/hooks/ .claude/memory/.gitignore .claude/guidelines/ .claude/project-notes/ .claude/settings.json .claude/workflow-source.json docs/specs/backlog/ docs/workflow/decisions.md CLAUDE.md
+git add -A
 git commit -m "chore: update claude-workflow to {new_version}"
 ```
 
-### 8. Report
-Print:
-```
-Updated claude-workflow: {old_version} → {new_version}
-Updated: agents/, skills/, hooks/ (merged), settings.json permissions (unioned)
-CLAUDE.md: {K} workflow section(s) refreshed{, L flagged for manual merge} · project content preserved
-Preferences: {P} refreshed{, Q newly installed}{, R conflict(s) resolved}
-{If migrated: "Project notes: {S} project-owned file(s) moved to .claude/project-notes/"}
-{If gaps found: "Compliance: {T} backlog draft(s) created for unmet preference requirements — {ids}"}
-Decisions: {N} tuned setting(s) re-applied from docs/workflow/decisions.md{, M new setting(s) added}
-{If the v2.11.1 boundary was crossed: "Compaction: {offered / applied to P file(s) / declined} for project-authored workflow content"}
+One commit, so the whole update can be reverted as a unit.
 
-{If breaking changes: "Review migration notes above and update your project files as needed."}
+### 9. Report
+
+```
+Updated claude-workflow: {old} → {new}
+Touched {N} of {M} delivered paths ({M-N} unchanged upstream, untouched here)
+
+plugin    {n} refreshed{, k removed}{, j project-added files left alone}
+blocks    {n} project block(s) carried over{, k unplaced}
+mixed     {n} merged with confirmation
+project   {n} suggestion(s) — see below
+settings  {n} carried over{, k added}{, j retired}
+
+{Migration, if v2 → v3: what moved where, and what the user was asked about}
+{Suggestions for project files, if any}
+{Dead references fixed / declined}
 ```
 
-### Error Handling
-- Network unavailable: print the repo URL and ask user to clone manually, then specify the path
-- Invalid version tag: list available tags and ask user to choose
-- Git conflicts in hooks: show the diff and ask user how to resolve
+### Error handling
+
+- **Network unavailable:** print the repo URL, ask the user to clone manually, then take the path.
+- **Unknown version tag:** list the available tags.
+- **A merge you cannot resolve confidently:** stop and hand the user the three versions (base, theirs, ours). A wrong merge in `ci.sh` is a silently passing gate — stopping is cheap by comparison.

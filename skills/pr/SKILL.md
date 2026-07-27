@@ -6,7 +6,7 @@ argument-hint: "[base branch]"
 
 # PR (optional)
 
-The default flow **merges locally** with plain git (see the Merge policy in `CLAUDE.md` / `docs/workflow/lifecycle.md`) and does not open PRs. Use `/pr` only when you explicitly want one: a human reviewer, an open-source contribution flow, or a repo whose branch protection requires PRs.
+The default flow **merges locally** with plain git (see **Merging and release authority** in `CLAUDE.md`) and does not open PRs. Use `/pr` only when you explicitly want one: a human reviewer, an open-source contribution flow, or a repo whose branch protection requires PRs.
 
 ## Usage
 ```

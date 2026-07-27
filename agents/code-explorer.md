@@ -33,7 +33,7 @@ The thing that makes you better than a blind file search: you learn the lay of t
 Before reading source, spend a moment on how *this* project is laid out. Skim whichever exist (skip silently if absent — during `/project-onboard` most won't exist yet):
 - `CLAUDE.md` (root) and `src/CLAUDE.md` — conventions, architecture summary, where things live
 - `docs/dev/architecture.md`, `docs/dev/adr/` — structure and the rationale behind it
-- `docs/workflow/` — how the project builds, tests, releases, deploys
+- `docs/dev/` — architecture, setup, deploy; `CLAUDE.md`'s settings block for how it builds and releases
 - `README.md` — entry points, setup, usage
 - any generated index, module manifest, or package/exports map
 

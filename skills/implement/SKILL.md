@@ -40,7 +40,7 @@ For each subtask:
 
 **a) Write the code** to the spec's interface definitions (the contract — don't change them) and the project conventions (`src/CLAUDE.md` if present, else root `CLAUDE.md`; mirror existing patterns).
 
-**b) Write its tests** — in the main session, scoped to *this* subtask's acceptance criteria. Test the **important behaviors**, not coverage for its own sake (see `docs/workflow/quality.md` for the project's test scope). Tests assert behavior, not implementation details.
+**b) Write its tests** — in the main session, scoped to *this* subtask's acceptance criteria. Test the **important behaviors**, not coverage for its own sake (the `testing-scope` setting in `CLAUDE.md` sets the depth; `docs/dev/code-style.md` describes each level). Tests assert behavior, not implementation details.
 
 **c) Fast gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + the new & adjacent unit tests). It digests output so raw logs stay out of this context. Fix anything red before committing — **never commit on a red gate.**
 

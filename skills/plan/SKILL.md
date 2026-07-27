@@ -19,13 +19,13 @@ Turns a raw draft into a spec an implementer can build from — in a single ligh
 ### 1. Gather context (once)
 Read: the draft spec(s) from `docs/specs/backlog/`, `docs/VISION.md` (if present), root `CLAUDE.md`, and `docs/dev/architecture.md` (if present). For anything touching unfamiliar code, invoke the `code-explorer` agent for a briefing (relevant files, interfaces, patterns, pitfalls) instead of reading widely yourself. (For a genuinely large codebase you can first fan out `text-scout`s from here for a cheap overview, then aim `code-explorer` at the details — see the exploration note in `CLAUDE.md`.)
 
-**Check preferences and project notes:** read the indexes — `.claude/guidelines/INDEX.md` (workflow preferences), `.claude/project-notes/INDEX.md` (this project's own standing rules), and if present the user-global `~/.claude/guidelines/INDEX.md`. For every trigger that matches a ticket's technology/feature, read that file.
+**Check guidelines and project memory:** read `.claude/memory/decisions.md` and `gotchas.md` — load each file's head first, and read on only if a topic in its index line matches this ticket. A dated decision that names the guideline it departs from is settled: apply it, don't re-ask. Then read the indexes — `.claude/guidelines/INDEX.md`, and if present the user-global `~/.claude/preferences/INDEX.md`. For every trigger that matches a ticket's technology/feature, read that file.
 
-A **project note outranks a workflow preference** on the same subject — it's the deliberately-authored, project-specific rule.
-- The note **names the preference it overrides** → that's a settled decision. Apply the note, record it in the spec, **don't ask again** — re-asking a question already answered is the failure this split exists to prevent.
-- The note contradicts a preference **without acknowledging it** → the conflict may be unintended (e.g. the preference changed under it). **Ask**, batched with the other `[USER]` questions, and write the answer back into the note so it's settled from then on. **Treat it as a recommendation, not a rule to apply blindly** — judge it against this project's actual scale, constraints, and existing patterns. Adapt what fits to the acceptance criteria / approach / constraints; for any part (or all of it) that genuinely doesn't fit, deliberately reject it with a reason rather than forcing it in. Either way, **reference the outcome in the spec** — an `Applied preferences:` line listing the file(s), with a short note on anything adapted or rejected and why (e.g. `.claude/guidelines/background-jobs.md — adapted: always-on deploy here, so no scale-to-zero wakeup path needed`, or `.claude/guidelines/service-architecture.md — rejected: single 150-line script, full layering would be overkill`). Load only the matching files — that's the point of the index. (Precedence: project notes > project preferences > user-global.) If nothing matches, add nothing.
+A **dated decision in `.claude/memory/decisions.md` outranks a guideline** on the same subject.
+- The decision **names the guideline** it departs from → settled. Apply it, record it in the spec, **don't re-ask** — re-asking an answered question is the failure this split exists to prevent.
+- It contradicts a guideline **without acknowledging it** → the conflict may be unintended (the guideline may have changed under it). **Ask**, batched with the other `[USER]` questions, and write the answer back into `decisions.md` so it is settled from then on.
 
-If instead the **user or the ticket's explicit requirements** call for something that conflicts with a matching preference (not Claude's own scale/fit judgment), follow the explicit instruction — the user outranks the preference — but **say so plainly in chat**, naming the preference and noting the conflict, not just in the spec's `Applied preferences:` line.
+If instead the **user or the ticket's explicit requirements** call for something that conflicts with a matching guideline (not Claude's own scale/fit judgment), follow the explicit instruction — the user outranks the guideline — but **say so plainly in chat**, naming the guideline and noting the conflict, not just in the spec's `Applied guidelines:` line.
 
 ### 2. Write the spec
 
@@ -35,7 +35,7 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 - **Acceptance criteria** — **observable** statements (an action → an expected, checkable result: "run `x --foo` → prints Z"; "POST /bar → 200 + `{id}`"; "click Save → row persists + toast"). These are the contract `/verify` checks against, so they must be demonstrable, not vague ("should work").
 - **Approach / interfaces** — the key interfaces or signatures to add/change, and a short note on the approach. Enough to implement without re-deciding architecture mid-build; not a full design doc.
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
-- **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the project default (`docs/workflow/quality.md`). Quality over quantity — the important behaviors.
+- **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the `testing-scope` setting in `CLAUDE.md`. Quality over quantity — the important behaviors.
 
 ### 3. Scope discipline — never defer the core
 

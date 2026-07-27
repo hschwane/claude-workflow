@@ -66,7 +66,7 @@ Rules:
 - If multiple concerns: pick the primary one. If truly mixed, suggest splitting.
 
 ### 4. Execute Commit — with the CI-skip marker
-Append `[skip ci]` to the message **unless** the project's `ci-on-claude` decision is `yes` (read `docs/workflow/decisions.md` / `.claude/memory/decisions.md`) — then omit it so CI runs on Claude's push. This is how Claude's own commits avoid spending Actions minutes (Claude already ran the identical `ci.sh`); human commits, which carry no marker, still trigger CI. When GitHub integration is off, the marker is harmless.
+Append `[skip ci]` to the message **unless** the `ci-on-claude` setting in `CLAUDE.md` is `yes` — then omit it so CI runs on Claude's push. This is how Claude's own commits avoid spending Actions minutes (Claude already ran the identical `ci.sh`); human commits, which carry no marker, still trigger CI. When GitHub integration is off, the marker is harmless.
 ```
 git commit -m "{message}  [skip ci]"      # omit the marker when ci-on-claude: yes
 ```

@@ -16,7 +16,7 @@ The main session prepares the judgment parts (version bump, changelog), then the
 ## Instructions
 
 ### 1. Pre-flight
-- Read `docs/workflow/release.md` for the branching model (git-flow if it says so or a `develop` branch exists; else main-only). Be on the right branch (main-only: `main`/`master`; git-flow: `develop`).
+- Read the `branching` setting in `CLAUDE.md` (`main-only` or `git-flow`). Be on the right branch (main-only: `main`/`master`; git-flow: `develop`).
 - Working tree clean (`git status`); `git pull` so the release includes everything merged.
 - The full gate runs inside `scripts/release.sh` (step 7), so don't run it separately here. For `release-runner: ci` **only**, run `scripts/ci.sh full` via the `runner` now as a fail-fast check before dispatching to Actions.
 
@@ -29,7 +29,7 @@ The main session prepares the judgment parts (version bump, changelog), then the
 
 ### 7. Run the release (local by default)
 
-Read the `release-runner` decision (`docs/workflow/decisions.md`).
+Read the `release-runner` setting in `CLAUDE.md`.
 
 **`release-runner: local` (default):** hand off to the `runner` agent → `scripts/release.sh {version}` (it runs the gate again, builds, publishes where creds are present, and triggers/awaits deploy). The runner reports each step.
 - **On failure** (publish errored, unhealthy deploy) → the runner returns control; diagnose and fix, or `## Blocked` in unsupervised mode. Don't leave a half-published release silently.
