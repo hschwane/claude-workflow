@@ -28,7 +28,7 @@ If not already on this spec's branch, branch from the integration branch (`devel
 git checkout {develop|main} && git pull
 git checkout -b feature/{lowercase-id}-{kebab-title}
 ```
-Set the spec frontmatter `status: in-progress`. If `github_issue` is set and `.claude/memory/decisions.md` does not say `GitHub integration: no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
+Set the spec frontmatter `status: in-progress`. If `github_issue` is set and `github` setting in `CLAUDE.md` is not `no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
 
 Multiple sessions may run on different branches concurrently — that's fine; each owns its branch.
 
@@ -65,7 +65,7 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 ### 4. Documentation (minimal, per policy)
 
 Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
-- **Technical:** keep `docs/dev/architecture.md` / ADRs accurate if structure, algorithms, APIs, or the data model changed. A pure bug fix usually needs nothing — but check.
+- **Technical:** keep `docs/dev/architecture.md` accurate if structure, algorithms, APIs, or the data model changed, and record a lasting choice as a dated entry in `.claude/memory/decisions.md`. A pure bug fix usually needs nothing — but check.
 - **User docs (`docs/user/`):** only if user-facing behavior changed (new/changed command, endpoint, UI, config). Prefer self-explanatory UI + in-app hints over prose.
 - **Doc-comments:** only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions.
 

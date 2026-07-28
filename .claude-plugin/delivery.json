@@ -249,7 +249,8 @@
     },
     {
       "path": "LICENSE",
-      "class": "project"
+      "class": "project",
+      "source": "templates/LICENSE-MIT.template"
     },
     {
       "path": "docs/changelog/",
@@ -292,6 +293,12 @@
       "path": "src/version.h.in",
       "class": "project",
       "source": "templates/configs/version.h.in"
+    },
+    {
+      "path": ".prettierignore",
+      "class": "project",
+      "source": "templates/configs/.prettierignore",
+      "note": "Required wherever prettier is in the gate: `prettier --check .` otherwise fails on every plugin-owned file under .claude/."
     }
   ],
   "removedIn3": [

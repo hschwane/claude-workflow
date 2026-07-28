@@ -20,17 +20,21 @@ mkdir -p .claude/memory
 
 branch=$(git branch --show-current 2>/dev/null | sed 's|/|-|g' || true)
 CTX=".claude/memory/context-${branch}.md"
+SHIP=".claude/memory/context-ship.md"   # /ship state is branch-independent — a ship run spans many branches
 
 in_progress() {
   # in-progress spec anywhere, or a ## Ship orchestration note
   grep -rlq "^status:[[:space:]]*in-progress" docs/specs/ 2>/dev/null && return 0
-  [ -f "$CTX" ] && grep -q "^## Ship" "$CTX" 2>/dev/null && return 0
+  [ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null && return 0
   return 1
 }
 
 for i in $(seq 1 "$MAX_SESSIONS"); do
-  if [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null; then
-    echo "$(date -u +%FT%TZ) blocked — stopping. See $CTX" | tee -a "$LOG"; exit 0
+  BLK=""
+  [ -f "$CTX" ] && grep -q "^## Blocked" "$CTX" 2>/dev/null && BLK="$CTX"
+  [ -z "$BLK" ] && [ -f "$SHIP" ] && grep -q "^## Blocked" "$SHIP" 2>/dev/null && BLK="$SHIP"
+  if [ -n "$BLK" ]; then
+    echo "$(date -u +%FT%TZ) blocked — stopping. See $BLK" | tee -a "$LOG"; exit 0
   fi
   if ! in_progress; then
     echo "$(date -u +%FT%TZ) no in-progress work — done." | tee -a "$LOG"; exit 0

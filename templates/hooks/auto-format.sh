@@ -27,7 +27,9 @@ case "$FILE" in
   *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yaml|*.yml)
     if command -v prettier &>/dev/null; then
       prettier --write "$FILE" 2>/dev/null || true
-    elif command -v npx &>/dev/null; then
+    elif command -v npx &>/dev/null && [ -f "package.json" ]; then
+      # Only in a Node project — `npx --yes` would download prettier on every
+      # markdown edit in a Rust/Python/C++ repo that has no use for it.
       npx --yes prettier --write "$FILE" 2>/dev/null || true
     fi
     ;;

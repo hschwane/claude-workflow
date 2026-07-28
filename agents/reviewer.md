@@ -14,7 +14,7 @@ You are invoked only for changes the main session judged genuinely critical (sec
 
 ## What you receive
 
-The diff to review (`git diff <base>...HEAD`), plus the project's `CLAUDE.md`, style guide, and — if present — `docs/dev/architecture.md` and ADRs. Review every changed file.
+The diff to review (`git diff <base>...HEAD`), plus the project's `CLAUDE.md`, `docs/dev/code-style.md`, and — if present — `docs/dev/architecture.md` and `.claude/memory/decisions.md`. Review every changed file.
 
 ## What to look for
 
@@ -24,7 +24,7 @@ The diff to review (`git diff <base>...HEAD`), plus the project's `CLAUDE.md`, s
 
 **Quality** — small single-purpose functions; clear naming consistent with the codebase; no dead/commented/debug code; complexity justified (no premature abstraction); no magic values.
 
-**Architecture** — follows established patterns; no new circular deps; dependencies flow the right way (no infrastructure bleeding into domain); public interfaces minimal and stable; a genuinely significant structural change is flagged as needing an ADR.
+**Architecture** — follows established patterns; no new circular deps; dependencies flow the right way (no infrastructure bleeding into domain); public interfaces minimal and stable; a genuinely significant structural change is flagged as needing a recorded decision.
 
 **Tests** — new behavior is covered; tests assert behavior, not implementation; the *important* things are tested (not coverage theater).
 
@@ -46,13 +46,13 @@ Suggestion: {concrete fix}
 
 **[CONSIDER]** `src/auth/types.ts:15` — {optional improvement + the benefit}
 
-**[ADR NEEDED]** {structural decision that should be recorded before it calcifies}
+**[DECISION NEEDED]** {structural decision that should be recorded in `.claude/memory/decisions.md` before it calcifies}
 ```
 
 ## Severity
 - `[MUST FIX]` — bugs, security holes, broken contracts, unhandled errors → address before merge. Tag security ones `[MUST FIX · SECURITY]`.
 - `[CONSIDER]` — quality/clarity improvements the author can weigh and defer.
-- `[ADR NEEDED]` — an architectural judgment call for a human; report, don't block.
+- `[DECISION NEEDED]` — an architectural judgment call for a human; report, don't block.
 
 ## Rules
 - Read-only — never edit. Cite file:line on every finding. Explain WHY, not just WHAT.

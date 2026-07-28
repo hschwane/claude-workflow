@@ -1,0 +1,24 @@
+# Prettier formats this project's own source and configs — nothing else.
+#
+# `scripts/ci.sh fast` runs `prettier --check .`, so anything not ignored here
+# is a gate failure. The paths below are either not the project's to format
+# (plugin-owned, replaced on every /workflow-update) or generated.
+
+# Workflow plugin files — replaced wholesale on update, so formatting them
+# breaks the gate again at the next update.
+.claude/
+
+# Prose the project owns but that gains nothing from reformatting, and which
+# reflows noisily on every edit.
+docs/specs/
+CHANGELOG.md
+docs/changelog/
+
+# Generated / vendored
+dist/
+build/
+coverage/
+node_modules/
+src/version.ts
+*.min.*
+package-lock.json

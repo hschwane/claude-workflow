@@ -28,7 +28,7 @@ Creates a new software project from scratch with the full claude-workflow infras
 
 ### 0.1 Design-Phase Model Note (Supervised Mode Only)
 
-Skip this step in unsupervised mode. Print once, non-blocking — do not ask:
+Print once, non-blocking — do not ask:
 
 > 💡 The design phase (vision, architecture) is interactive — the session model is what thinks. Sonnet is fine for straightforward projects; for a complex or novel domain, consider `/model opus` (or `best`) for the design phase, then switch back. The mechanical scaffolding runs on a Haiku subagent either way.
 
@@ -68,12 +68,12 @@ Keep a mental note of which values came from the document so the user can always
 Ask the user (in chat — plain message, wait for the reply) — **skip questions already resolved in step 0.5; for pre-filled values, confirm rather than ask fresh**:
 1. **Project name** (if not in args and not in design doc)
 2. **Short description** (one sentence)
-3. **Project type**: Web API / Web Frontend / CLI tool / Library / Desktop App / Other
+3. **Project type**: Web App (fullstack — backend + its own frontend/PWA) / Web API / Web Frontend / CLI tool / Library / Desktop App / Other
 4. **Primary language**: TypeScript (recommended) / Python / Rust / C++ / Other
 
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
 
-**Then create the project directory and work inside it.** Ask for the target path (default: `./{project-name-kebab}`), `mkdir -p` it, `cd` into it, and `git init`. Every path from here on — `docs/VISION.md`, `docs/dev/architecture.md`, the scaffolder's `TARGET_DIR` — is relative to it. Without this, steps 2–5 write into whatever directory the session happened to start in.
+**Then create the project directory and work inside it.** Ask for the target path (default: `./{project-name-kebab}`), `mkdir -p` it, `cd` into it, and `git init -b main` (fall back to `git init && git branch -M main` on older git). The branch name matters: step 8 pushes it by name and the generated `CLAUDE.md` documents `main`, while a plain `git init` still yields `master` on many installs. Every path from here on — `docs/VISION.md`, `docs/dev/architecture.md`, the scaffolder's `TARGET_DIR` — is relative to it. Without this, steps 2–5 write into whatever directory the session happened to start in.
 
 ### 1.5 Load the matching guidelines — before designing anything
 The project type and language are known now, so match guidelines **here**, not at scaffolding time: they shape the vision, the architecture and the backlog, and retrofitting them later is how a project ends up missing its baseline.
@@ -105,6 +105,8 @@ Write `docs/VISION.md` from `templates/vision.md.template`, filled with the user
 
 ### 3. Architecture Decision
 Based on project type and language, present an opinionated recommendation. **Consider any architectural ideas or technology preferences from the design document when making the recommendation.**
+
+**TypeScript Web App (fullstack):** the API layering below plus a `web/` (or `client/`) frontend that talks to it over a typed client; shared types in `src/shared/`. This is the default shape for a PWA with its own backend.
 
 **TypeScript Web API:**
 > Recommended: Clean Architecture + Express/Fastify + Zod validation + Vitest + Prisma/Drizzle
@@ -177,7 +179,7 @@ Invoke the `project-scaffolder` agent with this prompt (fill in every `{…}` pl
 [PROJECT DECISIONS]
 PROJECT_NAME: {name}
 PROJECT_DESCRIPTION: {one-sentence description}
-PROJECT_TYPE: {Web API | Web Frontend | CLI tool | Library | Desktop App | Other}
+PROJECT_TYPE: {Web App | Web API | Web Frontend | CLI tool | Library | Desktop App | Other}
 LANGUAGE: {TypeScript | Python | Rust | C++ | Other}
 ARCHITECTURE_LABEL: {e.g. "Clean Architecture + Express + Zod + Vitest + Prisma"}
 ARCHITECTURE_SUMMARY: {the 1–3 sentence paragraph you just wrote}
@@ -188,6 +190,7 @@ RELEASE_TYPE: {npm | pypi | github | docker | internal}
 DEPLOY: {railway | none | manual | vercel | aws | other | self-hosted}
 BRANCHING_MODEL: {main-only | git-flow}
 GITHUB_REPO: {yes-public | yes-private | no}
+COPYRIGHT_HOLDER: {the licence holder — ask, or default to `git config user.name` and say so}
 PLUGIN_SOURCE_DIR: {absolute path determined above}
 TARGET_DIR: {absolute path to the new project directory}
 LIBRARY_GUIDELINES: {comma list computed from LIBRARY.md, or empty}
@@ -209,9 +212,11 @@ memory), and the initial git commit. Full instructions are in your agent definit
 Wait for the agent to complete and review its report before proceeding.
 
 
-### 6. Workflow Decisions Review (Supervised Mode Only)
+### 6. Workflow settings review
 
-Skip this step in unsupervised mode.
+`/project-init` is a conversation the user is already in — there is no unsupervised
+mode to check here, since the file that records it does not exist until this run
+creates it.
 
 The scaffolder wrote the `workflow-settings` block in `CLAUDE.md` — the seven tunable
 workflow settings, in the only place they live. Tell the user:
@@ -242,7 +247,7 @@ Explain the four-phase approach to the user, then generate and review the backlo
   - **Structured logging**, wired from the start, with per-module and runtime-adjustable levels — this is the debugging tool every later ticket relies on.
   - **Version visibility** — the running build's version + git sha, injected at build time and shown in the app.
   - **The update mechanism** for this architecture — for a web app/PWA the check-for-updates button with real feedback plus the update banner; otherwise the closest equivalent.
-  - **The in-app changelog view**, with its backend source (`templates/ui/changelog-template.html` is the starting point).
+  - **The in-app changelog view**, with its backend source (`.claude/ui/changelog-template.html`, installed with the `changelog` guideline, is the starting point).
   - **Claude-testable access to a live instance** — local run, or a QA/staging deployment kept separate from production.
   - The **access gate** if it's a private single-user app reachable from the internet, and **API token auth** for any exposed API.
 
@@ -281,7 +286,7 @@ Body: write a one-sentence User Story based on the item's purpose. Leave Accepta
 
 IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
 
-If GitHub remote exists: create GitHub issues for all accepted items (`gh issue create --label "feature,backlog"`).
+Do **not** create GitHub issues here — on a new project the remote does not exist yet and the labels have not been created; both happen in step 8, which mirrors the backlog once it can.
 
 After all milestones: print a summary — version string, item count, and ID range for each.
 
@@ -301,17 +306,18 @@ gh label create "in-progress" --force --color fbca04 --description "Being implem
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
 ```
 
+**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 (`gh issue create --label "feature,backlog"`), and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
+
 Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created, then commit (`docs: fill CI badge repo`). (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
 
-**If the user chose Git Flow** (step 5 branching model):
-```
-git checkout -b develop
-git push -u origin develop
-gh repo edit --default-branch develop
-```
-For local-only repos: create `develop` branch locally but skip the push/default-branch steps.
+### 8b. Branching model
 
-Set `branching: git-flow` in the `workflow-settings` block — `/release` reads it from there.
+Runs whether or not a GitHub repo was created — a local-only project still needs the right branch.
+
+**Git Flow:** `git checkout -b develop`, and with a remote also `git push -u origin develop` and `gh repo edit --default-branch develop`.
+**main-only:** nothing to do; the scaffolder already left HEAD on `main`.
+
+The `branching` value is already in the `workflow-settings` block (the scaffolder wrote it in Step E) — don't write it again.
 
 ### 9. Report
 ```

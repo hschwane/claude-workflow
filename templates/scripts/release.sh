@@ -22,7 +22,10 @@ echo "▶ release.sh $VERSION"
 # comment makes this script report a successful release having published nothing.
 
 # 2. Build the release artifact.
-# e.g. npm run build | docker build -t app:$VERSION . | cargo build --release
+# ci.sh full above already ran this project's build stage, so this line is for an
+# artifact the gate does not produce (a container image, a signed tarball). If the
+# gate's build IS the artifact, delete this line rather than building twice.
+# e.g. docker build -t app:$VERSION . | tar czf dist/app-$VERSION.tgz -C dist .
 {{BUILD_ARTIFACT}}
 
 # 3. Publish (only where creds are present locally; otherwise this is the CI fallback's job).

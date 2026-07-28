@@ -1,13 +1,6 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "watchPatterns": [
-      "**",
-      "!/docs/**",
-      "!/tests/**",
-      "!/.claude/**",
-      "!/.github/**",
-      "!/**/*.md"
-    ]
+    "watchPatterns": ["**", "!/docs/**", "!/tests/**", "!/.claude/**", "!/.github/**", "!/**/*.md"]
   }
 }

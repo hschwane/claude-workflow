@@ -22,7 +22,7 @@ The seven knobs that change how the workflow behaves in this project. The **valu
 |---|---|---|
 | `testing-scope` | `unit` · `unit+integration` · `unit+integration+e2e` | How deep `/plan` specs tests and `/implement` writes them. A ticket may narrow within it, never beyond it. `code-style.md` describes what each level covers |
 | `branching` | `main-only` · `git-flow` | `main-only`: features merge into `main`, `/release` tags there. `git-flow`: features merge into `develop`, `/release` gates there, merges `develop → master` and tags, so `master`'s tip is always the latest release |
-| `version-source` | a path — `package.json` · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` · `VERSION` | Where `/release` reads and writes the version number |
+| `version-source` | a path — `package.json` · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` · `VERSION` — or `none` | Where `/release` reads and writes the version number. `none` for a repo with nothing to bump (a scripts or docs repo): `/release` then asks for the version instead |
 | `deploy` | `railway` · `vercel` · `aws` · `self-hosted` · `manual` · `none` | What `release.sh` deploys to, and which guideline applies. Details in `docs/dev/deploy.md` |
 | `github` | `yes` · `no` | Whether GitHub features are used at all — issues, PRs, Actions. `no` means a local-only repo |
 | `ci-on-claude` | `no` · `yes` | `no` (default): Claude's commits carry `[skip ci]`, because the identical gate just ran locally. `yes`: CI runs on them too — worth it for a cross-platform library, where the matrix tests something a local run cannot |
@@ -40,7 +40,7 @@ Print the current value, the allowed values, and what changing it would affect.
 
 ### Two arguments — change a setting
 
-1. **Validate.** An unknown key or a value outside the list is rejected with the allowed set. `version-source` is validated by checking the file exists.
+1. **Validate.** An unknown key or a value outside the list is rejected with the allowed set. `version-source` is validated by checking the file exists — except `none`, which names no file and is accepted as-is.
 2. **Say what it will affect**, then apply it — edit only that line inside the `workflow-settings` block, leaving the rest of `CLAUDE.md` untouched.
 3. **Follow through on the consequences.** The value alone is rarely the whole change:
    - `branching` → if switching to `git-flow` and `develop` does not exist, offer to create it from the integration branch and set it as the default branch.

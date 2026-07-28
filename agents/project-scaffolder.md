@@ -30,6 +30,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
 | `TARGET_DIR` | Absolute path to the new project directory |
+| `COPYRIGHT_HOLDER` | name for the `LICENSE` file's copyright line |
 | `LIBRARY_GUIDELINES` | comma list of guidelines to install. A bare name resolves against `{PLUGIN_SOURCE_DIR}/templates/guidelines/`; an **absolute path** is used as-is, which is how a user-global guideline from `~/.claude/guidelines/` gets installed |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
@@ -78,10 +79,12 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `tsconfig.base.json` → `tsconfig.base.json`
 - `eslint.config.js` → `eslint.config.js`
 - `.prettierrc` → `.prettierrc`
+- `.prettierignore` → `.prettierignore` — **required.** `ci.sh fast` runs `prettier --check .`, which otherwise fails on all ~40 plugin-owned files under `.claude/`. Formatting those instead is not a fix: `/workflow-update` replaces them, so the gate would break again at every update.
 - `package.json.template` → `package.json` (fill `{{PROJECT_NAME_KEBAB}}` = PROJECT_NAME in kebab-case, `{{PROJECT_DESCRIPTION}}` = PROJECT_DESCRIPTION)
 - Run `npm install` in `{TARGET_DIR}` to generate `package-lock.json`, and commit it — CI runs `npm ci`, which fails without a lockfile. (Python: `uv lock` or leave the lock to the first install; Rust: `cargo generate-lockfile`.)
 - `generate-version.js` → `scripts/generate-version.js`
-- Create empty `src/version.ts` (placeholder — auto-generated on first build)
+- Create `src/version.ts` as an empty placeholder — the build regenerates it, and `.gitignore` excludes it.
+- **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found"). It passes on the scaffolding machine only because the untracked generated file is sitting there.
 
 **Python:**
 - `pyproject.toml` → `pyproject.toml` (fill in project name and description)
@@ -96,17 +99,20 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
+**Write a `.gitkeep` into every directory Step A created that has no file in it yet** — `docs/specs/ready/`, `docs/specs/completed/`, `tests/unit/`, `tests/integration/`, `docs/user/` if empty. Git does not track directories: without this they are simply absent from a fresh clone, and the skills that `git mv` a spec into `ready/` fail on the first ticket.
+
 **Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
 
-**Write `{TARGET_DIR}/LICENSE`** with the MIT text (the README's `{{LICENSE}}` is filled with `MIT`); if the user chose another licence, use that text instead.
+**Write `{TARGET_DIR}/LICENSE`** from `{PLUGIN_SOURCE_DIR}/templates/LICENSE-MIT.template`, filling `{{YEAR}}` (the current year) and `{{COPYRIGHT_HOLDER}}` (`COPYRIGHT_HOLDER` from the decisions block; fall back to `git config user.name` and say which you used). The README's `{{LICENSE}}` is filled with `MIT`. If the user chose another licence, use that text instead.
 
 ## Step C: Canonical scripts + CI templates
 
 **Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
-- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token. Fill with with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest; Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token — and delete the `# e.g. …` hint line with it, so the project's script carries its own commands and nothing else. Fill with with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest (use `vitest run --passWithNoTests`: a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it, so the gate can never pass); Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and confirm it actually executed the commands (a run that prints only the header and `passed` means the placeholders are still comments — fix before continuing).
+- **Then verify it from a clean clone**, which is what CI actually runs: `git clone {TARGET_DIR} /tmp/verify-clone && cd /tmp/verify-clone && npm ci && ./scripts/ci.sh full`. Anything gitignored or uncommitted is missing there, and that is exactly where a scaffold quietly fails — a local pass proves nothing about the first push.
 
 **GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
@@ -118,7 +124,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **If any installed guideline references a UI template** (today: `changelog.md`): copy `{PLUGIN_SOURCE_DIR}/templates/ui/changelog-template.html` → `{TARGET_DIR}/.claude/ui/changelog-template.html`, so the guideline's reference resolves inside the project.
 
-**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
+**If `DEPLOY` is `railway`:** install `railway.md` into `.claude/guidelines/` with its INDEX row whether or not it appears in `LIBRARY_GUIDELINES` — the deploy target is the trigger, and `/project-init` step 5 promises it. Then copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
 
 **Library guidelines — install the ones listed in `LIBRARY_GUIDELINES`:**
 `LIBRARY_GUIDELINES` is a comma-separated list of guideline filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
@@ -145,10 +151,22 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `{{TEST_EXAMPLE}}` | a three-line example in that framework |
 | `{{TEST_FIXTURES}}` | delete the section if the project has none yet |
 | `docs/dev/setup.md`: `{{PREREQUISITE}}` `{{INSTALL_COMMAND}}` `{{RUN_COMMAND}}` `{{TEST_COMMAND}}` `{{BUILD_COMMAND}}` | LANGUAGE + the manifest's scripts |
+| `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |
+| `docs/dev/setup.md`: `{{VAR_NAME}}` `{{DESCRIPTION}}` | one row per variable in `.env.example`; delete the table if there are none yet |
+| `docs/dev/setup.md`: `{{TROUBLESHOOTING_NOTES}}` | delete the section — a new project has no known traps yet |
 | `{{REPO_URL}}` | the GitHub repo if one is being created, else the local path |
 | `docs/user/README.md` | a real stub for this project — replace every token with prose, do not ship `{{…}}` to end users |
 
-After Step D, grep the whole target tree for `{{` and fix every hit. Nothing with a `{{` may reach the initial commit.
+**The sweep runs at the end, not here.** After Step I — once every file is written — grep the target tree for `{{` and fix every hit outside this exempt list:
+
+| Exempt | Why |
+|---|---|
+| `.claude/skills/**`, `.claude/agents/**` | plugin text that documents placeholders |
+| `docs/specs/spec.md.template` | a template by design; `/plan` fills it per ticket |
+| `.github/workflows/*.yml` | `${{ }}` is GitHub Actions expression syntax |
+| `README.md`: `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}`, `{{OPERATIONS}}`, `{{GITHUB_REPO}}` | only where Step F deliberately leaves them, as marked placeholder comments |
+
+Everything else — `CLAUDE.md`, `src/CLAUDE.md`, `tests/CLAUDE.md`, `docs/**`, `CONTRIBUTING.md`, `scripts/*.sh`, the configs — must contain no `{{` at the initial commit.
 
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` (only if DEPLOY ≠ `none` and the main session did not already write it)
@@ -190,7 +208,7 @@ Read `{PLUGIN_SOURCE_DIR}/templates/README.md.template`. Fill in:
 - `{{WORKFLOW_REPO}}` → WORKFLOW_REPO
 - `{{LICENSE}}` → `MIT`
 - `{{GITHUB_REPO}}`: if GITHUB_REPO is `no`, remove the CI badge line entirely; otherwise leave the `{{GITHUB_REPO}}` placeholder (the main session will fill it after repo creation)
-- Leave `{{INSTALLATION}}` and `{{USAGE_EXAMPLE}}` as short placeholder comments
+- Leave `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}` and `{{OPERATIONS}}` as short placeholder comments — the main session fills them once it knows how the project is run
 
 Write to `{TARGET_DIR}/README.md`.
 
@@ -206,9 +224,16 @@ Write to `{TARGET_DIR}/README.md`.
 
 **workflow-source.json:**
 ```json
-{ "repo": "{WORKFLOW_REPO}", "version": "{WORKFLOW_VERSION}", "installed": "{TODAY}" }
+{
+  "repo": "{WORKFLOW_REPO}",
+  "version": "{WORKFLOW_VERSION}",
+  "installed": "{TODAY}",
+  "variants": { "ci": "ci-{CI_LANGUAGE_TEMPLATE}.yml", "release": "{RELEASE_CI_TEMPLATE}.yml", "gitignore": "{GITIGNORE_TEMPLATE}.gitignore" }
+}
 ```
-Write to `{TARGET_DIR}/.claude/workflow-source.json`.
+Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit the `release` key when `RELEASE_CI_TEMPLATE` is `none`.
+
+**Personal settings file:** write `{TARGET_DIR}/.claude/memory/local-settings.md` with `unsupervised: false`, `auto_resume: false`, `usage_threshold: 90`. `CLAUDE.md` names this file three times and `session-start.sh` / `statusline.sh` / `auto-resume-guard.sh` all read it; it is gitignored, so it must be created rather than committed by someone else.
 
 **Make hooks executable:**
 ```bash
@@ -240,7 +265,7 @@ Detail: `docs/dev/architecture.md`
 
 and set the index line to `**Topics:** architecture`.
 
-The workflow settings ({TESTING_SCOPE}, {BRANCHING_MODEL}, {RELEASE_TYPE}, {DEPLOY}, GitHub integration) do **not** go here — they belong in the `workflow-settings` block of `CLAUDE.md`, written in Step E.
+The workflow settings ({TESTING_SCOPE}, {BRANCHING_MODEL}, {VERSION_SOURCE}, {DEPLOY}, GitHub integration, {CI_ON_CLAUDE}, {RELEASE_RUNNER}) do **not** go here — they belong in the `workflow-settings` block of `CLAUDE.md`, written in Step E.
 
 (Do NOT create `context.md` — that name is a gitignored runtime note. Runtime state lives in the repo.)
 
@@ -264,6 +289,10 @@ Add a note in `{TARGET_DIR}/docs/dev/setup.md`: "Run `mkdocs serve` to preview t
 cd {TARGET_DIR}
 # Initialize the repo if TARGET_DIR isn't one yet (a fresh /project-init dir never is).
 git rev-parse --git-dir >/dev/null 2>&1 || git init -b main
+# /project-init step 1 may already have run a plain `git init`, which on many
+# installs defaults to `master`. Normalize before the first commit — step 8
+# pushes the branch by name and CLAUDE.md documents `main`.
+git symbolic-ref HEAD refs/heads/main
 git add -A
 git commit -m "chore: initialize project with claude-workflow infrastructure"
 ```
@@ -285,10 +314,11 @@ Scaffolding complete ✓
 Directories created: src/, tests/, docs/, .github/, .claude/, scripts/
 Language config: {list of files created}
 CI: {ci.yml, release.yml if applicable, dependabot.yml}
-Docs: workflow docs, dev docs, user docs, CHANGELOG, CONTRIBUTING
+Docs: dev docs (code-style, setup, deploy), user docs, CHANGELOG, CONTRIBUTING
 Infrastructure: .claude/ (agents N, skills N, hooks, memory, settings.json)
-Root files: CLAUDE.md, README.md, .gitignore
+Root files: CLAUDE.md, README.md, .gitignore, LICENSE, .env.example
 Git: initial commit on {main|develop}
+Clean-clone gate: {ci.sh full passed | FAILED — details}
 
 Notes: {any warnings, defaults applied, or files skipped}
 ```

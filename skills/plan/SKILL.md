@@ -57,7 +57,7 @@ If resolving the spec needs the user's input, collect every `[USER]` question.
 ### 5. Mark ready
 When a spec has a goal, observable acceptance criteria, an approach, subtasks, and no open questions:
 - Set frontmatter `status: ready`; `git mv docs/specs/backlog/{file} docs/specs/ready/{file}`.
-- If `github_issue` set and `GitHub integration` is not `no`: move labels to `ready`.
+- If `github_issue` is set and the `github` setting in `CLAUDE.md` is not `no`: move labels to `ready`.
 - Commit (`docs(specs): plan {id}  [skip ci]`).
 
 ### 6. Report

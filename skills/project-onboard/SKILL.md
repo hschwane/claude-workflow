@@ -80,10 +80,18 @@ Create `.claude/` directory with:
     └── .gitignore      ← from templates/memory/.gitignore
 ```
 
-Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent the URL; if it cannot be found, leave `repo` empty and note it in the report.
+Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent them; if they cannot be found, leave `repo` empty and note it in the report.
 ```json
-{ "repo": "{repository from plugin.json}", "version": "{version from plugin.json}", "installed": "{today}" }
+{
+  "repo": "{owner/repo}",
+  "version": "{version from plugin.json}",
+  "installed": "{today}",
+  "variants": { "ci": "ci-{lang}.yml", "release": "release-{type}.yml", "gitignore": "{lang}.gitignore" }
+}
 ```
+`repo` is the bare `owner/repo` — strip the `https://github.com/` prefix that `plugin.json` carries. `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/{{WORKFLOW_REPO}}`, so a full URL here produces a doubled link. `variants` records which language/target templates were installed, so a later update diffs a file against a file rather than against a directory; omit a key whose template was not installed.
+
+Write `.claude/memory/local-settings.md` with `unsupervised: false`, `auto_resume: false`, `usage_threshold: 90` — `CLAUDE.md` names it and three hooks read it, and it is gitignored, so nothing else will create it.
 
 Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
 
@@ -144,7 +152,6 @@ Added: {today}
 {key patterns observed from analysis}
 
 ## Integrations
-- GitHub integration: {yes if user confirmed GitHub in step 2, else no}
 ```
 
 (Do NOT create `context.md` — that name is a gitignored runtime note. Put any project overview worth keeping into `.claude/memory/decisions.md` (tracked); runtime state lives in the repo.)
@@ -179,7 +186,7 @@ Create root `README.md` from `templates/README.md.template`, filled with the det
 The skills, agents and hooks just installed under `.claude/` are picked up at **session start**, so they are not live in this session. Don't try to invoke one yet; the report in step 6 tells the user to restart.
 
 ### 4. GitHub Setup (if applicable)
-Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
+Only run this step if the `github` setting written into `CLAUDE.md` in step 3a is `yes`:
 - Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, ready, in-progress, done — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 

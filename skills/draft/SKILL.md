@@ -19,25 +19,10 @@ Creates a minimal backlog entry. No planning required — `/plan` fleshes it out
 
 1. **Parse**: `type` (feature|bug — ask only if truly ambiguous), `title`, optional `description`, optional `version:X` (`~` if absent).
 2. **Next ID**: scan `docs/specs/{backlog,ready,completed}/`, take the highest `FEAT-NNN`/`BUG-NNN` (both share one sequence), +1, zero-pad to 3 (`FEAT-007`). None yet → `001`.
-3. **Create** `docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md`:
-   ```markdown
-   ---
-   id: {TYPE}-{NNN}
-   type: {feature|bug}
-   status: draft
-   version: {version or ~}
-   created: {YYYY-MM-DD}
-   github_issue: ~
-   ---
+3. **Create** `docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md` **from `docs/specs/spec.md.template`** — copy it and fill the frontmatter (`id`, `type`, `status: draft`, `version` or `~`, `created`/`updated` = today, leaving `test_scope: ~` and `github_issue: ~` for `/plan` and step 4). Restating the frontmatter here is how it drifts from the template every other skill reads; if the template is missing, say so rather than inventing the fields.
 
-   # {Title}
+   Body: for a feature, the Goal user story plus the description with unknowns marked `[?]`; for a bug, Observed / Expected / Repro. Leave Acceptance Criteria as `- [ ] (defined in /plan)`.
 
-   {feature → "## Goal\nAs a [user], I want [goal], so that [benefit]. {description; mark unknowns [?]}"}
-   {bug → "## Bug\n**Observed:** …  **Expected:** …  **Repro:** 1. …"}
-
-   ## Acceptance Criteria
-   - [ ] (defined in /plan)
-   ```
-4. **GitHub** (skip if `.claude/memory/decisions.md` says `GitHub integration: no`, or no github remote): `gh issue create --title "{title}" --label "{type},backlog" --body-file "{spec}"`, then set `github_issue:` in the frontmatter.
+4. **GitHub** (skip if the `github` setting in `CLAUDE.md` is `no`, or there is no github remote): `gh issue create --title "{title}" --label "{type},backlog" --body-file "{spec}"`, then set `github_issue:` in the frontmatter.
 5. **Commit**: `docs(specs): draft {TYPE}-{NNN}  [skip ci]`.
 6. **Report**: `Created {TYPE}-{NNN}: "{title}" — next: /plan {TYPE}-{NNN}`.

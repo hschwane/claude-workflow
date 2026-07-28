@@ -1,6 +1,6 @@
 # In-app changelog
 
-Standing guidelines for an in-app changelog view — visible to end users, distinct from the repo's `CHANGELOG.md` (which `/release` maintains for the project's own history). A ready-to-reskin implementation ships at `templates/ui/changelog-template.html`.
+Standing guidelines for an in-app changelog view — visible to end users, distinct from the repo's `CHANGELOG.md` (which `/release` maintains for the project's own history). A ready-to-reskin implementation ships with this guideline at `.claude/ui/changelog-template.html`.
 
 ## Presence & access (required)
 - The changelog is built into the app itself — its own page/view/window — not a link out to a repo file or external page.
@@ -43,7 +43,7 @@ The current file stays in the root because that is where the ecosystem looks for
 - The changelog is updated as part of **every release**, same discipline as the version bump (see `/release`). Structure new entries as Added/Changed/Fixed with a ticket ID so they map directly onto the in-app view — `/release`'s existing conventional-commit grouping (feat → Added, fix → Fixed, everything else → Changed) is the natural source; don't hand-author two divergent changelogs.
 
 ## Template
-`templates/ui/changelog-template.html` is a self-contained (no build step, no dependencies) implementation of all of the above: expandable change cards with version/category/ticket tags, a group-by-version or group-by-category toggle, highlighting search that filters to matching entries, a version-range filter, and cursor-paginated infinite scroll against a documented JSON API (the contract is in the file's header comment).
+`.claude/ui/changelog-template.html` is a self-contained (no build step, no dependencies) implementation of all of the above: expandable change cards with version/category/ticket tags, a group-by-version or group-by-category toggle, highlighting search that filters to matching entries, a version-range filter, and cursor-paginated infinite scroll against a documented JSON API (the contract is in the file's header comment).
 
 Its palette is deliberately **neutral — a starting point to replace, not a look to keep**. The file's header comment carries the full adapt/keep list; in short:
 
