@@ -44,7 +44,7 @@ Types: `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `perf` ·
 
 **Branches:** `feature/feat-001-short-title`, `fix/bug-042-short-description`, `chore/update-dependencies`.
 
-**Code conventions** live where they are needed: `src/CLAUDE.md` for source, `tests/CLAUDE.md` for tests. They apply to human contributions too.
+**Code conventions** live in `docs/dev/code-style.md` — naming, error handling, comments, testing, security, and the per-language rules. `src/CLAUDE.md` and `tests/CLAUDE.md` add what is specific to *this* codebase: its layout, key types and local patterns. All of it applies to human contributions too.
 
 ## How CI works here
 
@@ -68,7 +68,9 @@ The workflows for PR, release and deploy are maintained alongside the code: when
 | `docs/VISION.md` | What this project is for, and what it deliberately is not |
 | `docs/specs/` | Tickets — `backlog/`, `ready/`, `completed/` |
 | `docs/dev/architecture.md` | How it is built |
+| `docs/dev/code-style.md` | The coding standards the gate expects |
 | `docs/dev/setup.md` | Running it locally or against the dev deployment |
+| `docs/dev/deploy.md` | Deploying, rolling back, required secrets |
 | `docs/user/` | User-facing documentation |
 | `CHANGELOG.md` | The **current major**'s released changes. Older majors are archived under `docs/changelog/`, split at version headings so no release is ever cut in half — the root file stays where tooling expects it, the archives do not belong there |
 
