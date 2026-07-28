@@ -104,18 +104,17 @@ Write the root `CLAUDE.md` from `templates/CLAUDE.md.template`, filling the `ide
 - `chmod +x scripts/*.sh`
 - If the project already has an equivalent script, point `ci.sh`/`release.sh` at it (or skip and note it) rather than duplicating.
 
-**b) Create workflow documentation** (from plugin templates/):
+**b) Create developer documentation** (from plugin `templates/`):
 ```
-├── README.md         ← templates/workflow/README.md.template (fill `{{WORKFLOW_REPO}}` from this plugin's plugin.json `repository`)
-├── lifecycle.md      ← templates/workflow/lifecycle.md.template (fill `{{BRANCHING_MODEL}}` — main-only unless git-flow detected)
-├── conventions.md    ← templates/workflow/conventions.md.template
-├── quality.md        ← templates/workflow/quality.md.template (fill `{{TESTING_SCOPE}}` with the test scope confirmed in step 2)
-├── release.md        ← templates/workflow/release.md.template (fill `{{BRANCHING_MODEL}}`; /release and decisions.md reference this file)
-└── decisions.md      ← templates/workflow/decisions.md.template (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}` (main-only unless git-flow detected), `{{GITHUB_INTEGRATION}}` = yes/no from step 2, `{{DEPLOY_TARGET}}` = detected/asked deploy target, `{{CI_ON_CLAUDE}}` = `no` (or `yes` for a cross-platform library), `{{RELEASE_RUNNER}}` = `local`). The record of all tunable workflow settings; changeable later via `/workflow-settings`.
 docs/dev/
+├── code-style.md     ← templates/dev/code-style.md.template   (plugin-owned; do not edit per project)
 ├── setup.md          ← templates/dev/setup.md.template
-└── code-style.md     ← templates/dev/code-style.md.template
+├── architecture.md   ← templates/dev/architecture.md.template, filled from the step 1 analysis
+└── deploy.md         ← templates/dev/deploy.md.template        (only if the project deploys somewhere)
+docs/user/README.md   ← templates/dev/user-readme.md.template   (only if absent)
 ```
+
+There is no `docs/workflow/` in v3: the procedure lives in the skills, which update with the plugin, and the human-facing version lives in `CONTRIBUTING.md`. The seven tunable settings live in the `workflow-settings` block of `CLAUDE.md` — fill them from the answers in step 2 (`testing-scope` from question 5, `github` from question 2, `branching` main-only unless git-flow is detected, `version-source` from the manifest the project actually has, `deploy` from the detected or asked target, `ci-on-claude: no`, `release-runner: local`).
 
 If `docs/` already exists, only create files that are missing — never overwrite existing docs.
 
