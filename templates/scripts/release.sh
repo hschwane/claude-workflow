@@ -17,27 +17,38 @@ echo "▶ release.sh $VERSION"
 # 1. Gate — never release on a red suite.
 "$(dirname "$0")/ci.sh" full
 
-# Each placeholder below is a COMMAND LINE, not a comment. Replace the whole line with the
-# real command; delete the line for a step this project does not have. A step left as a
-# comment makes this script report a successful release having published nothing.
+# --- how to fill this in ---------------------------------------------------------------
+# Each step below is a `step <command>` line — a COMMAND LINE, not a comment. Replace the
+# whole placeholder, keeping the `step ` prefix; DELETE the line for a step this project does
+# not have. `step` counts what it runs, so a release that published nothing says so.
+STEPS=0
+step() {
+  STEPS=$((STEPS + 1))
+  echo "  → $*"
+  "$@"
+}
 
 # 2. Build the release artifact.
-# ci.sh full above already ran this project's build stage, so this line is for an
-# artifact the gate does not produce (a container image, a signed tarball). If the
-# gate's build IS the artifact, delete this line rather than building twice.
-# e.g. docker build -t app:$VERSION . | tar czf dist/app-$VERSION.tgz -C dist .
-{{BUILD_ARTIFACT}}
+# ci.sh full above already ran this project's build stage, so this line is for an artifact the
+# gate does not produce (a container image, a signed tarball). If the gate's build IS the
+# artifact, delete this line rather than building twice.
+# e.g. step docker build -t app:$VERSION . | step tar czf dist/app-$VERSION.tgz -C dist .
+step {{BUILD_ARTIFACT}}
 
 # 3. Publish (only where creds are present locally; otherwise this is the CI fallback's job).
-# e.g. npm publish | twine upload dist/* | docker push app:$VERSION | gh release create v$VERSION --generate-notes
-{{PUBLISH}}
+# e.g. step npm publish | step twine upload dist/* | step gh release create v$VERSION --generate-notes
+step {{PUBLISH}}
 
-# 4. Deploy (or let the platform auto-deploy on merge, e.g. Railway watches the repo).
-# e.g. railway up | : (no-op — Railway auto-deploys on merge)
-{{DEPLOY}}
+# 4. Deploy. This is the ONE step that may legitimately be a no-op: a platform that
+# auto-deploys on merge (Railway, Vercel) genuinely has nothing to run here.
+# e.g. step railway up | step : (Railway auto-deploys on merge)
+step {{DEPLOY}}
 
 # 5. Healthcheck — report so the caller can verify / roll back.
-# e.g. curl -fsS https://<app>/health
-{{HEALTHCHECK}}
+# This must be a REAL command. `docs/dev/deploy.md` carries the URL. A release that reports
+# success having verified nothing is worse than one that stops: if the endpoint is genuinely
+# unknown, put `exit 1` here with a TODO rather than a no-op.
+# e.g. step curl -fsS https://<app>/health
+step {{HEALTHCHECK}}
 
-echo "✓ release.sh $VERSION complete"
+echo "✓ release.sh $VERSION complete — $STEPS step(s)"

@@ -43,7 +43,7 @@ The `[PROJECT DECISIONS]` block contains:
 
 ## Step A: Create Directories
 
-Create all required directories (use `mkdir -p`):
+Create all required directories (use `mkdir -p`) — **the fixed list below plus every directory named in `ARCHITECTURE_SUMMARY`** (`src/domain/`, `src/application/`, `src/infrastructure/`, `src/api/`, `src/shared/`, a `web/` frontend root — whatever the architecture actually says). `src/CLAUDE.md` and `docs/dev/architecture.md` both document that tree, and `src/CLAUDE.md` is auto-loaded; a tree that does not exist is a map to nowhere. The `.gitkeep` sweep in Step B only fills directories that exist, so anything missed here is missing for good.
 
 ```
 {TARGET_DIR}/src/
@@ -90,7 +90,8 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
   If `test` fails, stop and report it. CI runs `npm ci`, which errors out with "can only install with an existing package-lock.json" — so a missing lockfile makes the first push red no matter what else is correct. (Python: `uv lock`; Rust: `cargo generate-lockfile`.) Step J's `git add -A` runs after this, so the lockfile is committed.
 - `generate-version.js` → `scripts/generate-version.js`
 - Create `src/version.ts` as an empty placeholder — the build regenerates it, and `.gitignore` excludes it.
-- **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found"). It passes on the scaffolding machine only because the untracked generated file is sitting there.
+- **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found").
+- **The stub must not import `./version.js`.** That is the same trap one rule over: the import resolves locally because the generated file is sitting there untracked, and fails in a fresh clone with TS2307. Generated modules are imported by real code later — which is why `ci.sh` regenerates them first (`{{GENERATE_SOURCES}}`, filled below). The stub itself stays self-contained.
 
 **Python:**
 - `pyproject.toml` → `pyproject.toml` (fill in project name and description)
@@ -116,11 +117,13 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 **Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token — and delete the `# e.g. …` hint line with it, so the project's script carries its own commands and nothing else. Fill with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build).
 
+Every stage is a `check <command>` line — keep the `check ` prefix when you replace a placeholder; that is what makes the script count its own work and refuse to report a pass it never earned. `{{GENERATE_SOURCES}}` has **no** prefix (it is preparation, not a check): fill it with the command that produces anything gitignored-but-required — for TypeScript `node scripts/generate-version.js` — or delete the line. Getting this wrong is how the gate passes locally and fails on the first push, since a fresh CI clone has none of the generated files.
+
 **Never write a bare tool name.** `prettier`, `eslint`, `tsc` and `vitest` are not on `PATH` in GitHub Actions — `npm ci` installs them into `node_modules/.bin`, which only a package script or `npx` sees. A bare `prettier --check .` exits **127** in CI while passing on a laptop that happens to have it installed globally, which is the worst possible way for a gate to be wrong. Go through the package manager:
 
 | | fast | full adds |
 |---|---|---|
-| TypeScript | `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm test` | `npm run test:integration` (add the script) · `npm run build` |
+| TypeScript | `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm test` (already scoped to `tests/unit`) | `npm run test:integration` · `npm run build` |
 | Python | `uv run ruff format --check .` · `uv run ruff check .` · `uv run mypy .` · `uv run pytest tests/unit` | `uv run pytest tests/integration` · `uv build` |
 | Rust | `cargo fmt --check` · `cargo clippy -- -D warnings` · `cargo test --lib` | `cargo test --test '*'` · `cargo build --release` |
 | C++ | `clang-format --dry-run -Werror …` · `clang-tidy …` · `cmake --build build` · `ctest --test-dir build -L unit` | `ctest --test-dir build -L integration` |
@@ -129,11 +132,11 @@ The TypeScript scripts already exist in `package.json.template`, and `test` ther
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
-- The **clean-clone** check is not yours — `/project-init` step 5b runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Your job is to leave the repo in a state that passes it.
+- The **clean-clone** check is not yours — `/project-init` step 5c runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Do not report on it; report your local `ci.sh fast` exit code and check count, and leave the repo in a state that passes the clone.
 
 **`release.sh`: `:` is only ever acceptable for the deploy step** (a platform that auto-deploys on merge genuinely has nothing to run). The **healthcheck must be a real command** — `docs/dev/deploy.md` already carries the URL by the time you write this. If it is genuinely unknown, emit `exit 1` with a TODO comment rather than `:`; a release that reports success having verified nothing is worse than one that stops.
 
-**GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
+**GitHub Actions — skip this whole block when `GITHUB_REPO` is `no`.** A local-only project has no use for workflows, a dependabot config or issue templates, and `delivery.json` already says the issue templates are created only when GitHub integration is on. (Thin wrappers around the scripts above — run on human commits + dispatch:)
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
 - If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`. The release workflow is **`workflow_dispatch`-only** for both `local` and `ci` release-runner — `/release` triggers it explicitly in `ci` mode. Never add a tag trigger: the local `/release` always pushes the version tag, so a tag-triggered workflow would double-publish.
 - Do **not** mark the CI workflow a required status check — Claude's `[skip ci]` commits would leave it Pending forever and block merges.
@@ -173,7 +176,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |
 | `docs/dev/setup.md`: `{{VAR_NAME}}` `{{DESCRIPTION}}` | one row per variable in `.env.example`; delete the table if there are none yet |
 | `docs/dev/setup.md`: `{{TROUBLESHOOTING_NOTES}}` | delete the section — a new project has no known traps yet |
-| `{{REPO_URL}}` | the GitHub repo if one is being created, else the local path |
+| `{{REPO_URL}}` | the GitHub repo **if one is being created**; otherwise the local path. Never guess an org from the plugin's own repo — a local-only project told to `git clone https://github.com/<plugin-author>/<project>` sends its first contributor to a URL that does not exist |
 | `docs/user/README.md` | a real stub for this project — replace every token with prose, do not ship `{{…}}` to end users |
 
 **The sweep runs at the end, not here.** After Step I — once every file is written — grep the target tree for `{{` and fix every hit outside this exempt list:
@@ -183,7 +186,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `.claude/skills/**`, `.claude/agents/**` | plugin text that documents placeholders |
 | `docs/specs/spec.md.template` | a template by design; `/plan` fills it per ticket |
 | `.github/workflows/*.yml` | `${{ }}` is GitHub Actions expression syntax |
-| `README.md`: `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}`, `{{OPERATIONS}}`, `{{GITHUB_REPO}}` | only where Step F deliberately leaves them, as marked placeholder comments |
+| `README.md`: `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}`, `{{OPERATIONS}}`, `{{GITHUB_REPO}}` | left for the main session, which fills the first three in `/project-init` step 5d and the badge in step 8. They are the only tokens allowed to leave your hands, and they do not survive `/project-init` |
 
 Everything else — `CLAUDE.md`, `src/CLAUDE.md`, `tests/CLAUDE.md`, `docs/**`, `CONTRIBUTING.md`, `scripts/*.sh`, the configs — must contain no `{{` at the initial commit.
 
@@ -252,7 +255,13 @@ Write to `{TARGET_DIR}/README.md`.
 ```
 Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit the `release` key when `RELEASE_CI_TEMPLATE` is `none`.
 
-**Personal settings file:** write `{TARGET_DIR}/.claude/memory/local-settings.md` with `unsupervised: false`, `auto_resume: false`, `usage_threshold: 90`. `CLAUDE.md` names this file three times and `session-start.sh` / `statusline.sh` / `auto-resume-guard.sh` all read it; it is gitignored, so it must be created rather than committed by someone else.
+**Personal settings file:** write `{TARGET_DIR}/.claude/memory/local-settings.md` with exactly this body — plain `key: value` lines at column 0, no markdown emphasis, no heading above them:
+```
+unsupervised: false
+auto_resume: false
+usage_threshold: 90
+```
+The key names and the format are literal: the hooks grep `^unsupervised:`, `^auto_resume:` and `^usage_threshold:`. Written as `**unsupervised:** false`, every consumer silently sees nothing and the defaults apply forever. `CLAUDE.md` names this file three times and `session-start.sh` / `statusline.sh` / `auto-resume-guard.sh` all read it; it is gitignored, so it must be created rather than committed by someone else.
 
 **Make hooks executable:**
 ```bash
@@ -334,10 +343,11 @@ Directories created: src/, tests/, docs/, .github/, .claude/, scripts/
 Language config: {list of files created}
 CI: {ci.yml, release.yml if applicable, dependabot.yml}
 Docs: dev docs (code-style, setup, deploy), user docs, CHANGELOG, CONTRIBUTING
-Infrastructure: .claude/ (agents N, skills N, hooks, memory, settings.json)
+Infrastructure: .claude/ (agents N, skills N, hooks N, memory, settings.json)
+              — count what you actually copied (`ls .claude/agents | wc -l`), don't estimate; this report is all the main session sees
 Root files: CLAUDE.md, README.md, .gitignore, LICENSE, .env.example
 Git: initial commit on {main|develop}
-Clean-clone gate: {ci.sh full passed | FAILED — details}
+Local `ci.sh fast`: {exit code, and the check count it printed}
 
 Notes: {any warnings, defaults applied, or files skipped}
 ```

@@ -15,28 +15,57 @@ MODE="${1:-full}"
 
 echo "▶ ci.sh ($MODE)"
 
-# --- fast: cheap, runs on every subtask ------------------------------------------------
-# Each placeholder below is a COMMAND LINE, not a comment. Replace the whole line with the
-# real command. A stage left as a comment makes this script exit 0 having checked nothing —
-# a gate that always passes. If a stage genuinely does not apply, delete its line.
+# --- how to fill this in ---------------------------------------------------------------
+# Each stage below is a `check <command>` line — a COMMAND LINE, not a comment. Replace the
+# whole placeholder line, keeping the `check ` prefix. Two rules:
+#
+#   * Go through the package manager: `npm run lint`, `uv run ruff check .`, `cargo clippy`.
+#     A bare `eslint`/`prettier`/`tsc`/`vitest` is not on PATH in GitHub Actions (they live in
+#     node_modules/.bin) — it exits 127 in CI while passing on a laptop with globals installed.
+#   * If a stage genuinely does not apply here, DELETE its line. Never leave the placeholder:
+#     `{{LINT}}` as a bare command aborts the run with "command not found".
+#
+# `check` counts what it runs, so a script with every stage deleted fails loudly at the end
+# instead of reporting a pass it never earned.
+CHECKS=0
+check() {
+  CHECKS=$((CHECKS + 1))
+  echo "  → $*"
+  "$@"
+}
 
-# e.g. prettier --check . | ruff format --check . | cargo fmt --check
-{{FORMAT_CHECK}}
-# e.g. eslint . | ruff check . | cargo clippy -- -D warnings
-{{LINT}}
-# e.g. tsc --noEmit | mypy . | (compile step)
-{{TYPECHECK}}
-# e.g. vitest run unit | pytest tests/unit | cargo test --lib
-{{UNIT_TESTS}}
+# --- prepare: generate sources the checks need ------------------------------------------
+# Anything gitignored-but-required must be produced HERE, before lint/typecheck run — a fresh
+# CI clone does not have it, which is how a gate passes locally and fails on the first push.
+# e.g. node scripts/generate-version.js | (delete this line if nothing is generated)
+{{GENERATE_SOURCES}}
+
+# --- fast: cheap, runs on every subtask -------------------------------------------------
+# e.g. check npm run format:check | check uv run ruff format --check . | check cargo fmt --check
+check {{FORMAT_CHECK}}
+# e.g. check npm run lint | check uv run ruff check . | check cargo clippy -- -D warnings
+check {{LINT}}
+# e.g. check npm run typecheck | check uv run mypy . | (compile step)
+check {{TYPECHECK}}
+# e.g. check npm test | check uv run pytest tests/unit | check cargo test --lib
+check {{UNIT_TESTS}}
 
 if [ "$MODE" = "full" ]; then
   # --- full: added at feature-done / merge / release -----------------------------------
-  # e.g. vitest run integration | pytest tests/integration
-  {{INTEGRATION_TESTS}}
-  # e.g. playwright test | pytest tests/e2e   (delete if no E2E framework is configured)
-  {{E2E_TESTS}}
-  # e.g. npm run build | docker build . | cargo build --release
-  {{BUILD}}
+  # e.g. check npm run test:integration | check uv run pytest tests/integration
+  check {{INTEGRATION_TESTS}}
+  # e.g. check npx playwright test | check uv run pytest tests/e2e   (delete if no E2E framework)
+  check {{E2E_TESTS}}
+  # e.g. check npm run build | check docker build . | check cargo build --release
+  check {{BUILD}}
+  : # keeps this block valid if every stage above was deleted — not a check
 fi
 
-echo "✓ ci.sh ($MODE) passed"
+if [ "$CHECKS" -eq 0 ] && [ "${CI_ALLOW_EMPTY:-0}" != "1" ]; then
+  echo "✗ ci.sh ($MODE): no checks are configured — this gate proves nothing." >&2
+  echo "  Fill the stages in scripts/ci.sh. If this project genuinely has no toolchain yet," >&2
+  echo "  record that in .claude/memory/tech-debt.md and set CI_ALLOW_EMPTY=1 to acknowledge it." >&2
+  exit 1
+fi
+
+echo "✓ ci.sh ($MODE) passed — $CHECKS check(s)"

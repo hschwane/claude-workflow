@@ -215,20 +215,48 @@ Wait for the agent to complete and review its report.
 
 **Do not skip this and do not delegate it.** A check performed and reported on by the same agent is a check that quietly stops happening; three separate gate defects have shipped past exactly that arrangement. Run it here, in the main session:
 
-```
-npm install                      # (or uv sync / cargo fetch) — MUST produce a lockfile
-test -f package-lock.json        # CI runs `npm ci`, which fails without one
-git add -A && git commit -m "chore: add lockfile" --amend --no-edit
-git clone {TARGET_DIR} {TMP}/verify-clone
-cd {TMP}/verify-clone && npm ci && ./scripts/ci.sh full
+```bash
+CLONE=$(mktemp -d)/verify-clone
+
+# 1. Lockfile — CI runs `npm ci`, which errors out without one.
+npm install                       # or: uv lock · cargo generate-lockfile
+test -f package-lock.json         # or: uv.lock · Cargo.lock — whichever this language uses
+
+# 2. Fold it into the scaffolder's initial commit, keeping that commit's message.
+#    `--amend -m` would REPLACE the message; `--no-edit` alone keeps it.
+git add -A && { git diff --cached --quiet || git commit --amend --no-edit; }
+
+# 3. The clone is the point.
+git clone . "$CLONE"
+( cd "$CLONE" && npm ci && ./scripts/ci.sh full )
+echo "clean-clone gate exit: $?"
+rm -rf "$CLONE"
 ```
 
-The clone is the point: anything gitignored, untracked or generated is absent there, which is precisely what GitHub Actions sees on the first push. A local pass proves nothing about it.
+The clone is the point: anything gitignored, untracked or generated is absent there, which is precisely what GitHub Actions sees on the first push. A local pass proves nothing about it — and the classic failure is a generated module (`src/version.ts`) that the local run has and the clone does not, which is why `ci.sh` regenerates it in its `{{GENERATE_SOURCES}}` stage before anything else.
+
+**Also check what the tokens claim.** Confirm `docs/dev/setup.md`'s clone URL is real for *this* project (a local-only project must not be given a GitHub URL), and that `.env.example` lists the variables `docs/dev/deploy.md` and `docs/dev/architecture.md` declare as required. Nothing else verifies the token fills.
 
 **A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
-Report the exit code in step 9. If the scaffolder's report omitted its own `ci.sh fast` exit code, treat that as a failed step and re-verify from scratch rather than assuming it passed.
+Report the exit code in step 9.
 
+**`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`. Read the check count `ci.sh` prints; a gate that ran nothing is a defect to fix here, not a green light.
+
+The scaffolder reports only its **local** `ci.sh fast` result — it is explicitly not allowed to report on the clone, because a check performed and reported on by the same actor is one that quietly stops happening. Treat any clean-clone claim in its report as noise and run the check yourself regardless.
+
+
+### 5d. Fill the README
+
+The scaffolder leaves `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}` and `{{OPERATIONS}}` as marked placeholders because it does not yet know how the project runs. You do now — from the manifest's scripts and `docs/dev/deploy.md`:
+
+- `{{INSTALLATION}}` → the shortest path that works (`npm install && npm run build`), linking `docs/dev/setup.md` for the rest.
+- `{{USAGE_EXAMPLE}}` → the one command or snippet that shows it working end to end.
+- `{{OPERATIONS}}` → for anything deployed: required environment variables, where it runs, the health endpoint. Delete the block entirely for a library or a local-only tool.
+
+**No `{{…}}` may survive this step.** Grep `README.md` before moving on. Leaving them is not neutral: `README.md` is the project's entry point, and `/release` checks it before every bump — so the first release opens with a finding this step should have closed. Nothing later in `/project-init` touches these three tokens.
+
+Commit with the step 5c fixes.
 
 ### 6. Workflow settings review
 
@@ -303,8 +331,8 @@ Then print a summary — version string, item count, and ID range for each.
 ### 8. GitHub Repository Creation (if requested)
 ```
 gh repo create {project-name} --{public|private} --source=. --remote=origin
-git push -u origin main
 ```
+**Do not push yet.** Two more commits happen below (the issue-number write-backs and the CI badge); pushing here leaves the remote behind both of them. The push is the last thing this step does.
 
 Create GitHub labels (`--force` updates labels that already exist, e.g. the default `bug` label):
 ```
@@ -318,7 +346,15 @@ gh label create done --force --color cfd3d7 --description "Implemented and merge
 
 **Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {spec path} --label "{feature|bug},backlog"` (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
 
-Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created, then commit (`docs: fill CI badge repo`). (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
+Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created. (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
+
+Then commit both this and the issue-number write-backs together, and push:
+```
+git add README.md docs/specs/
+git commit -m "docs: link GitHub issues and fill the CI badge  [skip ci]"
+git push -u origin {current branch}
+```
+Check `git status` afterwards — `/project-init` must not end on a dirty tree.
 
 ### 8b. Branching model
 
