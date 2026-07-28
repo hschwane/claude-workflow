@@ -19,7 +19,7 @@
     {
       "path": ".claude/guidelines/",
       "class": "plugin",
-      "note": "Only the library files matched at init are installed; a newly shipped one is offered, never forced.",
+      "note": "Selective, not a full mirror. Refresh the library files the project already has; a newly shipped one is OFFERED, never forced. `LIBRARY.md` and `INDEX.md.template` are plugin-side only and are never copied into a project — the project gets `README.md`, a generated `INDEX.md`, and its matched files.",
       "source": "templates/guidelines/"
     },
     {
@@ -212,7 +212,7 @@
     {
       "path": ".claude/ui/",
       "class": "plugin",
-      "note": "UI templates a guideline references; copied so the reference resolves inside the project.",
+      "note": "UI templates a guideline references; copied so the reference resolves inside the project. Install a file only when the guideline that references it is installed (`changelog-template.html` ← `changelog.md`).",
       "source": "templates/ui/"
     },
     {
@@ -293,6 +293,7 @@
     "Mirroring a plugin directory refreshes the listed files and deletes what a previous manifest listed and this one no longer does — anything else in that directory belongs to the project and stays.",
     "Removing or moving a file: inspect what project content it holds first and resolve that case specifically. Never delete a path without accounting for the project's share of it.",
     "A path in this manifest is the path IN A PROJECT. `source` is where it comes from in the plugin repo — always diff `git show v{current}:{source}` against the clone's `{source}`, never against the project path.",
-    "A `plugin`-class path the new manifest lists and the project does not have is INSTALLED, not skipped. 'Only changed files are touched' is about files that exist on both sides."
+    "A `plugin`-class path the new manifest lists and the project does not have is INSTALLED, not skipped. 'Only changed files are touched' is about files that exist on both sides.",
+    "A `source` file ending in `.template` is delivered with that suffix stripped, unless the manifest `path` itself ends in `.template` (only `docs/specs/spec.md.template`, which the project keeps as a template). So `templates/guidelines/INDEX.md.template` lands as `.claude/guidelines/INDEX.md`."
   ]
 }

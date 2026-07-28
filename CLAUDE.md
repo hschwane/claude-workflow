@@ -89,7 +89,7 @@ To improve the workflow itself:
 3. Test by using the skill in a test project with `--plugin-dir`
 4. Commit with conventional commits — **pushing the feature branch after every commit is fine** (pushes are backups; the quality gate is the review at merge time)
 5. Merge to `master` only after review (PR or explicit approval) — `master` is what users install from
-6. Tag a new version: `git tag v1.x.0`
+6. Tag a new version: `git tag vX.Y.Z`
 7. Push: `git push && git push --tags`
 
 ## Note for Claude sessions: GitHub operations

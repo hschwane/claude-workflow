@@ -120,8 +120,8 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
 
-**Library preferences — install the ones listed in `LIBRARY_GUIDELINES`:**
-`LIBRARY_GUIDELINES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
+**Library guidelines — install the ones listed in `LIBRARY_GUIDELINES`:**
+`LIBRARY_GUIDELINES` is a comma-separated list of guideline filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
 - Copy the source (`{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md`, or the absolute path if one was given) → `{TARGET_DIR}/.claude/guidelines/<basename>`.
 - Append its row to `{TARGET_DIR}/.claude/guidelines/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md`:
   `| <trigger row> | .claude/guidelines/<name>.md |`

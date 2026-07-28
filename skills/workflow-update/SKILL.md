@@ -66,7 +66,9 @@ For a directory (`.claude/skills/`, `.claude/agents/`, `.claude/guidelines/`, `.
 
 For a single file (`docs/dev/code-style.md`, `scripts/claude-loop.sh`), replace it when it changed.
 
-**Install what the project does not have.** A `plugin`-class path the new manifest lists and the project lacks is *installed*, not skipped — "only changed files are touched" is about files that exist on both sides. That is how `docs/specs/spec.md.template` (which `/plan` reads for every ticket) and `.claude/ui/` reach a project that predates them.
+**Install what the project does not have.** A `plugin`-class path the new manifest lists and the project lacks is *installed*, not skipped — "only changed files are touched" is about files that exist on both sides. That is how `docs/specs/spec.md.template` (which `/plan` reads for every ticket) reaches a project that predates it.
+
+**Two exceptions, both marked by a `note` in the manifest — read the note before mirroring a directory.** `.claude/guidelines/` is selective: refresh the library files the project *has*, **offer** a newly shipped one against what this project actually is, and never bulk-install the library — a project with twelve unmatched guidelines has an index `/plan` stops trusting. `LIBRARY.md` and `INDEX.md.template` stay on the plugin side and are never copied in. `.claude/ui/` follows its guideline: install a UI template only when the guideline referencing it is installed.
 
 **Files with marker blocks** (`CLAUDE.md`, `CONTRIBUTING.md`) are plugin files too, but their project blocks survive:
 1. Parse the project's copy for `project-specific: start: <id>` / `end: <id>`. **A marker counts only when it is the entire line** after trimming — the same text inside a sentence, inline code or a fenced block is prose, and every shipped `CLAUDE.md` contains exactly that as documentation.

@@ -24,4 +24,4 @@ A project's `.claude/guidelines/` is **plugin-owned**: `/workflow-update` overwr
 **To install one:** copy `templates/guidelines/<file>` → `<project>/.claude/guidelines/<file>`, then add a row to the project's `.claude/guidelines/INDEX.md`:
 `| <trigger row from the table above> | .claude/guidelines/<file> |`
 
-**To add a new library preference:** drop a `<topic>.md` here and add a row above. Keep each file short and specific — the standing rules you'd otherwise repeat every time you touch that tech/feature.
+**To add a new library guideline:** drop a `<topic>.md` here and add a row above. Keep each file short and specific — the standing rules you'd otherwise repeat every time you touch that tech/feature.
