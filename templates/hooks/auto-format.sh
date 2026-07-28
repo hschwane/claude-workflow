@@ -39,7 +39,12 @@ case "$FILE" in
     fi
     ;;
   *.py)
-    if command -v ruff &>/dev/null; then
+    # Same rule as prettier below: the project's pinned ruff, not a global one —
+    # ci.sh checks with `uv run ruff`, so formatting with a different build
+    # reintroduces the drift the gate exists to catch.
+    if [ -f "pyproject.toml" ] && command -v uv &>/dev/null; then
+      uv run ruff format "$FILE" 2>/dev/null || true
+    elif command -v ruff &>/dev/null; then
       ruff format "$FILE" 2>/dev/null || true
     fi
     ;;

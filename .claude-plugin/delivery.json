@@ -299,7 +299,7 @@
       "path": ".prettierignore",
       "class": "plugin",
       "source": "templates/configs/.prettierignore",
-      "note": "Plugin scaffolding, not project content: it exists so `prettier --check .` does not fail on the ~40 plugin-owned files under `.claude/`. Formatting those instead is not a fix — the update replaces them. `plugin` class so an update installs it into a project that predates it. A project adding its own ignores should do it in `.prettierignore.local` or accept that this file is replaced."
+      "note": "Plugin scaffolding, not project content: it exists so `prettier --check .` does not fail on the ~40 plugin-owned files under `.claude/`. Formatting those instead is not a fix — the update replaces them. `plugin` class so an update installs it into a project that predates it. A project adding its own ignores should do it in `.prettierignore.local` or accept that this file is replaced. **TypeScript/JavaScript only** — a project with no prettier must not be given a prettier ignore-file, at init or on update."
     },
     {
       "path": "src/index.ts",

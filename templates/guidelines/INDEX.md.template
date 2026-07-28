@@ -6,7 +6,9 @@ Rows are generated from the workflow's guideline library and **rewritten on ever
 
 <!-- Rows are appended below by /project-init, /project-onboard and /workflow-update — one per
      installed guideline, e.g.:
-     | Railway deploy, railway.json, deployment/hosting | .claude/guidelines/railway.md |
+     Railway deploy, railway.json, deployment/hosting -> .claude/guidelines/railway.md
+     (shown without table pipes on purpose: a real-looking row inside this comment
+     greps as an installed guideline that is not there.)
      Take the trigger text verbatim from the third column of the library's LIBRARY.md.
      Append to the end of this file so the table stays contiguous. -->
 

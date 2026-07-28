@@ -347,7 +347,7 @@ gh label create "in-progress" --force --color fbca04 --description "Being implem
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
 ```
 
-**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {stripped} --label "{feature|bug},backlog"`, where `{stripped}` is the spec **without its YAML frontmatter** (`sed '1{/^---$/!q};1,/^---$/d' {spec} > {tmp}`) — GitHub renders the raw block as a horizontal rule and a run-on line of `id: … type: … status: …` above the actual goal, on every issue (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
+**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {stripped} --label "{feature|bug},backlog"`, where `{stripped}` is the spec **without its YAML frontmatter** (`if [ "$(head -1 "$spec")" = "---" ]; then sed '1,/^---$/d' "$spec"; else cat "$spec"; fi > "$tmp"` — a bare `sed … q` prints line 1 before quitting, so a spec written by hand without frontmatter would be filed as an issue containing only its title) — GitHub renders the raw block as a horizontal rule and a run-on line of `id: … type: … status: …` above the actual goal, on every issue (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
 
 Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created. (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
 
@@ -365,7 +365,13 @@ Runs whether or not a GitHub repo was created — a local-only project still nee
 
 **Finish clean, whichever path ran.** `git status --short` must be empty — this is the only such check that runs for a `github: no` project, since step 8 is skipped entirely there. Anything left over is something an earlier step created and did not stage.
 
-**Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). With a remote, `git push -u origin develop` and `gh repo edit --default-branch develop`.
+**Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). With a remote, push **both** branches:
+```
+git push -u origin main
+git push -u origin develop
+gh repo edit --default-branch develop
+```
+Pushing only the current branch leaves the remote with no `main` — and `main` is the branch `/release` merges into and tags, and the one a deploy target watches. The first release then fails with "The current branch main has no upstream branch".
 **main-only:** nothing to do; the scaffolder already left HEAD on `main`.
 
 The `branching` value is already in the `workflow-settings` block (the scaffolder wrote it in Step E) — don't write it again.

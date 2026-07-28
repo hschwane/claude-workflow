@@ -124,34 +124,46 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found").
 - **Every source root the architecture names must be covered by the gate, not just created.** Step A makes the directories; on its own that ships a `web/` (or `client/`, `app/`) whose first file turns `eslint .` red with *"was not found by the project service"*, is never type-checked (`tsc --noEmit` returns 0 on a genuine type error there), and is absent from `npm run build`. For each additional root:
   - add it to `tsconfig.json`'s `include` (`"web/**/*"`) so lint and typecheck see it;
-  - give it its own entry in the build — either widen `tsconfig.build.json` or add a second build step to the `build` script — so `ci.sh full`'s "deployable build" actually contains the frontend;
-  - commit an entry point there, for the same reason `src/index.ts` exists.
+  - **give a browser root the DOM libs.** The shipped profile is `"lib": ["ES2022"]` — Node's. Add `"lib": ["ES2022", "DOM", "DOM.Iterable"]` to the config `tsc --noEmit` and eslint use, or give the frontend its own `web/tsconfig.json` and reference it. Without this the first line of *real* browser code fails with `TS2304: Cannot find name 'HTMLElement'` — a pure-TS file passes, so this hides until someone touches the DOM;
+  - **build it with a second step, not a widened `tsconfig.build.json`.** The strict profile pins `rootDir: "./src"`, so adding `web/**/*` to the build include gives `TS6059: not under rootDir` for every file. Add a second `tsc -p web/tsconfig.json` to the `build` script (overriding `rootDir`/`outDir` there) so `ci.sh full`'s "deployable build" actually contains the frontend;
+  - commit an entry point there, for the same reason `src/index.ts` exists;
+  - **document it.** `src/CLAUDE.md` is auto-loaded only under `src/`, so a second root has no guide at all. Either write a `CLAUDE.md` in it too, or have `src/CLAUDE.md` describe both — and say which you did.
+
+  When the architecture names a real frontend framework (React + Vite, Svelte), say plainly in your report that the scaffold wires only `tsc`, so the first frontend ticket will replace the build it was handed. Better an honest hand-off than a build that looks finished.
 
   "Create every directory named in `ARCHITECTURE_SUMMARY`" is only half a rule; the other half is "and make the gate cover them". A root the gate cannot see is worse than one that does not exist, because the docs promise it works.
 - **The stub must not import `./version.js`.** That is the same trap one rule over: the import resolves locally because the generated file is sitting there untracked, and fails in a fresh clone with TS2307. Generated modules are imported by real code later — which is why `ci.sh` regenerates them first (`{{GENERATE_SOURCES}}`, filled below). The stub itself stays self-contained.
 
-Every language needs the same three things the TypeScript block spells out, so do them for whichever one applies: **a committed source file** (the gate has nothing to lint or compile otherwise), **a lockfile, generated and committed** (CI installs `--locked` / `npm ci` and fails outright without one), and **the gate's tools declared as dev dependencies** so `ci.sh` can reach them through the package manager.
+Every language needs the same four things the TypeScript block spells out, so do them for whichever one applies:
+
+1. **A committed source file** — the gate has nothing to lint or compile otherwise.
+2. **A lockfile, generated and committed** — CI installs `--locked` / `npm ci` and fails outright without one.
+3. **The gate's tools declared as dev dependencies**, in the table the package manager actually installs by default. For uv that is `[dependency-groups] dev`, **not** `[project.optional-dependencies]`: an extra is only installed with an explicit `--extra`, so `uv run ruff` silently falls through to whatever is on PATH — and fails with "Failed to spawn: ruff" on a machine with no global install, which is exactly what CI is.
+4. **A committed placeholder test**, unless the runner has a no-tests flag. `vitest` has `--passWithNoTests`; **pytest exits 5 on an empty suite** and `cargo test` and `ctest` are equally unforgiving. An empty suite is the normal state at scaffold time, so write one trivial passing test in the project's test layout and let the gate run it.
+
+**The project must also be runnable, not just checkable.** `docs/dev/setup.md` prints a run command; if the architecture names a framework, add it to the real dependencies (`fastapi`, `axum`, `fastify`) and give the project an entry point that command can actually start. A scaffold whose gate is green but whose `{{RUN_COMMAND}}` fails on the first try is not finished — step 5c verifies the gate, and nothing else verifies this.
 
 **Python:**
 - `pyproject.toml` → `pyproject.toml` (fill in project name and description)
-- add `ruff`, `mypy` and `pytest` to the dev dependencies — `ci.sh` calls them via `uv run`
+- the shipped `pyproject.toml` already declares `ruff`, `mypy` and `pytest` under `[dependency-groups] dev`, which `uv run` installs by default — keep them there
 - `uv lock` (or `uv sync`), and commit `uv.lock`
-- create `src/{package}/__init__.py` and `src/{package}/main.py` with a real stub
+- create `src/{package}/__init__.py` and `src/{package}/main.py` with a real stub, and **an `__init__.py` in every architecture package** (`domain/`, `application/`, …) — not a `.gitkeep`. A `.gitkeep` is the wrong idiom for a Python package and gets packaged into the wheel.
+- write `tests/unit/test_placeholder.py` with one trivial passing test
 
 **Rust:**
 - Create `Cargo.toml` with `[package] name = "{PROJECT_NAME}" version = "0.1.0" edition = "2021"`
 - `cargo generate-lockfile`, and commit `Cargo.lock`
-- create `src/main.rs` (or `src/lib.rs` for a library) with a real stub
+- create `src/main.rs` (or `src/lib.rs` for a library) with a real stub, and one trivial `#[test]` so `cargo test` has something to run
 
 **C++:**
 - `CMakeLists.txt` → `CMakeLists.txt` (fill in project name)
 - `.clang-format` → `.clang-format` (write it inline — no template ships)
 - `version.h.in` → `src/version.h.in`
-- create `src/main.cpp` with a real stub, and configure once (`cmake -S . -B build`) so the gate's `cmake --build build` has something to build
+- create `src/main.cpp` with a real stub and one trivial test target, and configure once (`cmake -S . -B build`) so the gate's `cmake --build build` and `ctest` both have something to run
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
-**Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Do this as a sweep after Step I, and remove a `.gitkeep` again as soon as something real lands in that directory (`/project-init` step 7 fills `docs/specs/backlog/`). Sweep: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
+**Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Use the language's own package marker where one exists — `__init__.py` for a Python package directory — and `.gitkeep` only where none does. Do this as a sweep after Step I, and remove a `.gitkeep` again as soon as something real lands in that directory (`/project-init` step 7 fills `docs/specs/backlog/`). Sweep: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
 
 **Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
 
@@ -237,7 +249,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 Everything else — `CLAUDE.md`, `src/CLAUDE.md`, the test directory's `CLAUDE.md`, `docs/**`, `CONTRIBUTING.md`, `scripts/*.sh`, the configs — must contain no `{{` at the initial commit.
 
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
-- `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` (only if DEPLOY ≠ `none` and the main session did not already write it)
+- `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` — **always**, even at `DEPLOY: none`, because the root `CLAUDE.md` and `CONTRIBUTING.md` both index it and a broken pointer in an always-loaded file is worse than a short file. At `none`, write a two-line version saying the project is not deployed and what would have to change. Don't overwrite one the main session already wrote.
 - `dev/code-style.md.template` → `{TARGET_DIR}/docs/dev/code-style.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`
 - `spec.md.template` → `{TARGET_DIR}/docs/specs/spec.md.template` — `/plan` and `/draft` read it to create every ticket

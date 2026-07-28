@@ -9,7 +9,11 @@ description = "{{PROJECT_DESCRIPTION}}"
 requires-python = ">=3.11"
 dependencies = []
 
-[project.optional-dependencies]
+# A dependency-GROUP, not an optional-dependencies extra: `uv run` and `uv sync`
+# install groups by default, extras only with an explicit --extra. Declared as an
+# extra, `uv run ruff` falls through to whatever is on PATH — or fails with
+# "Failed to spawn: ruff" on a machine with no global install, which is what CI is.
+[dependency-groups]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
@@ -46,4 +50,11 @@ no_implicit_reexport = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=src --cov-report=term-missing --cov-fail-under=80"
+# No --cov-fail-under here: a freshly scaffolded project has 0% coverage, so a
+# threshold in the shared addopts makes the very first gate run red. Add one once
+# the suite is real, as a deliberate choice.
+addopts = "--cov=src --cov-report=term-missing"
+
+# pytest exits 5 ("no tests collected") on an empty suite, which is the normal
+# state at scaffold time. The scaffolder commits a placeholder test so the gate
+# has something to run from the first commit.

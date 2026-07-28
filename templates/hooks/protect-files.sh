@@ -35,6 +35,7 @@ BLOCKED_PATTERNS=(
   "yarn\.lock$"
   "pnpm-lock\.yaml$"
   "poetry\.lock$"
+  "uv\.lock$"
   "Cargo\.lock$"
 )
 
