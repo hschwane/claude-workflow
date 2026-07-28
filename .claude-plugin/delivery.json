@@ -20,7 +20,27 @@
       "path": ".claude/guidelines/",
       "class": "plugin",
       "note": "Selective, not a full mirror. Refresh the library files the project already has; a newly shipped one is OFFERED, never forced. `LIBRARY.md` and `INDEX.md.template` are plugin-side only and are never copied into a project — the project gets `README.md`, a generated `INDEX.md`, and its matched files.",
-      "source": "templates/guidelines/"
+      "source": "templates/guidelines/",
+      "sourceBefore": {
+        "3.0.0": "templates/preferences/"
+      }
+    },
+    {
+      "path": ".claude/guidelines/INDEX.md",
+      "class": "plugin",
+      "note": "REGENERATED, never copied. The plugin ships a row-less template; the project's copy is that header plus one row per installed guideline. Replacing it from source empties the table and every guideline silently stops being read. Rebuild the rows from `LIBRARY.md` for the files actually present in `.claude/guidelines/`.",
+      "source": "templates/guidelines/INDEX.md.template",
+      "sourceBefore": {
+        "3.0.0": "templates/preferences/INDEX.md.template"
+      }
+    },
+    {
+      "path": ".claude/guidelines/README.md",
+      "class": "plugin",
+      "source": "templates/guidelines/README.md",
+      "sourceBefore": {
+        "3.0.0": "templates/preferences/README.md"
+      }
     },
     {
       "path": ".claude/hooks/*.sh",
@@ -177,8 +197,9 @@
     },
     {
       "path": ".github/dependabot.yml",
-      "class": "plugin",
-      "source": "templates/github/dependabot.yml"
+      "class": "mixed",
+      "source": "templates/github/dependabot.yml",
+      "note": "The scaffolder uncomments the ecosystem matching this project's language, so the delivered file carries per-project state that a wholesale replace would revert — merge it and keep the project's enabled ecosystems."
     },
     {
       "path": "railway.json",
@@ -234,6 +255,43 @@
       "path": "docs/changelog/",
       "class": "project",
       "note": "Created by /release on the first split, not at init."
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/",
+      "class": "project",
+      "note": "Created at init/onboard when GitHub integration is on; the project edits them freely.",
+      "source": "templates/github/"
+    },
+    {
+      "path": "package.json",
+      "class": "project",
+      "source": "templates/configs/package.json.template",
+      "note": "Also the default `version-source`. The plugin seeds it once; every later change is the project's."
+    },
+    {
+      "path": "pyproject.toml",
+      "class": "project",
+      "source": "templates/configs/pyproject.toml"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "class": "project",
+      "source": "templates/configs/CMakeLists.txt"
+    },
+    {
+      "path": "mkdocs.yml",
+      "class": "project",
+      "source": "templates/configs/mkdocs.yml.template"
+    },
+    {
+      "path": "scripts/generate-version.js",
+      "class": "project",
+      "source": "templates/configs/generate-version.js"
+    },
+    {
+      "path": "src/version.h.in",
+      "class": "project",
+      "source": "templates/configs/version.h.in"
     }
   ],
   "removedIn3": [
@@ -294,6 +352,10 @@
     "Removing or moving a file: inspect what project content it holds first and resolve that case specifically. Never delete a path without accounting for the project's share of it.",
     "A path in this manifest is the path IN A PROJECT. `source` is where it comes from in the plugin repo — always diff `git show v{current}:{source}` against the clone's `{source}`, never against the project path.",
     "A `plugin`-class path the new manifest lists and the project does not have is INSTALLED, not skipped. 'Only changed files are touched' is about files that exist on both sides.",
-    "A `source` file ending in `.template` is delivered with that suffix stripped, unless the manifest `path` itself ends in `.template` (only `docs/specs/spec.md.template`, which the project keeps as a template). So `templates/guidelines/INDEX.md.template` lands as `.claude/guidelines/INDEX.md`."
+    "A `source` file ending in `.template` is delivered with that suffix stripped, unless the manifest `path` itself ends in `.template` (only `docs/specs/spec.md.template`, which the project keeps as a template). So `templates/guidelines/INDEX.md.template` lands as `.claude/guidelines/INDEX.md`.",
+    "The most specific path wins. `docs/specs/spec.md.template` is `plugin` even though `docs/specs/` is `project`; a directory entry never overrides a file entry inside it.",
+    "An entry with no `source` is project state the plugin does not author (`local-settings.md`, `context-*.md`, `docs/user/`, `LICENSE`, …). It is never diffed and never written by an update.",
+    "Where `source` is a directory but `path` is a single file, the plugin ships language/target variants and the project holds exactly one. Resolve the member from `variants` in `workflow-source.json`; if that is missing, detect it from the project's own file and record it. Never diff the whole directory.",
+    "`sourceBefore` records where an entry's source lived in earlier plugin versions. Resolving OLD for a version at or below the listed one uses that path — `git show v{current}:{source}` fails outright when the plugin renamed its own directory, and a failed OLD must never be read as 'new file, safe to overwrite'."
   ]
 }

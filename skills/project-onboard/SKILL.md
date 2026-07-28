@@ -91,7 +91,11 @@ Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
 - `.claude/guidelines/` (**plugin-owned** — replaced wholesale on `/workflow-update`): copy `templates/guidelines/{README.md, INDEX.md.template→INDEX.md}`; the rows come from the library install below.
 - `.claude/memory/` (**project-owned**): copy `templates/memory/{decisions.md.template, gotchas.md.template, tech-debt.md.template}` (skip any the project already has) and `.gitignore`. This is where anything project-specific goes — a deliberate deviation from a guideline is a dated entry in `decisions.md` that names the guideline.
 
-Write the root `CLAUDE.md` from `templates/CLAUDE.md.template`, filling the `identity` block from the analysis and the `workflow-settings` block from the answers in step 2. If the analysis surfaced local conventions worth keeping, record them now — a house rule or deliberate deviation as a dated entry in `decisions.md`, a non-obvious trap in `gotchas.md`.
+**Root `CLAUDE.md` — check for an existing one first.** This is the file an onboarded repo is most likely to already have, and it is usually hand-written and valuable.
+- **No `CLAUDE.md`:** write it from `templates/CLAUDE.md.template`, filling the `identity` block from the analysis and the `workflow-settings` block from the answers in step 2.
+- **One exists:** do **not** overwrite it. Take the template as the base, move the project's own content into the `identity` block, and show the result before writing. Anything that is a standing *rule* rather than a description of the project goes to `decisions.md` (or `src/CLAUDE.md` if it is code-level) instead of into the block — say where each piece went.
+
+If the analysis surfaced local conventions worth keeping, record them now — a house rule or deliberate deviation as a dated entry in `decisions.md`, a non-obvious trap in `gotchas.md`.
 
 **Install matching guidelines:** consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, detect which guidelines fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below); a backend/service with a domain/application/infrastructure-style layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines; skip all if none match.
 
@@ -103,6 +107,7 @@ Write the root `CLAUDE.md` from `templates/CLAUDE.md.template`, filling the `ide
 - Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh`.
 - `chmod +x scripts/*.sh`
 - If the project already has an equivalent script, point `ci.sh`/`release.sh` at it (or skip and note it) rather than duplicating.
+- **Verify the gate before moving on.** Each placeholder is a command line, not a comment: run `bash -n scripts/ci.sh`, then `scripts/ci.sh fast`, and confirm it actually executed this project's commands. A stage left empty or still holding `{{...}}` makes the script exit 0 having checked nothing — a gate that always passes. If a stage genuinely does not apply here, delete its line and say so.
 
 **b) Create developer documentation** (from plugin `templates/`):
 ```
@@ -169,11 +174,9 @@ Create from `templates/CONTRIBUTING.md.template` (fill `{{WORKFLOW_REPO}}` and `
 **g2) README.md (if not present):**
 Create root `README.md` from `templates/README.md.template`, filled with the detected project name, description, and tech stack from the analysis. **Never overwrite an existing README** — if one exists, only offer to append a short "Development" section linking to `CONTRIBUTING.md`.
 
-**h) CLAUDE.md (if not present):**
-Create root `CLAUDE.md` from template, filled with detected tech stack and architecture summary.
-If CLAUDE.md already exists: offer to add the workflow commands table to it.
+**h) CLAUDE.md** — already handled in step 3a, which is the only place that writes it. Nothing to do here.
 
-Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/plan`, `/implement`, etc.) are immediately available.
+The skills, agents and hooks just installed under `.claude/` are picked up at **session start**, so they are not live in this session. Don't try to invoke one yet; the report in step 6 tells the user to restart.
 
 ### 4. GitHub Setup (if applicable)
 Only run this step if the user answered **yes** to the GitHub question in step 2 (i.e., `decisions.md` will contain `GitHub integration: yes`):
@@ -182,9 +185,11 @@ Only run this step if the user answered **yes** to the GitHub question in step 2
 
 ### 5. Commit
 ```
-git add .claude/ docs/ CLAUDE.md CONTRIBUTING.md .github/
+git add .claude/ docs/ scripts/ CLAUDE.md CONTRIBUTING.md README.md .github/
+git add railway.json .env.example 2>/dev/null || true    # only if this onboarding created them
 git commit -m "chore: install claude-workflow infrastructure"
 ```
+Stage every path this onboarding created or changed — `scripts/` in particular, since `ci.sh` and `release.sh` are what `/commit`, `/verify` and CI all call. Check `git status` before committing and report anything left unstaged rather than printing "complete" over it.
 
 ### 6. Report
 ```
