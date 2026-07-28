@@ -8,40 +8,48 @@
   "entries": [
     {
       "path": ".claude/skills/",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "skills/"
     },
     {
       "path": ".claude/agents/",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "agents/"
     },
     {
       "path": ".claude/guidelines/",
       "class": "plugin",
-      "note": "Only the library files matched at init are installed; a newly shipped one is offered, never forced."
+      "note": "Only the library files matched at init are installed; a newly shipped one is offered, never forced.",
+      "source": "templates/guidelines/"
     },
     {
       "path": ".claude/hooks/*.sh",
       "class": "plugin",
-      "note": "Plugin-owned. A project adds its own hook as a new file — manifest-driven mirroring leaves it alone, and its settings.json entry survives because that merge only ever adds."
+      "note": "Plugin-owned. A project adds its own hook as a new file — manifest-driven mirroring leaves it alone, and its settings.json entry survives because that merge only ever adds.",
+      "source": "templates/hooks/"
     },
     {
       "path": ".claude/memory/.gitignore",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "templates/memory/.gitignore"
     },
     {
       "path": ".claude/memory/decisions.md",
       "class": "project",
-      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss.",
+      "source": "templates/memory/decisions.md.template"
     },
     {
       "path": ".claude/memory/gotchas.md",
       "class": "project",
-      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss.",
+      "source": "templates/memory/gotchas.md.template"
     },
     {
       "path": ".claude/memory/tech-debt.md",
       "class": "project",
-      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss."
+      "note": "Created from a template with a topic index in its head, so a reader can load only the head and stop there on a miss.",
+      "source": "templates/memory/tech-debt.md.template"
     },
     {
       "path": ".claude/memory/local-settings.md",
@@ -56,7 +64,8 @@
     {
       "path": ".claude/settings.json",
       "class": "mixed",
-      "merge": "Add missing hook entries and permissions.allow members; never remove; add statusLine only if absent; leave every other key."
+      "merge": "Add missing hook entries and permissions.allow members; never remove; add statusLine only if absent; leave every other key.",
+      "source": "templates/hooks/hooks.json"
     },
     {
       "path": ".claude/workflow-source.json",
@@ -73,7 +82,8 @@
       "keyMerge": [
         "workflow-settings"
       ],
-      "note": "Plugin-owned; the marked project blocks survive replacement."
+      "note": "Plugin-owned; the marked project blocks survive replacement.",
+      "source": "templates/CLAUDE.md.template"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -82,39 +92,48 @@
       "blocks": [
         "contributing"
       ],
-      "note": "Plugin-owned; the marked project blocks survive replacement."
+      "note": "Plugin-owned; the marked project blocks survive replacement.",
+      "source": "templates/CONTRIBUTING.md.template"
     },
     {
       "path": "README.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/README.md.template"
     },
     {
       "path": "CHANGELOG.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/CHANGELOG.md.template"
     },
     {
       "path": "src/CLAUDE.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/src-claude.md.template"
     },
     {
       "path": "tests/CLAUDE.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/tests-claude.md.template"
     },
     {
       "path": "docs/dev/code-style.md",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "templates/dev/code-style.md.template"
     },
     {
       "path": "docs/dev/architecture.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/dev/architecture.md.template"
     },
     {
       "path": "docs/dev/setup.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/dev/setup.md.template"
     },
     {
       "path": "docs/dev/deploy.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/dev/deploy.md.template"
     },
     {
       "path": "docs/user/",
@@ -126,67 +145,81 @@
     },
     {
       "path": "docs/VISION.md",
-      "class": "project"
+      "class": "project",
+      "source": "templates/vision.md.template"
     },
     {
       "path": "scripts/ci.sh",
       "class": "mixed",
-      "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run."
+      "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run.",
+      "source": "templates/scripts/ci.sh"
     },
     {
       "path": "scripts/release.sh",
       "class": "mixed",
-      "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run."
+      "note": "The project's commands and the plugin's scaffolding are interleaved; replacing them would silently produce a gate that exits 0 with nothing to run.",
+      "source": "templates/scripts/release.sh"
     },
     {
       "path": "scripts/claude-loop.sh",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "templates/scripts/claude-loop.sh"
     },
     {
       "path": ".github/workflows/ci.yml",
-      "class": "mixed"
+      "class": "mixed",
+      "source": "templates/github/"
     },
     {
       "path": ".github/workflows/release.yml",
-      "class": "mixed"
+      "class": "mixed",
+      "source": "templates/github/"
     },
     {
       "path": ".github/dependabot.yml",
-      "class": "plugin"
+      "class": "plugin",
+      "source": "templates/github/dependabot.yml"
     },
     {
       "path": "railway.json",
       "class": "project",
-      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes.",
+      "source": "templates/configs/railway.json"
     },
     {
       "path": "tsconfig*.json",
       "class": "project",
-      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes.",
+      "source": "templates/configs/"
     },
     {
       "path": "eslint.config.js",
       "class": "project",
-      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes.",
+      "source": "templates/configs/eslint.config.js"
     },
     {
       "path": ".prettierrc",
       "class": "project",
-      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes."
+      "note": "Delivered once at init; the project owns it afterwards. An update only suggests upstream changes.",
+      "source": "templates/configs/.prettierrc"
     },
     {
       "path": ".gitignore",
-      "class": "project"
+      "class": "project",
+      "source": "templates/gitignore/"
     },
     {
       "path": ".claude/ui/",
       "class": "plugin",
-      "note": "UI templates a guideline references; copied so the reference resolves inside the project."
+      "note": "UI templates a guideline references; copied so the reference resolves inside the project.",
+      "source": "templates/ui/"
     },
     {
       "path": "docs/specs/spec.md.template",
       "class": "plugin",
-      "note": "Read by /draft and /plan to create every ticket."
+      "note": "Read by /draft and /plan to create every ticket.",
+      "source": "templates/spec.md.template"
     },
     {
       "path": ".env.example",
@@ -247,6 +280,10 @@
     {
       "path": ".claude/project-notes/",
       "reason": "retired; deviations to decisions.md, traps to gotchas.md"
+    },
+    {
+      "path": ".claude/skills/workflow-decisions/",
+      "reason": "renamed to workflow-settings; the old skill writes to docs/workflow/decisions.md, which v3 deletes"
     }
   ],
   "rules": [
@@ -254,6 +291,8 @@
     "Before creating a new file, check whether the project already has one by that name; if so, resolve it explicitly instead of overwriting.",
     "Only files whose plugin version actually changed between the installed and target release are touched at all.",
     "Mirroring a plugin directory refreshes the listed files and deletes what a previous manifest listed and this one no longer does — anything else in that directory belongs to the project and stays.",
-    "Removing or moving a file: inspect what project content it holds first and resolve that case specifically. Never delete a path without accounting for the project's share of it."
+    "Removing or moving a file: inspect what project content it holds first and resolve that case specifically. Never delete a path without accounting for the project's share of it.",
+    "A path in this manifest is the path IN A PROJECT. `source` is where it comes from in the plugin repo — always diff `git show v{current}:{source}` against the clone's `{source}`, never against the project path.",
+    "A `plugin`-class path the new manifest lists and the project does not have is INSTALLED, not skipped. 'Only changed files are touched' is about files that exist on both sides."
   ]
 }
