@@ -25,10 +25,11 @@ Read the spec. Confirm it's ready to build: clear goal, **observable acceptance 
 ### 1. Branch
 If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
 ```
-git checkout {develop|main} && git pull
-git checkout -b feature/{lowercase-id}-{kebab-title}
+git checkout {develop|trunk-branch}
+[ -n "$(git remote)" ] && git pull          # a local-only repo has no upstream; skip, don't fail
+git checkout -b {feature|fix}/{lowercase-id}-{kebab-title}    # prefix follows the ticket type
 ```
-Set the spec frontmatter `status: in-progress`. If `github_issue` is set and `github` setting in `CLAUDE.md` is not `no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
+Set the spec frontmatter `status: in-progress`. **The file stays in `docs/specs/ready/`** — there is no `in-progress/` directory; only the status changes. (Step 5 does `git mv` it, to `completed/`.) If `github_issue` is set and `github` setting in `CLAUDE.md` is not `no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
 
 Multiple sessions may run on different branches concurrently — that's fine; each owns its branch.
 
@@ -48,8 +49,10 @@ For each subtask:
 ```
 git add -A
 git commit -m "{feat|fix}({scope}): {subtask description}  [skip ci]"
-git push -u origin {branch}
+[ -n "$(git remote)" ] && git push -u origin {branch}   # skip silently when github: no
 ```
+**If this subtask adds or changes integration or E2E tests, run `ci.sh full` for it instead** — `fast` excludes exactly those, so the subtask that adds them would be committed green having never executed one of them, and the next `full` run is where you find out.
+
 Append `[skip ci]` **unless** the project's `ci-on-claude` decision is `yes` (libraries) — then omit it so CI runs on the push. (When GitHub integration is off, the marker is harmless.) Pushing per subtask is a cheap backup; the gate already ran locally.
 
 **e) Tick the box** — `- [ ] #N` → `- [x] #N` in the spec. The spec's checkboxes + git log ARE the progress record; `/resume` reconstructs from them. Don't maintain a separate checkpoint.
@@ -65,6 +68,7 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 ### 4. Documentation (minimal, per policy)
 
 Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
+- **`README.md`:** if the change altered how the tool is invoked — a new command, a changed flag, a different install step — update the usage example now. `/release` re-checks it, but leaving it stale means every branch and every PR in between documents the wrong thing.
 - **Technical:** keep `docs/dev/architecture.md` accurate if structure, algorithms, APIs, or the data model changed, and record a lasting choice as a dated entry in `.claude/memory/decisions.md`. A pure bug fix usually needs nothing — but check.
 - **User docs (`docs/user/`):** only if user-facing behavior changed (new/changed command, endpoint, UI, config). Prefer self-explanatory UI + in-app hints over prose.
 - **Doc-comments:** only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions.

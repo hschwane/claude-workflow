@@ -42,6 +42,11 @@ step {{PUBLISH}}
 
 # 4. Deploy. This is the ONE step that may legitimately be a no-op: a platform that
 # auto-deploys on merge (Railway, Vercel) genuinely has nothing to run here.
+#
+# A project that publishes nothing and deploys nowhere (release-type: internal,
+# deploy: none) can legitimately delete steps 2-4 and keep only the healthcheck —
+# that one step is enough to satisfy the guard at the bottom. Do not delete the
+# healthcheck to make the script shorter; it is what proves the release runs.
 # e.g. step railway up | step : (Railway auto-deploys on merge)
 step {{DEPLOY}}
 

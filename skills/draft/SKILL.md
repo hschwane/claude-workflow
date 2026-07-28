@@ -24,5 +24,5 @@ Creates a minimal backlog entry. No planning required — `/plan` fleshes it out
    Body: for a feature, the Goal user story plus the description with unknowns marked `[?]`; for a bug, Observed / Expected / Repro. Leave Acceptance Criteria as `- [ ] (defined in /plan)`.
 
 4. **GitHub** (skip if the `github` setting in `CLAUDE.md` is `no`, or there is no github remote): `gh issue create --title "{title}" --label "{type},backlog" --body-file "{spec}"`, then set `github_issue:` in the frontmatter.
-5. **Commit**: `docs(specs): draft {TYPE}-{NNN}  [skip ci]`.
+5. **Commit**: `git add docs/specs/ && git commit -m "docs(specs): draft {TYPE}-{NNN}  [skip ci]"`. Stage the specs directory explicitly — a bare commit here sweeps whatever else is in the working tree into a `docs(specs):` commit.
 6. **Report**: `Created {TYPE}-{NNN}: "{title}" — next: /plan {TYPE}-{NNN}`.

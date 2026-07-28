@@ -58,7 +58,7 @@ If resolving the spec needs the user's input, collect every `[USER]` question.
 When a spec has a goal, observable acceptance criteria, an approach, subtasks, and no open questions:
 - Set frontmatter `status: ready`; `git mv docs/specs/backlog/{file} docs/specs/ready/{file}`.
 - If `github_issue` is set and the `github` setting in `CLAUDE.md` is not `no`: move labels to `ready`.
-- Commit (`docs(specs): plan {id}  [skip ci]`).
+- Commit: `git add docs/specs/ && git commit -m "docs(specs): plan {id}  [skip ci]"` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.
 
 ### 6. Report
 ```

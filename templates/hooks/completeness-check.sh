@@ -21,7 +21,10 @@ SPEC=$(grep -rl "^status:[[:space:]]*in-progress" "$ROOT/docs/specs/" 2>/dev/nul
 HAS_SHIP=no; { [ -f "$SHIP" ] && grep -q "^## Ship" "$SHIP" 2>/dev/null; } && HAS_SHIP=yes
 UNCHECKED=0
 # grep -c prints 0 AND exits 1 on no match; `|| true` swallows the exit so we don't get "0\n0".
-[ -n "$SPEC" ] && UNCHECKED=$(grep -c "^- \[ \]" "$SPEC" 2>/dev/null || true)
+# Count ONLY the Subtasks section. Acceptance criteria are checkboxes too, and no skill
+# ticks them, so counting the whole file yields a number that never reaches 0 — which in
+# unsupervised mode is handed back to Claude as "work remaining".
+[ -n "$SPEC" ] && UNCHECKED=$(sed -n '/^## Subtasks/,/^## /p' "$SPEC" 2>/dev/null | grep -c "^- \[ \]" || true)
 
 # Nothing in progress → allow stop.
 [ -z "$SPEC" ] && [ "$HAS_SHIP" = no ] && exit 0

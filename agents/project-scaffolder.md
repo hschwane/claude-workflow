@@ -181,10 +181,12 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 | | fast | full adds |
 |---|---|---|
-| TypeScript | `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm test` (already scoped to `tests/unit`) | `npm run test:integration` · `npm run build` |
-| Python | `uv run ruff format --check .` · `uv run ruff check .` · `uv run mypy .` · `uv run pytest tests/unit` | `uv run pytest tests/integration` · `uv build` |
-| Rust | `cargo fmt --check` · `cargo clippy -- -D warnings` · `cargo test --lib` | `cargo test --test '*'` · `cargo build --release` |
-| C++ | `clang-format --dry-run -Werror …` · `clang-tidy …` · `cmake --build build` · `ctest --test-dir build -L unit` | `ctest --test-dir build -L integration` |
+| TypeScript | `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm test` (already scoped to `tests/unit`) | `npm run build` **then** `npm run test:integration` |
+| Python | `uv run ruff format --check .` · `uv run ruff check .` · `uv run mypy .` · `uv run pytest tests/unit` | `uv build` **then** `uv run pytest tests/integration` |
+| Rust | `cargo fmt --check` · `cargo clippy -- -D warnings` · `cargo test --lib` | `cargo build --release` **then** `cargo test --test '*'` |
+| C++ | `clang-format --dry-run -Werror …` · `clang-tidy …` · `cmake --build build` · `ctest --test-dir build -L unit` | `ctest --test-dir build -L integration` (the build already ran in `fast`) |
+
+**Keep the build ahead of the integration tests** — they usually drive the built artifact, so running them first tests whatever was last in `dist/`. The template already orders them that way; preserve it.
 
 The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).

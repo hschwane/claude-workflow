@@ -53,12 +53,16 @@ check {{UNIT_TESTS}}
 
 if [ "$MODE" = "full" ]; then
   # --- full: added at feature-done / merge / release -----------------------------------
+  # BUILD COMES FIRST. Integration and E2E tests usually drive the built artifact — a CLI
+  # binary, a container, a bundled service. Run them before the build and they exercise
+  # whatever was last lying around in dist/: green on a stale artifact, or red for a
+  # feature that is actually present. Neither answer is about the code you just wrote.
+  # e.g. check npm run build | check docker build . | check cargo build --release
+  check {{BUILD}}
   # e.g. check npm run test:integration | check uv run pytest tests/integration
   check {{INTEGRATION_TESTS}}
   # e.g. check npx playwright test | check uv run pytest tests/e2e   (delete if no E2E framework)
   check {{E2E_TESTS}}
-  # e.g. check npm run build | check docker build . | check cargo build --release
-  check {{BUILD}}
   : # keeps this block valid if every stage above was deleted — not a check
 fi
 

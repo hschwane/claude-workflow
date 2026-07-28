@@ -28,7 +28,9 @@ Default: **self-review** — reread the diff (`git diff {integration-branch}...H
 
 Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes) on the diff. Use sparingly — most changes don't need it.
 
-### 3. Manual smoke test (new features only; skip for pure refactors/bugfixes already covered by tests)
+### 3. Manual smoke test
+
+Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close.
 
 **Every acceptance criterion must actually be met — this is the gate against a half-built ticket.** Map each one:
 - Implemented + covered by a passing automated test → done, cite it.

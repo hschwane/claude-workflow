@@ -20,9 +20,12 @@ As a [user], I want [goal], so that [benefit].
 -->
 
 ## Acceptance Criteria
-<!-- OBSERVABLE — an action → a checkable result. This is the contract /verify checks against. -->
-- [ ] Running/calling X → produces observable result Z
-- [ ] Invalid input W → rejected with error/message V
+<!-- OBSERVABLE — an action → a checkable result. This is the contract /verify checks against.
+     Plain bullets, NOT checkboxes: nothing in the workflow ticks these, so a checkbox here
+     leaves every completed spec looking half-done and inflates the subtask count the Stop
+     hook reports. /verify maps each one to evidence in its report instead. -->
+- Running/calling X → produces observable result Z
+- Invalid input W → rejected with error/message V
 
 ## Approach & Interfaces
 <!-- Enough to implement without re-deciding architecture mid-build. The key signatures to add/change. -->
