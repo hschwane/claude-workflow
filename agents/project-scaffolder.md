@@ -30,14 +30,14 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
 | `TARGET_DIR` | Absolute path to the new project directory |
-| `LIBRARY_GUIDELINES` | comma list of guideline filenames to install (e.g. `railway, maps, telegram-bots`), or empty |
+| `LIBRARY_GUIDELINES` | comma list of guidelines to install. A bare name resolves against `{PLUGIN_SOURCE_DIR}/templates/guidelines/`; an **absolute path** is used as-is, which is how a user-global guideline from `~/.claude/guidelines/` gets installed |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
 | `CI_ON_CLAUDE` | no (default) / yes (cross-platform libraries) |
 | `RELEASE_RUNNER` | local (default) / ci |
 | `TODAY` | Date in YYYY-MM-DD format |
-| `WORKFLOW_REPO` | Plugin repository URL |
+| `WORKFLOW_REPO` | `owner/repo` (the templates prefix `https://github.com/` themselves) |
 | `WORKFLOW_VERSION` | Plugin version string |
 
 ## Step A: Create Directories
@@ -78,7 +78,8 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `tsconfig.base.json` → `tsconfig.base.json`
 - `eslint.config.js` → `eslint.config.js`
 - `.prettierrc` → `.prettierrc`
-- `package.json.template` → `package.json` (fill in `name` = PROJECT_NAME kebab-case, `description` = PROJECT_DESCRIPTION)
+- `package.json.template` → `package.json` (fill `{{PROJECT_NAME_KEBAB}}` = PROJECT_NAME in kebab-case, `{{PROJECT_DESCRIPTION}}` = PROJECT_DESCRIPTION)
+- Run `npm install` in `{TARGET_DIR}` to generate `package-lock.json`, and commit it — CI runs `npm ci`, which fails without a lockfile. (Python: `uv lock` or leave the lock to the first install; Rust: `cargo generate-lockfile`.)
 - `generate-version.js` → `scripts/generate-version.js`
 - Create empty `src/version.ts` (placeholder — auto-generated on first build)
 
@@ -95,12 +96,17 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
+**Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
+
+**Write `{TARGET_DIR}/LICENSE`** with the MIT text (the README's `{{LICENSE}}` is filled with `MIT`); if the user chose another licence, use that text instead.
+
 ## Step C: Canonical scripts + CI templates
 
 **Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
-- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **fill the `{{...}}` placeholders** with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest; Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
-- `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — fill the build/publish/deploy placeholders for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token. Fill with with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest; Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
+- **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and confirm it actually executed the commands (a run that prints only the header and `passed` means the placeholders are still comments — fix before continuing).
 
 **GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
@@ -110,11 +116,13 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
+**If any installed guideline references a UI template** (today: `changelog.md`): copy `{PLUGIN_SOURCE_DIR}/templates/ui/changelog-template.html` → `{TARGET_DIR}/.claude/ui/changelog-template.html`, so the guideline's reference resolves inside the project.
+
 **If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
 
 **Library preferences — install the ones listed in `LIBRARY_GUIDELINES`:**
 `LIBRARY_GUIDELINES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
-- Copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md` → `{TARGET_DIR}/.claude/guidelines/<name>.md`.
+- Copy the source (`{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md`, or the absolute path if one was given) → `{TARGET_DIR}/.claude/guidelines/<basename>`.
 - Append its row to `{TARGET_DIR}/.claude/guidelines/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md`:
   `| <trigger row> | .claude/guidelines/<name>.md |`
 
@@ -126,10 +134,27 @@ These carry the maintainer's standing "how I like X done" rules (Railway details
 
 From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
 
+**Leave no `{{…}}` token behind.** `src/CLAUDE.md` and `tests/CLAUDE.md` are auto-loaded whenever Claude touches that directory, so a raw token there is read on every edit. Derive what you can and **delete the line** for anything you genuinely cannot know — an absent line is better than a placeholder:
+
+| Token | Derive from |
+|---|---|
+| `{{SRC_STRUCTURE}}` | the layout in ARCHITECTURE_SUMMARY (e.g. `domain/`, `application/`, `infrastructure/`, `api/`) |
+| `{{TYPES_FILE}}` | `src/domain/types.ts` · `src/types.py` · `src/lib.rs` — whatever the layout implies |
+| `{{KEY_PATTERN_1/2}}` | two conventions from ARCHITECTURE_LABEL (e.g. "use cases are `makeXUseCase(deps)` factories", "validate input with Zod at the boundary") |
+| `{{TEST_FRAMEWORK}}` `{{TEST_COMMAND}}` `{{TEST_SINGLE_COMMAND}}` `{{LANG}}` | LANGUAGE + the scripts in `package.json` / `pyproject.toml` |
+| `{{TEST_EXAMPLE}}` | a three-line example in that framework |
+| `{{TEST_FIXTURES}}` | delete the section if the project has none yet |
+| `docs/dev/setup.md`: `{{PREREQUISITE}}` `{{INSTALL_COMMAND}}` `{{RUN_COMMAND}}` `{{TEST_COMMAND}}` `{{BUILD_COMMAND}}` | LANGUAGE + the manifest's scripts |
+| `{{REPO_URL}}` | the GitHub repo if one is being created, else the local path |
+| `docs/user/README.md` | a real stub for this project — replace every token with prose, do not ship `{{…}}` to end users |
+
+After Step D, grep the whole target tree for `{{` and fix every hit. Nothing with a `{{` may reach the initial commit.
+
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` (only if DEPLOY ≠ `none` and the main session did not already write it)
 - `dev/code-style.md.template` → `{TARGET_DIR}/docs/dev/code-style.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`
+- `spec.md.template` → `{TARGET_DIR}/docs/specs/spec.md.template` — `/plan` and `/draft` read it to create every ticket
 - `CHANGELOG.md.template` → `{TARGET_DIR}/CHANGELOG.md`
 - `CONTRIBUTING.md.template` → `{TARGET_DIR}/CONTRIBUTING.md`
 - `src-claude.md.template` → `{TARGET_DIR}/src/CLAUDE.md`

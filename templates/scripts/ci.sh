@@ -16,17 +16,27 @@ MODE="${1:-full}"
 echo "▶ ci.sh ($MODE)"
 
 # --- fast: cheap, runs on every subtask ------------------------------------------------
-# {{FORMAT_CHECK}}   e.g. prettier --check . | ruff format --check . | cargo fmt --check
-# {{LINT}}           e.g. eslint . | ruff check . | cargo clippy -- -D warnings
-# {{TYPECHECK}}      e.g. tsc --noEmit | mypy . | (compile step)
-# {{UNIT_TESTS}}     e.g. vitest run unit | pytest tests/unit | cargo test --lib
+# Each placeholder below is a COMMAND LINE, not a comment. Replace the whole line with the
+# real command. A stage left as a comment makes this script exit 0 having checked nothing —
+# a gate that always passes. If a stage genuinely does not apply, delete its line.
+
+# e.g. prettier --check . | ruff format --check . | cargo fmt --check
+{{FORMAT_CHECK}}
+# e.g. eslint . | ruff check . | cargo clippy -- -D warnings
+{{LINT}}
+# e.g. tsc --noEmit | mypy . | (compile step)
+{{TYPECHECK}}
+# e.g. vitest run unit | pytest tests/unit | cargo test --lib
+{{UNIT_TESTS}}
 
 if [ "$MODE" = "full" ]; then
   # --- full: added at feature-done / merge / release -----------------------------------
-  # {{INTEGRATION_TESTS}}  e.g. vitest run integration | pytest tests/integration
-  # {{E2E_TESTS}}          e.g. playwright test | pytest tests/e2e
-  # {{BUILD}}              e.g. npm run build | docker build . | cargo build --release
-  :
+  # e.g. vitest run integration | pytest tests/integration
+  {{INTEGRATION_TESTS}}
+  # e.g. playwright test | pytest tests/e2e   (delete if no E2E framework is configured)
+  {{E2E_TESTS}}
+  # e.g. npm run build | docker build . | cargo build --release
+  {{BUILD}}
 fi
 
 echo "✓ ci.sh ($MODE) passed"

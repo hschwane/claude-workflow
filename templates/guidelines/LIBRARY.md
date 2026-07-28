@@ -1,4 +1,4 @@
-# Preference library (workflow-provided)
+# Guideline library (workflow-provided)
 
 Ready-made standing guidelines shipped with the workflow — the maintainer's cross-project "how I like X done" notes, extracted from real projects. `/project-init` and `/project-onboard` install the ones that match a project into its `.claude/guidelines/` (copy the file + add the INDEX row); you can also copy any by hand. They are **not** all installed everywhere — only the matching ones, so a project's index stays small.
 
@@ -6,7 +6,7 @@ Installing a file doesn't mean applying it verbatim — see the note in `README.
 
 A project's `.claude/guidelines/` is **plugin-owned**: `/workflow-update` overwrites every installed file from the current version, so a fix here reaches existing projects instead of freezing at install time. Project-specific rules — including a deliberate deviation from one of these — belong in `.claude/memory/decisions.md`, which updates never touch.
 
-| Preference file | Install when the project… | INDEX trigger row (left cell) |
+| Guideline file | Install when the project… | INDEX trigger row (left cell) |
 |---|---|---|
 | `railway.md` | deploys on Railway | Railway deploy, railway.json, deployment/hosting |
 | `plots-graphs.md` | renders charts / graphs / plots / data-viz | Charts, graphs, plots, data viz, dashboards |

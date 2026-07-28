@@ -73,6 +73,8 @@ Ask the user (in chat — plain message, wait for the reply) — **skip question
 
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
 
+**Then create the project directory and work inside it.** Ask for the target path (default: `./{project-name-kebab}`), `mkdir -p` it, `cd` into it, and `git init`. Every path from here on — `docs/VISION.md`, `docs/dev/architecture.md`, the scaffolder's `TARGET_DIR` — is relative to it. Without this, steps 2–5 write into whatever directory the session happened to start in.
+
 ### 1.5 Load the matching guidelines — before designing anything
 The project type and language are known now, so match guidelines **here**, not at scaffolding time: they shape the vision, the architecture and the backlog, and retrofitting them later is how a project ends up missing its baseline.
 
@@ -164,7 +166,7 @@ All design decisions are now complete. Write a **1–3 sentence architecture sum
 Then determine:
 - `GITIGNORE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
 - `CI_LANGUAGE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
-- `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`
+- `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`. **`release-runner: ci` requires a template other than `none`** — `/release` in `ci` mode dispatches `release.yml`, which would not exist. For a `docker` or `internal` release type, keep `release-runner: local`.
 - `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
 - `TARGET_DIR`: the absolute path to the new project directory.
 - `LIBRARY_GUIDELINES`: the comma-separated list of library preferences matched in **step 1.5**, now that the deploy target and architecture are settled — re-check `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md` for anything the later decisions newly match. Typical matches: `app-baseline` for any project bigger than a small script/tool; `railway` if DEPLOY=railway; `plots-graphs` if the app renders charts/graphs/data-viz; `maps` if it shows an interactive map; `web-app-pwa` if it's a web app / PWA; `ui-frontend` if it has a UI to design; `changelog` if it should ship an in-app changelog; `ai-integration` if it integrates AI features; `telegram-bots` if it's a Telegram bot; `service-architecture` if it's a non-trivial backend/service with real business logic (Web API, bot, daemon — not a thin CLI/library); `logging` for anything beyond a small script; `background-jobs` if it has scheduled/periodic/background work or must handle graceful shutdown (plus any others added to LIBRARY.md later). Empty only for a genuinely tiny script. The scaffolder installs each (file + INDEX row) so `/plan` picks them up.
@@ -195,7 +197,7 @@ RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}
 CI_ON_CLAUDE: {no | yes}
 RELEASE_RUNNER: {local | ci}
 TODAY: {today's date, YYYY-MM-DD}
-WORKFLOW_REPO: {repository field from .claude-plugin/plugin.json}
+WORKFLOW_REPO: {owner/repo from plugin.json `repository`, with the https://github.com/ prefix stripped — the templates add it}
 WORKFLOW_VERSION: {version field from .claude-plugin/plugin.json}
 
 [TASK]
@@ -206,7 +208,6 @@ memory), and the initial git commit. Full instructions are in your agent definit
 
 Wait for the agent to complete and review its report before proceeding.
 
-Run `/reload-skills` so Claude Code picks up the newly installed skills and agents from `.claude/` without requiring a session restart. After the reload, all workflow commands (`/draft`, `/plan`, `/implement`, etc.) are immediately available.
 
 ### 6. Workflow Decisions Review (Supervised Mode Only)
 
@@ -318,7 +319,7 @@ Project initialized ✓
 {project-name}
 
 Design (main session):
-  Docs: VISION.md, architecture.md, ADR-001, release.md
+  Docs: VISION.md, dev/architecture.md, dev/code-style.md, dev/setup.md{, dev/deploy.md}
   Backlog: {N} items
     tech-backbone: {N} items
     WS:            {N} items
@@ -327,7 +328,7 @@ Design (main session):
 
 Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}
-  CI: .github/workflows/ci.yml + release.yml
+  CI: .github/workflows/ci.yml{ + release.yml if a release template was used}
   Infrastructure: .claude/ (agents, skills, hooks, memory)
   Root files: CLAUDE.md, README.md, CONTRIBUTING.md
   Committed: yes (branch: {main|develop})

@@ -19,7 +19,7 @@ A matching guideline is a strong default worth starting from — not a mandate t
 - Each preference is its own file here.
 - `INDEX.md` is a **trigger → file** table — the only thing skills read to know what exists. It is not auto-loaded, so it costs nothing until a relevant task.
 - Skills read `INDEX.md` at the moments it matters (`/plan`, `/implement`, `/project-init`, `/project-onboard`). A preference **body** is read only when its trigger matches.
-- Both indexes are read together: this one and `.claude/memory/decisions.mdINDEX.md`.
+- Both indexes are read together: this one and `.claude/memory/decisions.md`.
 
 ## Which files are here
 

@@ -125,10 +125,6 @@
       "class": "project"
     },
     {
-      "path": "docs/changelog/",
-      "class": "project"
-    },
-    {
       "path": "docs/VISION.md",
       "class": "project"
     },
@@ -181,6 +177,30 @@
     {
       "path": ".gitignore",
       "class": "project"
+    },
+    {
+      "path": ".claude/ui/",
+      "class": "plugin",
+      "note": "UI templates a guideline references; copied so the reference resolves inside the project."
+    },
+    {
+      "path": "docs/specs/spec.md.template",
+      "class": "plugin",
+      "note": "Read by /draft and /plan to create every ticket."
+    },
+    {
+      "path": ".env.example",
+      "class": "project",
+      "note": "Referenced by docs/dev/setup.md; created at init, owned by the project afterwards."
+    },
+    {
+      "path": "LICENSE",
+      "class": "project"
+    },
+    {
+      "path": "docs/changelog/",
+      "class": "project",
+      "note": "Created by /release on the first split, not at init."
     }
   ],
   "removedIn3": [
