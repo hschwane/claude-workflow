@@ -21,7 +21,7 @@ The seven knobs that change how the workflow behaves in this project. The **valu
 | Key | Values | What it changes |
 |---|---|---|
 | `testing-scope` | `unit` · `unit+integration` · `unit+integration+e2e` | How deep `/plan` specs tests and `/implement` writes them. A ticket may narrow within it, never beyond it. `code-style.md` describes what each level covers |
-| `branching` | `main-only` · `git-flow` | `main-only`: features merge into `main`, `/release` tags there. `git-flow`: features merge into `develop`, `/release` gates there, merges `develop → master` and tags, so `master`'s tip is always the latest release |
+| `branching` | `main-only` · `git-flow` | `main-only`: features merge into `main`, `/release` tags there. `git-flow`: features merge into `develop`, `/release` gates there, merges `develop → main` and tags, so `main`'s tip is always the latest release. The release branch is `main` in both models |
 | `version-source` | a path — `package.json` · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` · `VERSION` — or `none` | Where `/release` reads and writes the version number. `none` for a repo with nothing to bump (a scripts or docs repo): `/release` then asks for the version instead |
 | `deploy` | `railway` · `vercel` · `aws` · `self-hosted` · `manual` · `none` | What `release.sh` deploys to, and which guideline applies. Details in `docs/dev/deploy.md` |
 | `github` | `yes` · `no` | Whether GitHub features are used at all — issues, PRs, Actions. `no` means a local-only repo |

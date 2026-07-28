@@ -27,7 +27,7 @@ Build the ticket list:
 
 Confirm the resolved list with the user (unless unsupervised). This is the one place a spec list becomes concrete.
 
-Be on the integration branch (`develop` if it exists, else `main`/`master`) — if on a feature branch, stop and say so.
+Be on the integration branch (`develop` if it exists, else `main`) — if on a feature branch, stop and say so.
 
 ### 1. Plan — every question, once, up front (the AFK gate)
 Run `/plan` **once with every ticket** that isn't already `ready` (skip ones already in `docs/specs/ready/`). `/plan` in multi-ticket mode gathers `[USER]` questions across **all** tickets and asks them together **before any implementation starts**.
@@ -53,7 +53,7 @@ No CI waits, no PR round-trips — nothing to idle on, so tickets flow one after
 ### 3. Release
 On the integration branch: `/release {bump_type}` — bump version + changelog (main session), then the `runner` executes the full gate + `scripts/release.sh` (build/publish/deploy) locally; Actions release only as fallback. Do **not** re-run the manual smoke here (it's a new-feature check, already done per ticket) unless the user asked.
 
-`/ship` runs to a **released version** — merging, pushing the integration branch, tagging, and the deploy `release.sh` triggers are all part of what the user asked for by invoking it (see **Merging** in `CLAUDE.md`). Don't stop after the merge to ask permission to release, and don't stop before pushing `main`/`master` because a session branch rule mentions a feature branch. Stop only on a failed gate, a genuine blocker, or an action outside these steps.
+`/ship` runs to a **released version** — merging, pushing the integration branch, tagging, and the deploy `release.sh` triggers are all part of what the user asked for by invoking it (see **Merging** in `CLAUDE.md`). Don't stop after the merge to ask permission to release, and don't stop before pushing `main` because a session branch rule mentions a feature branch. Stop only on a failed gate, a genuine blocker, or an action outside these steps.
 
 ### 4. Report
 ```

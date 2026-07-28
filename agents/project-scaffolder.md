@@ -122,6 +122,12 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `generate-version.js` → `scripts/generate-version.js`
 - Create `src/version.ts` as an empty placeholder — the build regenerates it, and `.gitignore` excludes it.
 - **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found").
+- **Every source root the architecture names must be covered by the gate, not just created.** Step A makes the directories; on its own that ships a `web/` (or `client/`, `app/`) whose first file turns `eslint .` red with *"was not found by the project service"*, is never type-checked (`tsc --noEmit` returns 0 on a genuine type error there), and is absent from `npm run build`. For each additional root:
+  - add it to `tsconfig.json`'s `include` (`"web/**/*"`) so lint and typecheck see it;
+  - give it its own entry in the build — either widen `tsconfig.build.json` or add a second build step to the `build` script — so `ci.sh full`'s "deployable build" actually contains the frontend;
+  - commit an entry point there, for the same reason `src/index.ts` exists.
+
+  "Create every directory named in `ARCHITECTURE_SUMMARY`" is only half a rule; the other half is "and make the gate cover them". A root the gate cannot see is worse than one that does not exist, because the docs promise it works.
 - **The stub must not import `./version.js`.** That is the same trap one rule over: the import resolves locally because the generated file is sitting there untracked, and fails in a fresh clone with TS2307. Generated modules are imported by real code later — which is why `ci.sh` regenerates them first (`{{GENERATE_SOURCES}}`, filled below). The stub itself stays self-contained.
 
 **Python:**
@@ -137,7 +143,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
-**Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Do this as a sweep after Step I: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
+**Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Do this as a sweep after Step I, and remove a `.gitkeep` again as soon as something real lands in that directory (`/project-init` step 7 fills `docs/specs/backlog/`). Sweep: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
 
 **Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
 
@@ -161,7 +167,7 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
-- **Delete the authoring notes once the stages are filled.** In each script, delete the comment lines from `# --- how to fill this in ---` down to and including the `# --- end of authoring notes ---` rule — **nothing below that rule**, which is the `CHECKS`/`STEPS` counter and the `check`/`step` function the filled stages call. Also delete every `# e.g. …` hint line, not only the ones beside a deleted stage. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
+- **Delete the authoring notes once the stages are filled.** In each script, delete the comment lines from `# --- how to fill this in ---` down to and including the `# --- end of authoring notes ---` rule — **nothing below that rule**, which is the `CHECKS`/`STEPS` counter and the `check`/`step` function the filled stages call. Also delete every `# e.g. …` hint line, not only the ones beside a deleted stage, **and the narration belonging to any step you deleted** — a `# 2. Build the release artifact.` header with nothing under it, or a comment explaining a trade-off for a line that is gone, reads as an instruction to the next maintainer. Fix the two file headers too: both claim the GitHub workflows call these scripts, which is false when `GITHUB_REPO` is `no`. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
 - The **clean-clone** check is not yours — `/project-init` step 5c runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Do not report on it; report your local `ci.sh fast` exit code and check count, and leave the repo in a state that passes the clone.
@@ -202,7 +208,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `{{TYPES_FILE}}` | `src/domain/types.ts` · `src/types.py` · `src/lib.rs` — whatever the layout implies |
 | `{{KEY_PATTERN_1/2}}` | two conventions from ARCHITECTURE_LABEL (e.g. "use cases are `makeXUseCase(deps)` factories", "validate input with Zod at the boundary") |
 | `{{TEST_FRAMEWORK}}` `{{TEST_COMMAND}}` `{{TEST_SINGLE_COMMAND}}` `{{LANG}}` | LANGUAGE + the scripts in `package.json` / `pyproject.toml` |
-| `{{TEST_EXAMPLE}}` | a three-line example in that framework — written so it passes the project's own format gate (with the shipped `.prettierrc`, that means double quotes) |
+| `{{TEST_EXAMPLE}}` | a three-line example in that framework — written in the project's own style — double quotes, matching the shipped `.prettierrc`, so a reader copying it does not introduce a diff |
 | `{{TEST_FIXTURES}}` | delete the section if the project has none yet |
 | `docs/dev/setup.md`: `{{PREREQUISITE}}` `{{INSTALL_COMMAND}}` `{{RUN_COMMAND}}` `{{TEST_COMMAND}}` `{{BUILD_COMMAND}}` | LANGUAGE + the manifest's scripts |
 | `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |
@@ -285,7 +291,7 @@ Write to `{TARGET_DIR}/README.md`.
   "variants": { "ci": "ci-{CI_LANGUAGE_TEMPLATE}.yml", "release": "{RELEASE_CI_TEMPLATE}.yml", "gitignore": "{GITIGNORE_TEMPLATE}.gitignore" }
 }
 ```
-Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit the `release` key when `RELEASE_CI_TEMPLATE` is `none`.
+Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit any key whose template was not installed — `release` when `RELEASE_CI_TEMPLATE` is `none`, and **`ci` when `GITHUB_REPO` is `no`**, since there is no workflow file for a later update to diff against.
 
 **Personal settings file:** write `{TARGET_DIR}/.claude/memory/local-settings.md` with exactly this body — plain `key: value` lines at column 0, no markdown emphasis, no heading above them:
 ```
@@ -371,9 +377,9 @@ Report back to the main session with:
 ```
 Scaffolding complete ✓
 
-Directories created: src/, tests/, docs/, .github/, .claude/, scripts/
+Directories created: src/, tests/, docs/, .claude/, scripts/{, .github/}{, any architecture roots}
 Language config: {list of files created}
-CI: {ci.yml, release.yml if applicable, dependabot.yml}
+CI: {.github/workflows/ci.yml + dependabot.yml{ + release.yml} — or 'none (github: no)'}
 Docs: dev docs (code-style, setup, deploy), user docs, CHANGELOG, CONTRIBUTING
 Infrastructure: .claude/ (agents N, skills N, hooks N, memory, settings.json)
               — count what you actually copied (`ls .claude/agents | wc -l`), don't estimate; this report is all the main session sees

@@ -18,8 +18,8 @@ Creates a new software project from scratch with the full claude-workflow infras
 ## Instructions
 
 ### 0. Check Prerequisites
-- Verify `git` is available (**required**). `gh` (GitHub CLI) is needed **only if** this project will use GitHub — ask that question first (step 1) and check `gh` after the answer, so a deliberately local-only project is not blocked on a tool it will never call
-- If `gh` is not authenticated: `gh auth status` — if not logged in, prompt user to run `gh auth login`
+- Verify `git` is available (**required**).
+- **`gh` (GitHub CLI) is conditional.** It is only needed if this project will use GitHub, so do not check for it here — the question is asked in step 5 (GitHub repo) and the check belongs immediately after that answer. If the answer is yes and `gh` is missing or unauthenticated (`gh auth status`), say so then and prompt for `gh auth login`. A deliberately local-only project must never be blocked on a tool it will never call.
 - Check runtimes used by the quality gates and warn (do not block) if missing:
   - `node --version` and `npx --version` — needed for the JS/TS gates (`eslint`, `prettier`, `tsc`)
   - `python --version` (fall back to `python3 --version`, or `py --version` on Windows) — needed for the Python gates (`ruff`, `mypy`)
@@ -69,8 +69,8 @@ Ask the user (in chat — plain message, wait for the reply) — **skip question
 1. **Project name** (if not in args and not in design doc)
 2. **Short description** (one sentence)
 3. **Project type**: Web App (fullstack — backend + its own frontend/PWA) / Web API / Web Frontend / CLI tool / Library / Desktop App / Other
-4. **Copyright holder** for the LICENSE — offer `git config user.name` as the default, but show it and confirm: in a container that is often the agent's own name, and `Copyright (c) 2026 Claude` on someone's project is not a typo anyone catches later. If a GitHub repo is wanted, take the **owner** here too (`gh api user --jq .login`) — `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing.
 4. **Primary language**: TypeScript (recommended) / Python / Rust / C++ / Other
+5. **Copyright holder** for the LICENSE — offer `git config user.name` as the default, but show it and confirm: in a container that is often the agent's own name, and `Copyright (c) 2026 Claude` on someone's project is not a typo anyone catches later. If a GitHub repo is wanted, take the **owner** here too (`gh api user --jq .login`) — `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing.
 
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
 
@@ -151,7 +151,7 @@ Ask (in chat — plain message, wait for the reply) — **pre-select values infe
 2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 
    Railway is the preferred deploy target. When chosen, the scaffolder installs the Railway deployment **guideline** (`.claude/guidelines/railway.md`) and `railway.json` — that guideline holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — just set `deploy: railway` in the `workflow-settings` block and fill `docs/dev/deploy.md`.
-3. **Branching model**: main-only (simpler — features merge into main, releases tagged on main) / Git Flow (features merge into `develop`; `/release` merges develop → `master`, so master's tip always equals the latest release)
+3. **Branching model**: main-only (simpler — features merge into `main`, releases tagged on `main`) / Git Flow (features merge into `develop`; `/release` merges `develop` → `main`, so `main`'s tip always equals the latest release). The release branch is `main` either way — git-flow adds `develop`, it does not rename `main`.
 
 **Then set two CI/release decisions — recommend by project type, confirm (don't belabor):**
 - `CI_ON_CLAUDE` — should GitHub Actions also run on *Claude's* commits? **Default `no`** (Claude ran the identical `ci.sh` locally; save the minutes). **Recommend `yes` for a cross-platform library** where CI adds matrix/multi-env coverage local can't reproduce.

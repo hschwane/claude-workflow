@@ -25,7 +25,12 @@ fi
 
 case "$FILE" in
   *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md|*.yaml|*.yml)
-    if command -v prettier &>/dev/null; then
+    # Prefer the project's pinned binary over whatever is installed globally — ci.sh checks
+    # with the pinned one, so formatting with a different version reintroduces the very
+    # drift the gate exists to catch.
+    if [ -x "./node_modules/.bin/prettier" ]; then
+      ./node_modules/.bin/prettier --write "$FILE" 2>/dev/null || true
+    elif command -v prettier &>/dev/null; then
       prettier --write "$FILE" 2>/dev/null || true
     elif command -v npx &>/dev/null && [ -f "package.json" ]; then
       # Only in a Node project — `npx --yes` would download prettier on every
