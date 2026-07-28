@@ -16,7 +16,7 @@ The main session prepares the judgment parts (version bump, changelog), then the
 ## Instructions
 
 ### 1. Pre-flight
-- Read the `branching` setting in `CLAUDE.md` (`main-only` or `git-flow`). Be on the right branch (main-only: `main`; git-flow: `develop`). The **release branch is `main` in both models** — `/project-init` normalizes it to that name, so a git-flow project has `main` + `develop`, not `master` + `develop`. On an older repo whose release branch really is `master`, use that; never assume a `master` that was never created.
+- Read `branching` and **`trunk-branch`** in `CLAUDE.md`. Be on the right branch (main-only: the trunk; git-flow: `develop`). The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
 - Working tree clean (`git status`); `git pull` so the release includes everything merged.
 - The full gate runs inside `scripts/release.sh` (step 7), so don't run it separately here. For `release-runner: ci` **only**, run `scripts/ci.sh full` via the `runner` now as a fail-fast check before dispatching to Actions.
 
@@ -46,16 +46,16 @@ For a critical patch on a version that is already out:
 1. Branch from the release tag: `git checkout -b hotfix/v1.2.1 v1.2.0`
 2. Apply the fix and commit.
 3. Run `/release patch` from the hotfix branch.
-4. Merge back — into `main` under `branching: main-only`, into **both** `main` and `develop` under `git-flow`, so the fix is not lost on the next release.
+4. Merge back — into the trunk under `branching: main-only`, into **both** the trunk and `develop` under `git-flow`, so the fix is not lost on the next release.
 
 ### 8. Tag + push
 ```
 git tag v{version}
 git push && git push --tags
 ```
-The tag is the version record; it triggers nothing (the release workflow is dispatch-only). Git-flow: merge `develop → main`, tag the merge commit, push, then sync `main` back into `develop` (stop + `## Blocked` on merge conflicts).
+The tag is the version record; it triggers nothing (the release workflow is dispatch-only). Git-flow: merge `develop` → the trunk, tag the merge commit, push, then sync the trunk back into `develop` (stop + `## Blocked` on merge conflicts).
 
-**Push the release branch — that's the point of `/release`.** Pushing `main`/`develop` and tagging are steps of this skill, authorized by its invocation (see **Merging** in `CLAUDE.md`); a session instruction naming a feature branch doesn't override them. If the push is rejected GitHub-side (protected branch, proxy), fall back to `gh` rather than stopping. If `scripts/release.sh` deploys to production, that too is what `/release` was asked to do — run it and verify health (step 9); don't pause for a separate confirmation.
+**Push the release branch — that's the point of `/release`.** Pushing the trunk branch and `develop` and tagging are steps of this skill, authorized by its invocation (see **Merging** in `CLAUDE.md`); a session instruction naming a feature branch doesn't override them. If the push is rejected GitHub-side (protected branch, proxy), fall back to `gh` rather than stopping. If `scripts/release.sh` deploys to production, that too is what `/release` was asked to do — run it and verify health (step 9); don't pause for a separate confirmation.
 
 ### 9. Deploy verification
 For a deployed app (e.g. Railway auto-deploys on the merge/push): verify health — hit the healthcheck / use the Railway MCP to confirm the new deploy is live and serving. Report the result; roll back if unhealthy.

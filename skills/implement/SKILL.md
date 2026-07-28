@@ -23,7 +23,7 @@ Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` 
 Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing. Any guidelines that apply were already referenced + folded into the spec by `/plan` — follow the spec; if it lists applied guideline files, read those and honor them.
 
 ### 1. Branch
-If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else `main`):
+If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
 ```
 git checkout {develop|main} && git pull
 git checkout -b feature/{lowercase-id}-{kebab-title}

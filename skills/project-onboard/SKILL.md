@@ -50,7 +50,7 @@ Show the analysis summary to the user.
 
 Ask (in chat — plain message, wait for the reply):
 1. **Confirm tech stack** — "I detected {stack}. Is this correct?"
-2. **GitHub** — "Does this project use GitHub? [yes/no]"
+2. **GitHub** — "Does this project use GitHub? [yes — public / yes — private / no]" (the public/private answer is the `GITHUB_REPO` value the scaffolder needs, not a yes/no)
 3. **Existing tests** — "I found {test info}. Should the workflow integrate with them? [yes / no, set up fresh]"
 4. **Docs format** — "For workflow documentation, use: [markdown files (default) / MkDocs HTML]"
 5. **Test scope** — "What test levels should the workflow use for this project? [Unit only / Unit + Integration / Unit + Integration + E2E]" — pre-select from the test setup detected in step 1, and say that step 3c may narrow it to what the gate can actually run.
@@ -59,7 +59,10 @@ Ask (in chat — plain message, wait for the reply):
 8. **Release** — "How does a release publish? [npm / pypi / github release / docker / internal / none]", and "run releases locally or via Actions? [local (default) / ci]".
 9. **GitHub owner** — only when question 2 was yes: "Which owner will the repo live under?" (`gh api user --jq .login` is the default). `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing one.
 
-**Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can — `version-source` from the manifest that exists, `ci-on-claude: no`, `MONOREPO` and `PROJECT_TYPE` and `ARCHITECTURE_*` from the step 1 analysis, `COPYRIGHT_HOLDER` only if a LICENSE already exists (onboard never creates one) — and ask for the rest rather than guessing. Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
+**Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can and ask for the rest rather than guessing:
+- from the step 1 analysis: `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`)
+- fixed or conditional: `ci-on-claude: no`; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
+- from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION` Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
 
 ### 3. Install Workflow Infrastructure
 
@@ -95,6 +98,8 @@ This is the file an onboarded repo is most likely to already have, hand-written 
   - an operational procedure (deploy, rollback, restart) → `docs/dev/deploy.md`, verbatim
   - a known trap → `.claude/memory/gotchas.md`
 
+**Fill `docs/VISION.md`.** The scaffolder leaves a bracket stub (`[What problem does this solve?]`), and those placeholders are not `{{…}}` so no token sweep catches them. `/ship` reads this file unconditionally to derive tickets from a topic — boilerplate there produces boilerplate tickets. Draft Problem / Audience / Goals / Non-goals from the analysis and the existing README, and flag it in the step 6 report as *drafted from the codebase — confirm before the first `/plan`*.
+
   Show the mapping and the result before writing, and **name every piece and its destination in the step 6 report**. Nothing may be dropped for want of a home.
 
 **Then fix what pointed at it.** A README section reading "## Deploy — see CLAUDE.md" is now a dangling reference. Grep the repo for inbound links to every section you moved and update them; list the repairs in the report.
@@ -121,8 +126,6 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 - **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
 
 **`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`.
-
-**Then prove it from a clean clone**, which is what CI runs: `git clone . $(mktemp -d)/vc && cd … && <install> && ./scripts/ci.sh full`. Anything gitignored or uncommitted is missing there — that is where a generated file or an uncommitted lockfile shows up, and a local pass says nothing about it.
 
 **Do not reach step 5 with a red gate.** If it cannot be made green, stop: write the reason into `.claude/memory/tech-debt.md` and report `Onboarding incomplete — gate red` instead of the step 6 success block. Everything downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
@@ -157,7 +160,8 @@ If the project already deploys on Railway (a `railway.json`/`railway.toml` at th
 #### 3g. Other root files
 
 - **`README.md`:** never overwrite one that exists — offer to append a short "Development" section linking to `CONTRIBUTING.md`. Create it from `templates/README.md.template` only if absent.
-- **`.env.example`:** `docs/dev/setup.md` tells the reader to `cp .env.example .env`. If the project uses a `.env` and has none, generate one from the variables the analysis found (keys only, no values). If it uses no `.env` at all, delete that section from `setup.md` rather than shipping a `cp` of a file that isn't there.
+- **`CHANGELOG.md`:** the scaffolder creates it with only `## [Unreleased]`, which is wrong for a project already at 1.4.2 — five releases of history silently absent. Seed it with a heading for the current version noting that history predates onboarding. Then check `git describe --tags --abbrev=0`: `/release` builds its entry from `git log <last tag>..HEAD`, and a repo with **no tags** fails there with "No names found, cannot describe anything". Offer to tag HEAD at the current version so `/release` has a base, or record the gap in `tech-debt.md`.
+- **`.env.example`:** `docs/dev/setup.md` tells the reader to `cp .env.example .env`. If the project uses a `.env` and has none, generate one from the variables the analysis found (keys only, no values). If it *claims* a `.env` — a `.gitignore` entry, a README line — but no variable is discoverable in the code, ship a commented stub and record the discrepancy in `gotchas.md` rather than inventing keys. If it uses no `.env` at all, delete that section from `setup.md` rather than shipping a `cp` of a file that isn't there.
 
 The skills, agents and hooks just installed under `.claude/` are picked up at **session start**, so they are not live in this session. Don't try to invoke one yet; the report in step 6 tells the user to restart.
 
@@ -175,7 +179,16 @@ With `github: yes` but no remote yet: create the issue templates, skip the label
 git add -A
 git status --short          # read it — every line must be something you meant to do
 git commit -m "chore: install claude-workflow infrastructure"
+
+# Now — and only now — prove the gate from a clean clone, which is what CI runs.
+CLONE=$(mktemp -d)/vc
+git clone . "$CLONE"
+( cd "$CLONE" && npm ci && ./scripts/ci.sh full )   # or: uv sync --locked · cargo fetch
+echo "clean-clone gate exit: $?"
+rm -rf "$CLONE"
 ```
+
+**The clone must come after the commit.** A clone of an uncommitted tree has no `scripts/` at all, so the check silently passes on a project that has nothing to run — the one guard against "green locally, red in CI" becomes a no-op. If it fails, amend or add a follow-up commit; do not reach step 6 on a red clone.
 
 **`git add -A`, not a list.** An explicit list is a trap here: between them, this skill and the scaffolder also create `src/CLAUDE.md`, the test directory's `CLAUDE.md`, `.prettierignore`, a lockfile, and whatever manifest or config edit step 3c needed to make the gate green. A list written once is always missing the newest of those. Account for every line of `git status --short` before committing; `/project-onboard` must not end on a dirty tree.
 
@@ -193,9 +206,14 @@ Installed:
   scripts/ (ci.sh, release.sh, claude-loop.sh) · .prettierignore
   {CLAUDE.md / CONTRIBUTING.md / README section / CI workflow — as created}
 
-Gate: ci.sh fast exit {0} — {N} check(s)   ·   clean clone: exit {0}
+Gate: ci.sh fast exit {0} — {N} check(s)   ·   clean clone: exit {0} — {N} check(s)
 Existing CLAUDE.md content moved to: {file → what went there, per item}
 CI reconciliation: {workflow now calls ci.sh | divergence recorded in tech-debt.md}
+Testing scope: {as you answered | narrowed to {X} because {reason}}
+Guidelines installed: {list}
+Baseline gaps drafted: {IDs}  ·  dropped: {gap — reason}
+VISION.md: {drafted from the codebase — confirm before the first /plan}
+Trunk branch: {name}  ·  {tagged v{x.y.z} so /release has a base | no tags — recorded in tech-debt.md}
 
 Next steps:
 

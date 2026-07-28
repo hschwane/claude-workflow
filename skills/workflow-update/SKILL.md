@@ -125,7 +125,7 @@ For `scripts/ci.sh` and `release.sh` specifically: the project's real commands l
 
 #### `project` — suggest, never rewrite
 
-`README.md`, `docs/**`, `src/CLAUDE.md`, `tests/CLAUDE.md`, the configs, `.claude/memory/*`. These were handed to the project at creation.
+`README.md`, `docs/**`, `src/CLAUDE.md`, the test directory's `CLAUDE.md` (resolve the real directory — `tests/`, `test/`, `spec/`), the configs, `.claude/memory/*`. These were handed to the project at creation.
 
 When the upstream **template** changed, do not touch the file. Instead, describe what changed and suggest how it might apply here — as a note in the report, for the user to act on or ignore. Most updates will have nothing to say.
 
@@ -219,7 +219,7 @@ If §5b.4 routed a code-level rule into `src/CLAUDE.md`, you have now touched an
 
 ### 6. Check for dead references
 
-The update renamed and removed paths. On the v2→v3 step those are at least `docs/workflow/`, `docs/dev/style-guide.md`, `docs/dev/adr/`, `.claude/preferences/` and `.claude/memory/settings.md`. Grep for every path this update removed or moved, across **both** the project-owned files (`README.md`, `docs/**`, `CONTRIBUTING.md`'s project block, `src/CLAUDE.md`, `tests/CLAUDE.md`, `mkdocs.yml`) **and the files this update just wrote** — a stale path shipped in a template lands in every project otherwise.
+The update renamed and removed paths. On the v2→v3 step those are at least `docs/workflow/`, `docs/dev/style-guide.md`, `docs/dev/adr/`, `.claude/preferences/` and `.claude/memory/settings.md`. Grep for every path this update removed or moved, across **both** the project-owned files (`README.md`, `docs/**`, `CONTRIBUTING.md`'s project block, `src/CLAUDE.md`, the test directory's `CLAUDE.md`, `mkdocs.yml`) **and the files this update just wrote** — a stale path shipped in a template lands in every project otherwise.
 
 **Exclude `.claude/skills/` and `.claude/agents/`.** They describe this very migration and name the old paths on purpose; `workflow-update/SKILL.md` alone produces a dozen deliberate hits, and wading through them every run trains you to skim the ones that matter.
 

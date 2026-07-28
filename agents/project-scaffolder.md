@@ -42,6 +42,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `WORKFLOW_REPO` | `owner/repo` (the templates prefix `https://github.com/` themselves) |
 | `WORKFLOW_VERSION` | Plugin version string |
 | `MODE` | `init` (default) or `onboard` — see **Onboard mode** below |
+| `TRUNK_BRANCH` | the repo's release branch. `main` in init; in onboard, whatever `git branch --show-current` reports |
 | `EXISTING` | onboard only: what the codebase already has (manifest, configs, test dir name, CI, docs) |
 
 ## Onboard mode
@@ -271,6 +272,7 @@ Read `{PLUGIN_SOURCE_DIR}/templates/CLAUDE.md.template`. Fill the `project-speci
 Fill the `workflow-settings` block — **this is the only home for these values**; do not also write them into a doc:
 - `{{TESTING_SCOPE}}` → `unit` / `unit+integration` / `unit+integration+e2e` (from TESTING_SCOPE)
 - `{{BRANCHING_MODEL}}` → BRANCHING_MODEL
+- `{{TRUNK_BRANCH}}` → in init always `main` (Step J normalizes to it); in **onboard**, `TRUNK_BRANCH` from the prompt — the repo's existing branch, which is `master` on most older projects
 - `{{VERSION_SOURCE}}` → the manifest for this language: `package.json` (TS) · `pyproject.toml` (Python) · `Cargo.toml` (Rust) · `CMakeLists.txt` (C++)
 - `{{DEPLOY_TARGET}}` → DEPLOY
 - `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`
@@ -311,7 +313,7 @@ Write to `{TARGET_DIR}/README.md`.
   "variants": { "ci": "ci-{CI_LANGUAGE_TEMPLATE}.yml", "release": "{RELEASE_CI_TEMPLATE}.yml", "gitignore": "{GITIGNORE_TEMPLATE}.gitignore" }
 }
 ```
-Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit any key whose template was not installed — `release` when `RELEASE_CI_TEMPLATE` is `none`, and **`ci` when `GITHUB_REPO` is `no`**, since there is no workflow file for a later update to diff against.
+Write to `{TARGET_DIR}/.claude/workflow-source.json`. `repo` is the bare `owner/repo` — never a URL; `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/…`. `variants` records which language templates this project was installed from, so `/workflow-update` can diff a file against a file instead of against a directory. Omit any key whose template was not installed — `release` when `RELEASE_CI_TEMPLATE` is `none`, and **`ci` when `GITHUB_REPO` is `no`**, since there is no workflow file for a later update to diff against. **In onboard mode `{}` is the normal result** — the project owns its own `.gitignore` and CI workflow, so nothing came from a variant and `/workflow-update` detects them instead.
 
 **Personal settings file:** write `{TARGET_DIR}/.claude/memory/local-settings.md` with exactly this body — plain `key: value` lines at column 0, no markdown emphasis, no heading above them:
 ```

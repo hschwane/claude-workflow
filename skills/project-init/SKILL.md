@@ -267,7 +267,7 @@ Commit with the step 5c fixes.
 mode to check here, since the file that records it does not exist until this run
 creates it.
 
-The scaffolder wrote the `workflow-settings` block in `CLAUDE.md` — the seven tunable
+The scaffolder wrote the `workflow-settings` block in `CLAUDE.md` — the eight tunable
 workflow settings, in the only place they live. Tell the user:
   • `/workflow-settings` shows them and explains the allowed values;
   • `/workflow-settings <name> <value>` changes one and follows through on the consequences;

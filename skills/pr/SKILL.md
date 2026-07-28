@@ -10,7 +10,7 @@ The default flow **merges locally** with plain git (see **Merging and release au
 
 ## Usage
 ```
-/pr              # base = integration branch (develop if it exists, else main)
+/pr              # base = integration branch (develop if it exists, else the trunk-branch setting)
 /pr main
 ```
 
