@@ -30,7 +30,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
 | `TARGET_DIR` | Absolute path to the new project directory |
-| `LIBRARY_PREFERENCES` | comma list of library preference filenames to install (e.g. `railway, maps, telegram-bots`), or empty |
+| `LIBRARY_GUIDELINES` | comma list of guideline filenames to install (e.g. `railway, maps, telegram-bots`), or empty |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
@@ -47,8 +47,7 @@ Create all required directories (use `mkdir -p`):
 ```
 {TARGET_DIR}/src/
 {TARGET_DIR}/tests/
-{TARGET_DIR}/docs/workflow/
-{TARGET_DIR}/docs/dev/adr/
+{TARGET_DIR}/docs/dev/
 {TARGET_DIR}/docs/user/
 {TARGET_DIR}/docs/specs/backlog/
 {TARGET_DIR}/docs/specs/ready/
@@ -60,17 +59,14 @@ Create all required directories (use `mkdir -p`):
 {TARGET_DIR}/.claude/skills/
 {TARGET_DIR}/.claude/memory/
 {TARGET_DIR}/.claude/guidelines/
-{TARGET_DIR}/.claude/project-notes/
 {TARGET_DIR}/scripts/
 ```
 
 Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/README.md` → `README.md` and `templates/guidelines/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
 
-Into `.claude/project-notes/` (project-owned): copy `{PLUGIN_SOURCE_DIR}/templates/project-notes/README.md` → `README.md`, `INDEX.md.template` → `INDEX.md`, and `example.md.template` → `example.md`.
+(The root CLAUDE.md points at `INDEX.md`; the index itself is not auto-loaded.)
 
-(The root CLAUDE.md ships only one-line pointers to the two `INDEX.md` files; neither index is auto-loaded.)
-
-Note: `docs/VISION.md`, `docs/dev/architecture.md`, and `docs/dev/adr/ADR-001-architecture.md` were already written by the main session — do not overwrite them. Also do not overwrite `docs/workflow/release.md` or `docs/workflow/deploy.md` if they exist.
+Note: `docs/VISION.md` and `docs/dev/architecture.md` were already written by the main session — do not overwrite them, nor `docs/dev/deploy.md` if it exists.
 
 ## Step B: Language-Specific Configs
 
@@ -116,13 +112,13 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
 
-**Library preferences — install the ones listed in `LIBRARY_PREFERENCES`:**
-`LIBRARY_PREFERENCES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
+**Library preferences — install the ones listed in `LIBRARY_GUIDELINES`:**
+`LIBRARY_GUIDELINES` is a comma-separated list of preference filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
 - Copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md` → `{TARGET_DIR}/.claude/guidelines/<name>.md`.
 - Append its row to `{TARGET_DIR}/.claude/guidelines/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md`:
   `| <trigger row> | .claude/guidelines/<name>.md |`
 
-`.claude/guidelines/` is **plugin-owned** — `/workflow-update` replaces it wholesale, so nothing project-specific goes in it. Also create the project-owned counterpart `{TARGET_DIR}/.claude/project-notes/` from `{PLUGIN_SOURCE_DIR}/templates/project-notes/`: `README.md`, `INDEX.md.template` → `INDEX.md`, `example.md.template` → `example.md`.
+`.claude/guidelines/` is **plugin-owned** — `/workflow-update` replaces these files, so nothing project-specific goes in them. A project's own standing rules go to `.claude/memory/decisions.md` (a rule, dated and reasoned) or `gotchas.md` (a non-obvious fact).
 
 These carry the maintainer's standing "how I like X done" rules (Railway details + interface-for-portability, map caching/clustering/tooltips, chart UX, Telegram-bot structure, PWA version+update). `/plan` picks the matching one up when a ticket touches that area. If the list is empty, skip.
 
@@ -130,12 +126,8 @@ These carry the maintainer's standing "how I like X done" rules (Railway details
 
 From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
 
-- `workflow/README.md.template` → `{TARGET_DIR}/docs/workflow/README.md`
-- `workflow/lifecycle.md.template` → `{TARGET_DIR}/docs/workflow/lifecycle.md`
-- `workflow/conventions.md.template` → `{TARGET_DIR}/docs/workflow/conventions.md`
-- `workflow/quality.md.template` → `{TARGET_DIR}/docs/workflow/quality.md` (also fill `{{TESTING_SCOPE}}` → TESTING_SCOPE)
-- `workflow/decisions.md.template` → `{TARGET_DIR}/docs/workflow/decisions.md` (fill `{{TODAY}}`, `{{TESTING_SCOPE}}`, `{{BRANCHING_MODEL}}`, `{{GITHUB_INTEGRATION}}` = `no` if GITHUB_REPO is `no` else `yes`, `{{DEPLOY_TARGET}}` → DEPLOY, `{{CI_ON_CLAUDE}}` → CI_ON_CLAUDE (default `no`; `yes` for cross-platform libraries), `{{RELEASE_RUNNER}}` → RELEASE_RUNNER (default `local`))
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
+- `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` (only if DEPLOY ≠ `none` and the main session did not already write it)
 - `dev/code-style.md.template` → `{TARGET_DIR}/docs/dev/code-style.md`
 - `dev/user-readme.md.template` → `{TARGET_DIR}/docs/user/README.md`
 - `CHANGELOG.md.template` → `{TARGET_DIR}/CHANGELOG.md`
@@ -143,17 +135,26 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 - `src-claude.md.template` → `{TARGET_DIR}/src/CLAUDE.md`
 - `tests-claude.md.template` → `{TARGET_DIR}/tests/CLAUDE.md`
 
-Do NOT overwrite `docs/dev/architecture.md`, `docs/dev/adr/ADR-001-architecture.md`, `docs/VISION.md`, `docs/workflow/release.md`, `docs/workflow/deploy.md` — these were written by the main session.
+Do NOT overwrite `docs/dev/architecture.md`, `docs/VISION.md` or `docs/dev/deploy.md` — these were written by the main session.
 
 ## Step E: Root CLAUDE.md
 
-Read `{PLUGIN_SOURCE_DIR}/templates/CLAUDE.md.template`. Fill in:
+Read `{PLUGIN_SOURCE_DIR}/templates/CLAUDE.md.template`. Fill the `project-specific: identity` block:
 - `{{PROJECT_NAME}}` → PROJECT_NAME
 - `{{PROJECT_DESCRIPTION}}` → PROJECT_DESCRIPTION
-- `{{TECH_STACK}}` → ARCHITECTURE_LABEL
 - `{{ARCHITECTURE_SUMMARY}}` → ARCHITECTURE_SUMMARY
+- `{{TECH_STACK}}` → ARCHITECTURE_LABEL
 
-Write to `{TARGET_DIR}/CLAUDE.md`.
+Fill the `workflow-settings` block — **this is the only home for these values**; do not also write them into a doc:
+- `{{TESTING_SCOPE}}` → `unit` / `unit+integration` / `unit+integration+e2e` (from TESTING_SCOPE)
+- `{{BRANCHING_MODEL}}` → BRANCHING_MODEL
+- `{{VERSION_SOURCE}}` → the manifest for this language: `package.json` (TS) · `pyproject.toml` (Python) · `Cargo.toml` (Rust) · `CMakeLists.txt` (C++)
+- `{{DEPLOY_TARGET}}` → DEPLOY
+- `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`
+- `{{CI_ON_CLAUDE}}` → CI_ON_CLAUDE
+- `{{RELEASE_RUNNER}}` → RELEASE_RUNNER
+
+Leave every marker line exactly as it is — `/workflow-update` matches on them, and a marker must stay the whole line. Write to `{TARGET_DIR}/CLAUDE.md`.
 
 ## Step F: Root README.md
 
@@ -197,32 +198,26 @@ Make executable: `chmod +x {TARGET_DIR}/scripts/claude-loop.sh`
 
 ## Step H: Memory Files
 
-Write `{TARGET_DIR}/.claude/memory/decisions.md`:
-```markdown
-# Project Decisions
+Copy all three from `{PLUGIN_SOURCE_DIR}/templates/memory/`, replacing `{{PROJECT_NAME}}`:
+- `decisions.md.template` → `.claude/memory/decisions.md`
+- `gotchas.md.template` → `.claude/memory/gotchas.md`
+- `tech-debt.md.template` → `.claude/memory/tech-debt.md`
 
-## Architecture
-{ARCHITECTURE_LABEL}
+Then seed `decisions.md` with the architecture choice as its first entry, so the file starts with a worked example rather than empty:
+
+```markdown
+## {TODAY} — Architecture: {ARCHITECTURE_LABEL}
 
 {ARCHITECTURE_SUMMARY}
-
-## Tech Stack
-- Language: {LANGUAGE}
-- Testing: {TESTING_SCOPE}
-- Docs: {DOCS_TYPE}
-- Monorepo: {MONOREPO}
-
-## Release & Deploy
-- Release type: {RELEASE_TYPE}
-- Deploy: {DEPLOY}
-- Branching: {BRANCHING_MODEL}
-- GitHub integration: {yes if GITHUB_REPO is yes-public or yes-private, else no}
+Chosen at project setup for a {PROJECT_TYPE} in {LANGUAGE}.
+Detail: `docs/dev/architecture.md`
 ```
 
-(Do NOT create `context.md` — that name is a gitignored runtime note, not a place for project overview. Runtime state lives in the repo; the memory notes are created on demand.)
+and set the index line to `**Topics:** architecture`.
 
-Write empty `{TARGET_DIR}/.claude/memory/gotchas.md` (just a `# Gotchas` heading).
-Write empty `{TARGET_DIR}/.claude/memory/tech-debt.md` (just a `# Tech Debt` heading).
+The workflow settings ({TESTING_SCOPE}, {BRANCHING_MODEL}, {RELEASE_TYPE}, {DEPLOY}, GitHub integration) do **not** go here — they belong in the `workflow-settings` block of `CLAUDE.md`, written in Step E.
+
+(Do NOT create `context.md` — that name is a gitignored runtime note. Runtime state lives in the repo.)
 
 Copy `{PLUGIN_SOURCE_DIR}/templates/memory/.gitignore` → `{TARGET_DIR}/.claude/memory/.gitignore`
 (This prevents runtime state files — local-settings.md, context-*.md, *.active, *.log, usage-cache.json — from being committed to git.)

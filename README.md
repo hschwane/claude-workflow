@@ -70,7 +70,7 @@ The development lifecycle:
 | `/consult "question"` | Delegate hard thinking to the `advisor` agent (best/high) — a decision, a design/architecture or debugging idea, or when unsure. You stay on your model (no switch, no cache churn); you brief the advisor with a focused question + curated context. Records the decision in `.claude/memory/decisions.md` when one is made |
 | `/unsupervised on [90]\|off` | Toggle autonomous mode (no questions + proactive 90% pause) — see [Unsupervised mode](#unsupervised-mode--resume-logic) |
 | `/auto-resume on\|off` | Toggle auto-recovery after a session/rate-limit reset — **independent** of unsupervised; works in supervised too |
-| `/workflow-settings [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …); edits the live value **and** `docs/workflow/decisions.md` in sync |
+| `/workflow-settings [setting]` | View or change a workflow setting (testing scope, branching, deploy target, ci-on-claude, release-runner, …) — one block in `CLAUDE.md` is the only copy |
 
 ## Agents
 
@@ -98,7 +98,7 @@ Seven isolated subagents — each runs in its own context window so heavy readin
 
 `best` resolves to Fable when available, else the latest Opus.
 
-**Why a project-aware `code-explorer` over the built-in Explore agent**: a small upgrade for the same job. It runs on Sonnet/low (a bit of code-comprehension reasoning, still cheap) and orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `docs/workflow/`, `README`, indexes) before targeting a search — so its briefings land on the right code, explain how it works, and cite the project's conventions. It reports facts, sourced; judgment stays with the caller. (For pure text extraction with no code understanding needed, `text-scout` on Haiku is the cheaper primitive.)
+**Why a project-aware `code-explorer` over the built-in Explore agent**: a small upgrade for the same job. It runs on Sonnet/low (a bit of code-comprehension reasoning, still cheap) and orients itself first via the project's own guide files (`CLAUDE.md`, `docs/dev/architecture.md`, `README`, indexes) before targeting a search — so its briefings land on the right code, explain how it works, and cite the project's conventions. It reports facts, sourced; judgment stays with the caller. (For pure text extraction with no code understanding needed, `text-scout` on Haiku is the cheaper primitive.)
 
 Override the agents' model with `CLAUDE_CODE_SUBAGENT_MODEL`, or by editing the `model:` line in `.claude/agents/{name}.md`.
 

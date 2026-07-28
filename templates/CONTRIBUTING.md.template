@@ -1,6 +1,6 @@
 # Contributing to {{PROJECT_NAME}}
 
-> **This file is maintained by the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) plugin** and is replaced on `/workflow-update`, except the marked project block at the end. Claude never reads this file — instructions meant for Claude belong in `CLAUDE.md` or `.claude/project-notes/`, or they will simply never arrive.
+> **This file is maintained by the [claude-workflow](https://github.com/{{WORKFLOW_REPO}}) plugin** and is replaced on `/workflow-update`, except the marked project block at the end. Claude never reads this file — instructions meant for Claude belong in `CLAUDE.md` or `.claude/memory/`, or they will simply never arrive.
 
 This project is developed with an AI-assisted workflow. You can contribute either way: by steering Claude, or by writing the code yourself. Both paths end at the same gate.
 

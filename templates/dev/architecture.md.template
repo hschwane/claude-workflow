@@ -19,7 +19,7 @@ src/
 
 ## Key Design Decisions
 
-See `docs/dev/adr/` for Architecture Decision Records.
+Decisions with lasting structural consequences are recorded in `.claude/memory/decisions.md`; the reasoning behind them belongs in this document.
 
 ## Data Flow
 

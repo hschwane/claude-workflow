@@ -22,17 +22,11 @@ theme:
 
 nav:
   - Home: index.md
-  - Workflow:
-      - Overview: workflow/README.md
-      - Lifecycle: workflow/lifecycle.md
-      - Conventions: workflow/conventions.md
-      - Quality: workflow/quality.md
-      - Release: workflow/release.md
-      - Decisions: workflow/decisions.md
   - Developer:
       - Architecture: dev/architecture.md
       - Setup: dev/setup.md
-      - Style Guide: dev/style-guide.md
+      - Code style: dev/code-style.md
+      - Deploy: dev/deploy.md
   - User Guide: user/README.md
 
 plugins:

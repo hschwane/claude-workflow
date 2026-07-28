@@ -52,7 +52,7 @@ cp .env.example .env
 /release patch           release a version
 ```
 
-See [docs/workflow/README.md](../workflow/README.md) for the full workflow.
+See [CONTRIBUTING.md](../../CONTRIBUTING.md) for how to work on this project.
 
 ## Troubleshooting
 

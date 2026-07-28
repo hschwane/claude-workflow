@@ -22,22 +22,21 @@ After onboarding, the plugin files are copied into the project's `.claude/` dire
 
 ```
 .claude-plugin/plugin.json   ← plugin manifest (metadata only; skills/ and agents/ are auto-discovered)
+.claude-plugin/delivery.json ← ownership of every delivered path: project / plugin / mixed. Drives /workflow-update
 skills/                      ← one directory per skill, each with SKILL.md
 agents/                      ← subagent definitions (each runs in an isolated context)
 templates/                   ← files copied into projects by project-init / project-onboard
   CLAUDE.md.template, README.md.template, CONTRIBUTING.md.template
   CHANGELOG.md.template, spec.md.template, vision.md.template
   src-claude.md.template, tests-claude.md.template
-  workflow/                  ← workflow doc templates
-  dev/                       ← developer doc templates (setup, style guide, ADR, …)
+  dev/                       ← developer doc templates: code-style.md (plugin-owned engineering standards + all language rules), setup, deploy, architecture, user-readme
   configs/                   ← standard language configs (tsconfig, eslint, etc.)
   github/                    ← GitHub Actions CI/release templates
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
-  memory/                    ← .gitignore for runtime memory files
-  preferences/               ← workflow preferences, **plugin-owned** (a project's copy is replaced wholesale on /workflow-update): README + INDEX, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots, service-architecture, logging, background-jobs, app-baseline, changelog, ui-frontend, ai-integration) installed into projects on match. Recommendations, not rules — /plan adapts or reasoned-rejects
-  project-notes/             ← the project-owned counterpart (README + INDEX + example): a project's own standing rules, never touched by an update; a note outranks a preference but a contradiction is asked about, not silently applied
-  ui/                        ← reusable UI templates referenced by a preference file (changelog-template.html, self-contained, re-skin via CSS vars)
+  memory/                    ← decisions / gotchas / tech-debt templates (topic index in the head) + .gitignore
+  guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README + INDEX, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots, service-architecture, logging, background-jobs, app-baseline, changelog, ui-frontend, ai-integration) installed on match. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
+  ui/                        ← reusable UI templates referenced by a guideline (changelog-template.html, self-contained, re-skin via CSS vars)
   scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```
 
@@ -61,7 +60,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/consult` | Delegate hard thinking to the top-tier `advisor` agent — a decision, a design/debugging idea, or when unsure. Session stays on its model (no switch); it briefs the advisor and delegates |
 | `/unsupervised` | Toggle unsupervised mode (no questions, autonomous defaults, proactive 90% pause) |
 | `/auto-resume` | Toggle auto-recovery after a limit reset (independent of unsupervised; cloud heartbeat / local loop) |
-| `/workflow-settings` | View/change a tunable workflow setting; edits the live skill value + syncs `docs/workflow/decisions.md` |
+| `/workflow-settings` | View/change a workflow setting — edits the `workflow-settings` block in `CLAUDE.md`, the only place the values live |
 | `/workflow-update` | Update plugin files to a newer version |
 
 ## Agents
