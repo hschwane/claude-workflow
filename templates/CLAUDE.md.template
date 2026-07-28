@@ -39,7 +39,7 @@ Nothing below is auto-loaded. Read a file when its trigger fires, not before.
 | Read when… | File |
 |---|---|
 | before writing code | `docs/dev/code-style.md` — style, errors, security, design, languages |
-| you need this codebase's layout, key types, patterns | `src/CLAUDE.md` · `tests/CLAUDE.md` |
+| you need this codebase's layout, key types, patterns | `src/CLAUDE.md` · the test directory's `CLAUDE.md` |
 | `/plan`, `/project-init`, `/project-onboard`, or the user names one | `.claude/guidelines/INDEX.md` |
 | planning — past decisions and known traps | `.claude/memory/decisions.md` · `gotchas.md` |
 | architecture, data model, an external interface | `docs/dev/architecture.md` |

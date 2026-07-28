@@ -56,7 +56,19 @@ The `[PROJECT DECISIONS]` block contains:
    - `docs/VISION.md` — `/ship` reads it and the root `CLAUDE.md` points at it.
    - `.claude/memory/local-settings.md` — in the literal `key: value` form; three hooks grep for it.
 
+**Init-only — never create these in onboard mode**, even though the project does not have them (rule 1 blocks overwrites, which is not the same thing):
+
+| Not in onboard | Why |
+|---|---|
+| `src/index.ts`, `src/version.ts`, `scripts/generate-version.js` | the project already has an entry point; a second one gets compiled and linted alongside it |
+| `LICENSE` | choosing a licence for someone else's repo is not yours to do — and an MIT file on a `"private": true` internal service is a real mistake |
+| `package.json`, `tsconfig*.json`, `.prettierrc`, `eslint.config.js` | the project's own configs stay authoritative. Installing the plugin's `tsconfig.strict.json` beside a `tsconfig.json` that does not extend it just leaves orphans |
+
+`.prettierignore` is the exception in that family and **is** installed — the files you are adding under `.claude/` are what make it necessary.
+
 Also in onboard mode: do **not** write the root `CLAUDE.md` or `README.md` (`/project-onboard` merges those itself, because an existing one is usually hand-written and load-bearing), do not create `src/` or the test directory, and use the project's existing test directory name rather than `tests/unit` + `tests/integration`. Skip Step J entirely — the onboarding skill commits.
+
+**Two files Step A and Step D tell you the main session already wrote — it did not.** Those notes are written for init, where `/project-init` produces them before handing off. In onboard nothing has: **create `docs/VISION.md`** from `templates/vision.md.template` (a stub the user fills, if the analysis cannot) and **`docs/dev/architecture.md`** from its template, filled from `EXISTING`. Skip either only if the project already has it. Both are pointed at by the root `CLAUDE.md` and `CONTRIBUTING.md` you are installing, and `/ship` reads VISION unconditionally.
 
 Everything else — `.claude/` in full, `docs/dev/`, `docs/specs/`, `CONTRIBUTING.md`, the three `scripts/`, `workflow-source.json`, the `.gitkeep` sweep — is identical to init mode.
 
@@ -149,7 +161,7 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
-- **Delete the authoring notes once the stages are filled.** Remove the `# --- how to fill this in ---` block from both scripts, and every `# e.g. …` hint line — not only the ones beside a deleted stage. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
+- **Delete the authoring notes once the stages are filled.** In each script, delete the comment lines from `# --- how to fill this in ---` down to and including the `# --- end of authoring notes ---` rule — **nothing below that rule**, which is the `CHECKS`/`STEPS` counter and the `check`/`step` function the filled stages call. Also delete every `# e.g. …` hint line, not only the ones beside a deleted stage. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
 - The **clean-clone** check is not yours — `/project-init` step 5c runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Do not report on it; report your local `ci.sh fast` exit code and check count, and leave the repo in a state that passes the clone.
@@ -182,7 +194,7 @@ These carry the maintainer's standing "how I like X done" rules (Railway details
 
 From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
 
-**Leave no `{{…}}` token behind.** `src/CLAUDE.md` and `tests/CLAUDE.md` are auto-loaded whenever Claude touches that directory, so a raw token there is read on every edit. Derive what you can and **delete the line** for anything you genuinely cannot know — an absent line is better than a placeholder:
+**Leave no `{{…}}` token behind.** `src/CLAUDE.md` and the test directory's `CLAUDE.md` are auto-loaded whenever Claude touches that directory, so a raw token there is read on every edit. Derive what you can and **delete the line** for anything you genuinely cannot know — an absent line is better than a placeholder:
 
 | Token | Derive from |
 |---|---|
@@ -208,7 +220,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `.github/workflows/*.yml` | `${{ }}` is GitHub Actions expression syntax |
 | `README.md`: `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}`, `{{OPERATIONS}}`, `{{GITHUB_REPO}}` | left for the main session, which fills the first three in `/project-init` step 5d and the badge in step 8. They are the only tokens allowed to leave your hands, and they do not survive `/project-init` |
 
-Everything else — `CLAUDE.md`, `src/CLAUDE.md`, `tests/CLAUDE.md`, `docs/**`, `CONTRIBUTING.md`, `scripts/*.sh`, the configs — must contain no `{{` at the initial commit.
+Everything else — `CLAUDE.md`, `src/CLAUDE.md`, the test directory's `CLAUDE.md`, `docs/**`, `CONTRIBUTING.md`, `scripts/*.sh`, the configs — must contain no `{{` at the initial commit.
 
 - `dev/setup.md.template` → `{TARGET_DIR}/docs/dev/setup.md`
 - `dev/deploy.md.template` → `{TARGET_DIR}/docs/dev/deploy.md` (only if DEPLOY ≠ `none` and the main session did not already write it)
@@ -218,7 +230,7 @@ Everything else — `CLAUDE.md`, `src/CLAUDE.md`, `tests/CLAUDE.md`, `docs/**`, 
 - `CHANGELOG.md.template` → `{TARGET_DIR}/CHANGELOG.md`
 - `CONTRIBUTING.md.template` → `{TARGET_DIR}/CONTRIBUTING.md`
 - `src-claude.md.template` → `{TARGET_DIR}/src/CLAUDE.md`
-- `tests-claude.md.template` → `{TARGET_DIR}/tests/CLAUDE.md`
+- `tests-claude.md.template` → `{TARGET_DIR}/tests/CLAUDE.md` — **init only.** In onboard mode the project's test directory has another name and another layout; `/project-onboard` writes that file itself.
 
 Do NOT overwrite `docs/dev/architecture.md`, `docs/VISION.md` or `docs/dev/deploy.md` — these were written by the main session.
 

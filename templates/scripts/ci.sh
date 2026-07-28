@@ -27,6 +27,7 @@ echo "▶ ci.sh ($MODE)"
 #
 # `check` counts what it runs, so a script with every stage deleted fails loudly at the end
 # instead of reporting a pass it never earned.
+# --- end of authoring notes; everything below is live code ------------------------------
 CHECKS=0
 check() {
   CHECKS=$((CHECKS + 1))

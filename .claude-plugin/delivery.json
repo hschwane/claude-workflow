@@ -133,7 +133,8 @@
     {
       "path": "tests/CLAUDE.md",
       "class": "project",
-      "source": "templates/tests-claude.md.template"
+      "source": "templates/tests-claude.md.template",
+      "note": "The project's test-directory guide. `/project-init` creates it at `tests/CLAUDE.md`; an onboarded project may hold it at `test/`, `spec/` or wherever its suite lives — match the directory that exists rather than this literal path."
     },
     {
       "path": "docs/dev/code-style.md",

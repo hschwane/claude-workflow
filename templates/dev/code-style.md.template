@@ -1,6 +1,6 @@
 # Code style and engineering standards
 
-Maintained by the claude-workflow plugin and replaced on `/workflow-update` — do not edit. Project-specific structure, patterns and key types live in `src/CLAUDE.md` and `tests/CLAUDE.md`; a project decision that departs from a rule here belongs in `.claude/memory/decisions.md`, dated and with a reason.
+Maintained by the claude-workflow plugin and replaced on `/workflow-update` — do not edit. Project-specific structure, patterns and key types live in `src/CLAUDE.md` and the test directory's `CLAUDE.md`; a project decision that departs from a rule here belongs in `.claude/memory/decisions.md`, dated and with a reason.
 
 Read by Claude when writing code, and by human contributors — `CONTRIBUTING.md` points here rather than repeating any of it.
 

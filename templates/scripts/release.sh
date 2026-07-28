@@ -21,6 +21,7 @@ echo "▶ release.sh $VERSION"
 # Each step below is a `step <command>` line — a COMMAND LINE, not a comment. Replace the
 # whole placeholder, keeping the `step ` prefix; DELETE the line for a step this project does
 # not have. `step` counts what it runs, so a release that published nothing says so.
+# --- end of authoring notes; everything below is live code ------------------------------
 STEPS=0
 step() {
   STEPS=$((STEPS + 1))

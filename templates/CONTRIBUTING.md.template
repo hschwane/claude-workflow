@@ -44,7 +44,7 @@ Types: `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `perf` ·
 
 **Branches:** `feature/feat-001-short-title`, `fix/bug-042-short-description`, `chore/update-dependencies`.
 
-**Code conventions** live in `docs/dev/code-style.md` — naming, error handling, comments, testing, security, and the per-language rules. `src/CLAUDE.md` and `tests/CLAUDE.md` add what is specific to *this* codebase: its layout, key types and local patterns. All of it applies to human contributions too.
+**Code conventions** live in `docs/dev/code-style.md` — naming, error handling, comments, testing, security, and the per-language rules. `src/CLAUDE.md` and the test directory's `CLAUDE.md` add what is specific to *this* codebase: its layout, key types and local patterns. All of it applies to human contributions too.
 
 ## How CI works here
 

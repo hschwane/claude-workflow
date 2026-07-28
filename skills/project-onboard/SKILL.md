@@ -53,7 +53,13 @@ Ask (in chat — plain message, wait for the reply):
 2. **GitHub** — "Does this project use GitHub? [yes/no]"
 3. **Existing tests** — "I found {test info}. Should the workflow integrate with them? [yes / no, set up fresh]"
 4. **Docs format** — "For workflow documentation, use: [markdown files (default) / MkDocs HTML]"
-5. **Test scope** — "What test levels should the workflow use for this project? [Unit only / Unit + Integration / Unit + Integration + E2E]" — pre-select based on the detected test setup from step 1.
+5. **Test scope** — "What test levels should the workflow use for this project? [Unit only / Unit + Integration / Unit + Integration + E2E]" — pre-select from the test setup detected in step 1, and say that step 3c may narrow it to what the gate can actually run.
+6. **Branching** — "main-only or git-flow?" — detect from the existing branches and offer that as the default.
+7. **Deploy target** — "Where does this deploy? [railway / vercel / aws / self-hosted / manual / none]" — detect from `railway.json`, a Procfile, a Dockerfile, a deploy workflow.
+8. **Release** — "How does a release publish? [npm / pypi / github release / docker / internal / none]", and "run releases locally or via Actions? [local (default) / ci]".
+9. **GitHub owner** — only when question 2 was yes: "Which owner will the repo live under?" (`gh api user --jq .login` is the default). `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing one.
+
+**Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can — `version-source` from the manifest that exists, `ci-on-claude: no`, `MONOREPO` and `PROJECT_TYPE` and `ARCHITECTURE_*` from the step 1 analysis, `COPYRIGHT_HOLDER` only if a LICENSE already exists (onboard never creates one) — and ask for the rest rather than guessing. Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
 
 ### 3. Install Workflow Infrastructure
 
@@ -61,7 +67,11 @@ The mechanical install is the same one `/project-init` does, so **it is not dupl
 
 #### 3a. Delegate the mechanical install
 
-Invoke the `project-scaffolder` agent with `MODE: onboard` (see that agent's **Onboard mode** section — in short: never overwrite anything that exists, skip what the project already provides, install the rest). Pass the same decisions block `/project-init` step 5b uses, filled from the step 1 analysis and the step 2 answers, plus:
+**First, install dependencies.** Onboard mode skips the manifest, so nothing else installs them — and `ci.sh` cannot run a single check without `node_modules`. Run the project's install (`npm install` / `uv sync` / `cargo fetch`) and, if its CI uses `npm ci`/`--locked` and no lockfile is committed, commit one.
+
+**Decide which guidelines match now**, before delegating — the scaffolder installs the list you pass it, so deciding afterwards means it installs nothing. Use the detection hints in 3e.
+
+Then invoke the `project-scaffolder` agent with `MODE: onboard` (read that agent's **Onboard mode** section: never overwrite anything that exists, skip what the project provides, do not create the init-only artifacts, install the rest). Pass the decisions block from its **Input Fields** table, filled from the step 1 analysis and the step 2 answers, plus:
 
 ```
 MODE: onboard
@@ -87,11 +97,15 @@ This is the file an onboarded repo is most likely to already have, hand-written 
 
   Show the mapping and the result before writing, and **name every piece and its destination in the step 6 report**. Nothing may be dropped for want of a home.
 
+**Then fix what pointed at it.** A README section reading "## Deploy — see CLAUDE.md" is now a dangling reference. Grep the repo for inbound links to every section you moved and update them; list the repairs in the report.
+
   **Moving a rule out of `CLAUDE.md` changes when it fires.** It was on every turn; `decisions.md` is read at `/plan`, `src/CLAUDE.md` only when work touches `src/`. For most rules that is the right trade. For a **safety, privacy or legal** constraint ("never log booking payloads — they contain customer names") it is not: offer to keep a one-line version in the `identity` block as well, and say in the report that its always-loaded status was at stake.
 
 **Do not rewrite `.claude/memory/decisions.md` after this.** It now holds the project's own house rules. Anything further — the tech-stack summary, observed patterns — is *appended* as one more dated entry.
 
-Record the project's actual test directory name (`test/`, `tests/`, `spec/`) as a decision: the plugin-owned `CLAUDE.md` names `tests/CLAUDE.md` generically and cannot be corrected per project.
+**The one exception is the `**Topics:**` index line, which you must extend.** The scaffolder set it to `architecture`; a head-only reader stops there and never sees the rules you just appended, which is precisely the mechanism 3b relies on for a rule to reach `/plan`. Add a topic per entry (`no-orm, money, booking-ids, logging-pii, …`).
+
+**Write the test directory's `CLAUDE.md` yourself** — into the project's actual directory (`test/`, `tests/`, `spec/`), not a `tests/` the project does not have. `templates/tests-claude.md.template` describes a `tests/unit` + `tests/integration` split as prose rather than tokens, which is true for a project `/project-init` created and false for most existing ones: rewrite the Layout and the `ci.sh` sentence to match the suite that is actually here. This is why the file is carved out of the scaffolder's work alongside `CLAUDE.md` and `README.md`. Record the directory name as a decision too, so `/plan` knows it.
 
 #### 3c. Make the gate real — the part that actually takes judgment
 
@@ -101,6 +115,7 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 
 - **No command exists for a stage** (common: no `typecheck` script). Add one to the project's manifest rather than inlining a bare binary, and say you did. If the stage genuinely does not apply, delete its line — deleting them all still parses, and the script's own check counter then reports an empty gate honestly.
 - **An existing command fails.** That is a pre-existing break which the gate has just made load-bearing. Show the failure, propose the smallest fix, and get agreement before editing `package.json` or dependencies. Do not quietly work around it.
+- **The tool is installed but its config is missing** (an `eslint` dependency and a `lint` script but no `eslint.config.js` — common on a repo that drifted). **Do not copy `templates/configs/eslint.config.js`.** It is written for a fresh install: it pulls in `typescript-eslint` and `@eslint/js@10`, which ERESOLVE-conflicts with an existing `eslint@9`, and its type-checked rule sets then fail on any test tree the project's `tsconfig.json` does not include. Author a minimal config *for this project* instead — pinned to the major it already has, and non-type-checked where the test files sit outside the TypeScript project. The plugin's configs are for projects the plugin created.
 - **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
 
 **`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`.
@@ -109,7 +124,7 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 
 Fill `scripts/release.sh` the same way. Its healthcheck must be a real command; only the deploy step may be a no-op.
 
-**Reconcile `testing-scope` with reality.** If the step 2 answer names a level the project has no directory or runner for, either scaffold it now or narrow the setting — never record a scope the gate does not enforce.
+**Reconcile `testing-scope` with reality.** If the step 2 answer names a level the project has no directory or runner for, narrow the setting to what the gate actually runs — do not invent an integration directory and an npm script the project never asked for. Scaffold the missing level only if the user asks for it. Either way this **overrides an answer the user gave**, so say so in the step 6 report; silently recording a different value than the one they chose is worse than either option.
 
 #### 3d. Reconcile the existing CI
 
@@ -121,7 +136,7 @@ If there is no CI at all, offer `templates/github/ci-{language}.yml`.
 
 #### 3e. Guidelines and the baseline gap check
 
-**Install matching guidelines:** consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, detect which fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway`; a backend/service with domain/application/infrastructure layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines.
+**Which guidelines matched** was decided in 3a and installed by the scaffolder — this section is the detection reference it used, not a second install. Consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, work out which fit; offer them to the user, and pass the accepted list as `LIBRARY_GUIDELINES`. Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway`; a backend/service with domain/application/infrastructure layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines.
 
 **Check the developer-utility baseline and draft tickets for what's missing.** For anything bigger than a small script, check what `app-baseline.md` requires against what the project actually has — structured logging with adjustable levels, version visibility, an update mechanism, an in-app changelog, a way for Claude to smoke-test a live instance, and an access gate / API token auth where applicable. For each gap, create a backlog draft in `docs/specs/backlog/` (from `spec.md.template`) and tell the user it's there. These are debugging and development infrastructure, so they're worth doing before the next feature — say that, but don't block onboarding on them. A gap the user judges irrelevant gets dropped with a stated reason, not silently.
 
@@ -146,7 +161,8 @@ The skills, agents and hooks just installed under `.claude/` are picked up at **
 Only run this step if the `github` setting is `yes` **and `git remote -v` resolves a GitHub remote.** Onboarding a local repo that will get its remote later is a common case for this skill, and `gh label create` fails outright with "no git remotes found".
 
 - Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, ready, in-progress, done — `--force` because defaults like `bug` already exist)
-- Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
+
+The issue templates are the scaffolder's job, not this step's — it creates them whenever `GITHUB_REPO` is not `no`.
 
 With `github: yes` but no remote yet: create the issue templates, skip the labels, and tell the user to re-run the `gh label create` block once the remote exists.
 
