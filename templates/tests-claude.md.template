@@ -9,13 +9,13 @@ Loaded when you touch anything under `tests/`, and not when planning or writing 
 Everything: `{{TEST_COMMAND}}`
 A single file: `{{TEST_SINGLE_COMMAND}}`
 
-Prefer `scripts/ci.sh` over calling the framework directly — `fast` for the per-subtask check, `full` before a merge or release. It is the same script CI runs, so a local pass means a remote pass.
+Prefer `scripts/ci.sh` over calling the framework directly — `fast` for the per-subtask check, `full` before a merge or release. It is the same script CI runs — provided every command in it resolves through the package manager rather than a globally installed binary, which is what `/project-init`'s clean-clone check verifies.
 
 Framework: {{TEST_FRAMEWORK}}
 
 ## Layout
 
-Test files mirror `src/` — `src/auth/oauth.ts` → `tests/auth/oauth.test.ts`.
+Tests are split by **level** first, then mirror `src/` inside each level — `src/auth/oauth.ts` → `tests/unit/auth/oauth.test.ts`, and its integration counterpart → `tests/integration/auth/oauth.test.ts`. `scripts/ci.sh` runs `tests/unit` in `fast` and adds `tests/integration` in `full`, so a test in the wrong directory runs at the wrong time — or, in the case of a slow integration test under `tests/unit/`, on every single subtask.
 
 ```{{LANG}}
 {{TEST_EXAMPLE}}

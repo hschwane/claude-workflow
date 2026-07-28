@@ -18,7 +18,7 @@ Creates a new software project from scratch with the full claude-workflow infras
 ## Instructions
 
 ### 0. Check Prerequisites
-- Verify `git`, `gh` (GitHub CLI) are available (**required** — the workflow is git/GitHub based)
+- Verify `git` is available (**required**). `gh` (GitHub CLI) is needed **only if** this project will use GitHub — ask that question first (step 1) and check `gh` after the answer, so a deliberately local-only project is not blocked on a tool it will never call
 - If `gh` is not authenticated: `gh auth status` — if not logged in, prompt user to run `gh auth login`
 - Check runtimes used by the quality gates and warn (do not block) if missing:
   - `node --version` and `npx --version` — needed for the JS/TS gates (`eslint`, `prettier`, `tsc`)
@@ -209,7 +209,25 @@ templates, root CLAUDE.md and README.md, workflow infrastructure (.claude/ with 
 memory), and the initial git commit. Full instructions are in your agent definition.
 ```
 
-Wait for the agent to complete and review its report before proceeding.
+Wait for the agent to complete and review its report.
+
+### 5c. Verify the scaffold yourself — from a clean clone
+
+**Do not skip this and do not delegate it.** A check performed and reported on by the same agent is a check that quietly stops happening; three separate gate defects have shipped past exactly that arrangement. Run it here, in the main session:
+
+```
+npm install                      # (or uv sync / cargo fetch) — MUST produce a lockfile
+test -f package-lock.json        # CI runs `npm ci`, which fails without one
+git add -A && git commit -m "chore: add lockfile" --amend --no-edit
+git clone {TARGET_DIR} {TMP}/verify-clone
+cd {TMP}/verify-clone && npm ci && ./scripts/ci.sh full
+```
+
+The clone is the point: anything gitignored, untracked or generated is absent there, which is precisely what GitHub Actions sees on the first push. A local pass proves nothing about it.
+
+**A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
+
+Report the exit code in step 9. If the scaffolder's report omitted its own `ci.sh fast` exit code, treat that as a failed step and re-verify from scratch rather than assuming it passed.
 
 
 ### 6. Workflow settings review
@@ -268,27 +286,19 @@ Explain the four-phase approach to the user, then generate and review the backlo
    - **Add or change items**: accept additions/modifications, then confirm.
    - **Skip**: move to the next milestone without creating any items for this one.
 
-**Create spec files for all accepted items:**
-```
-docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md
-```
-Frontmatter:
-```yaml
-id: {TYPE}-{NNN}
-type: feature
-status: draft
-version: {tech-backbone|WS|MVP|1.0.0|1.1.0|…}
-created: {today}
-updated: {today}
-github_issue: ~
-```
+**Create spec files for all accepted items** — each one copied from `docs/specs/spec.md.template` (the scaffolder installed it in Step D) into `docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md`, with the frontmatter filled: `id`, `type: feature`, `status: draft`, `version` = the milestone string (`tech-backbone` / `WS` / `MVP` / `1.0.0` / `1.1.0` / …), `created` and `updated` = today, leaving `test_scope: ~` and `github_issue: ~` for `/plan` and step 8.
+
+Copy the template rather than restating its fields here: that restatement is how the two drift, and a spec missing `test_scope` is a spec `/plan` is documented to write into a field that does not exist.
+
 Body: write a one-sentence User Story based on the item's purpose. Leave Acceptance Criteria as `[To be defined in /plan]`.
 
 IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
 
 Do **not** create GitHub issues here — on a new project the remote does not exist yet and the labels have not been created; both happen in step 8, which mirrors the backlog once it can.
 
-After all milestones: print a summary — version string, item count, and ID range for each.
+After all milestones: **commit the backlog** — `git add docs/specs/ && git commit -m "docs(specs): initial backlog  [skip ci]"`. Nothing else in this skill commits it, and leaving `/project-init` with 30 untracked spec files means the next session's SessionStart hook sees no work at all.
+
+Then print a summary — version string, item count, and ID range for each.
 
 ### 8. GitHub Repository Creation (if requested)
 ```
@@ -306,7 +316,7 @@ gh label create "in-progress" --force --color fbca04 --description "Being implem
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
 ```
 
-**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 (`gh issue create --label "feature,backlog"`), and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
+**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {spec path} --label "{feature|bug},backlog"` (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
 
 Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created, then commit (`docs: fill CI badge repo`). (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
 
@@ -314,7 +324,7 @@ Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}
 
 Runs whether or not a GitHub repo was created — a local-only project still needs the right branch.
 
-**Git Flow:** `git checkout -b develop`, and with a remote also `git push -u origin develop` and `gh repo edit --default-branch develop`.
+**Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). With a remote, `git push -u origin develop` and `gh repo edit --default-branch develop`.
 **main-only:** nothing to do; the scaffolder already left HEAD on `main`.
 
 The `branching` value is already in the `workflow-settings` block (the scaffolder wrote it in Step E) — don't write it again.
@@ -325,7 +335,7 @@ Project initialized ✓
 {project-name}
 
 Design (main session):
-  Docs: VISION.md, dev/architecture.md, dev/code-style.md, dev/setup.md{, dev/deploy.md}
+  Docs: VISION.md, dev/architecture.md
   Backlog: {N} items
     tech-backbone: {N} items
     WS:            {N} items
@@ -336,8 +346,13 @@ Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}
   CI: .github/workflows/ci.yml{ + release.yml if a release template was used}
   Infrastructure: .claude/ (agents, skills, hooks, memory)
-  Root files: CLAUDE.md, README.md, CONTRIBUTING.md
+  Docs: dev/code-style.md, dev/setup.md{, dev/deploy.md}, user/README.md
+  Root files: CLAUDE.md, README.md, CONTRIBUTING.md, CHANGELOG.md, LICENSE
   Committed: yes (branch: {main|develop})
+
+Verification (step 5c):
+  Lockfile: {present}
+  Clean-clone `ci.sh full`: {exit 0 | FAILED — this is a blocker, not a note}
 
   {GitHub repo: https://github.com/.../...}
 

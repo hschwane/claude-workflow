@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "description": "{{PROJECT_DESCRIPTION}}",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "node scripts/generate-version.js && tsc",
+    "build": "node scripts/generate-version.js && tsc -p tsconfig.build.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests tests/unit",
+    "test:integration": "vitest run --passWithNoTests tests/integration",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
     "lint": "eslint .",

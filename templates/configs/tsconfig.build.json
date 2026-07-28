@@ -1,0 +1,8 @@
+{
+  // The emitting build: src only, no tests, no config files.
+  // `npm run build` uses this; `tsc --noEmit` and eslint use tsconfig.json,
+  // which is wider so type-aware linting can see the test files too.
+  "extends": "./tsconfig.strict.json",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

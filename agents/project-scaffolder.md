@@ -47,7 +47,8 @@ Create all required directories (use `mkdir -p`):
 
 ```
 {TARGET_DIR}/src/
-{TARGET_DIR}/tests/
+{TARGET_DIR}/tests/unit/
+{TARGET_DIR}/tests/integration/
 {TARGET_DIR}/docs/dev/
 {TARGET_DIR}/docs/user/
 {TARGET_DIR}/docs/specs/backlog/
@@ -77,11 +78,16 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - `tsconfig.json` → `tsconfig.json` (entry point; extends the strict profile)
 - `tsconfig.strict.json` → `tsconfig.strict.json`
 - `tsconfig.base.json` → `tsconfig.base.json`
+- `tsconfig.build.json` → `tsconfig.build.json` (the src-only emitting build; `tsconfig.json` is wider so eslint's type-aware rules can see the tests)
 - `eslint.config.js` → `eslint.config.js`
 - `.prettierrc` → `.prettierrc`
 - `.prettierignore` → `.prettierignore` — **required.** `ci.sh fast` runs `prettier --check .`, which otherwise fails on all ~40 plugin-owned files under `.claude/`. Formatting those instead is not a fix: `/workflow-update` replaces them, so the gate would break again at every update.
 - `package.json.template` → `package.json` (fill `{{PROJECT_NAME_KEBAB}}` = PROJECT_NAME in kebab-case, `{{PROJECT_DESCRIPTION}}` = PROJECT_DESCRIPTION)
-- Run `npm install` in `{TARGET_DIR}` to generate `package-lock.json`, and commit it — CI runs `npm ci`, which fails without a lockfile. (Python: `uv lock` or leave the lock to the first install; Rust: `cargo generate-lockfile`.)
+- **Generate the lockfile and check it landed** — this is a command to run, not a note:
+  ```bash
+  cd {TARGET_DIR} && npm install && test -f package-lock.json
+  ```
+  If `test` fails, stop and report it. CI runs `npm ci`, which errors out with "can only install with an existing package-lock.json" — so a missing lockfile makes the first push red no matter what else is correct. (Python: `uv lock`; Rust: `cargo generate-lockfile`.) Step J's `git add -A` runs after this, so the lockfile is committed.
 - `generate-version.js` → `scripts/generate-version.js`
 - Create `src/version.ts` as an empty placeholder — the build regenerates it, and `.gitignore` excludes it.
 - **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found"). It passes on the scaffolding machine only because the untracked generated file is sitting there.
@@ -99,7 +105,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
-**Write a `.gitkeep` into every directory Step A created that has no file in it yet** — `docs/specs/ready/`, `docs/specs/completed/`, `tests/unit/`, `tests/integration/`, `docs/user/` if empty. Git does not track directories: without this they are simply absent from a fresh clone, and the skills that `git mv` a spec into `ready/` fail on the first ticket.
+**Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Do this as a sweep after Step I: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
 
 **Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
 
@@ -108,11 +114,24 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 ## Step C: Canonical scripts + CI templates
 
 **Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
-- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token — and delete the `# e.g. …` hint line with it, so the project's script carries its own commands and nothing else. Fill with with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build). TypeScript → prettier/eslint/tsc/vitest (use `vitest run --passWithNoTests`: a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it, so the gate can never pass); Python → ruff/mypy/pytest; Rust → fmt/clippy/cargo test/build; C++ → clang-format/clang-tidy/ctest/cmake build.
+- `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token — and delete the `# e.g. …` hint line with it, so the project's script carries its own commands and nothing else. Fill with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build).
+
+**Never write a bare tool name.** `prettier`, `eslint`, `tsc` and `vitest` are not on `PATH` in GitHub Actions — `npm ci` installs them into `node_modules/.bin`, which only a package script or `npx` sees. A bare `prettier --check .` exits **127** in CI while passing on a laptop that happens to have it installed globally, which is the worst possible way for a gate to be wrong. Go through the package manager:
+
+| | fast | full adds |
+|---|---|---|
+| TypeScript | `npm run format:check` · `npm run lint` · `npm run typecheck` · `npm test` | `npm run test:integration` (add the script) · `npm run build` |
+| Python | `uv run ruff format --check .` · `uv run ruff check .` · `uv run mypy .` · `uv run pytest tests/unit` | `uv run pytest tests/integration` · `uv build` |
+| Rust | `cargo fmt --check` · `cargo clippy -- -D warnings` · `cargo test --lib` | `cargo test --test '*'` · `cargo build --release` |
+| C++ | `clang-format --dry-run -Werror …` · `clang-tidy …` · `cmake --build build` · `ctest --test-dir build -L unit` | `ctest --test-dir build -L integration` |
+
+The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
-- **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and confirm it actually executed the commands (a run that prints only the header and `passed` means the placeholders are still comments — fix before continuing).
-- **Then verify it from a clean clone**, which is what CI actually runs: `git clone {TARGET_DIR} /tmp/verify-clone && cd /tmp/verify-clone && npm ci && ./scripts/ci.sh full`. Anything gitignored or uncommitted is missing there, and that is exactly where a scaffold quietly fails — a local pass proves nothing about the first push.
+- **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
+- The **clean-clone** check is not yours — `/project-init` step 5b runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Your job is to leave the repo in a state that passes it.
+
+**`release.sh`: `:` is only ever acceptable for the deploy step** (a platform that auto-deploys on merge genuinely has nothing to run). The **healthcheck must be a real command** — `docs/dev/deploy.md` already carries the URL by the time you write this. If it is genuinely unknown, emit `exit 1` with a TODO comment rather than `:`; a release that reports success having verified nothing is worse than one that stops.
 
 **GitHub Actions (thin wrappers around the scripts above — run on human commits + dispatch):**
 - `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
@@ -148,7 +167,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `{{TYPES_FILE}}` | `src/domain/types.ts` · `src/types.py` · `src/lib.rs` — whatever the layout implies |
 | `{{KEY_PATTERN_1/2}}` | two conventions from ARCHITECTURE_LABEL (e.g. "use cases are `makeXUseCase(deps)` factories", "validate input with Zod at the boundary") |
 | `{{TEST_FRAMEWORK}}` `{{TEST_COMMAND}}` `{{TEST_SINGLE_COMMAND}}` `{{LANG}}` | LANGUAGE + the scripts in `package.json` / `pyproject.toml` |
-| `{{TEST_EXAMPLE}}` | a three-line example in that framework |
+| `{{TEST_EXAMPLE}}` | a three-line example in that framework — written so it passes the project's own format gate (with the shipped `.prettierrc`, that means double quotes) |
 | `{{TEST_FIXTURES}}` | delete the section if the project has none yet |
 | `docs/dev/setup.md`: `{{PREREQUISITE}}` `{{INSTALL_COMMAND}}` `{{RUN_COMMAND}}` `{{TEST_COMMAND}}` `{{BUILD_COMMAND}}` | LANGUAGE + the manifest's scripts |
 | `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |

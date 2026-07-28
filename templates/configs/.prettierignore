@@ -1,24 +1,38 @@
-# Prettier formats this project's own source and configs — nothing else.
+# Prettier formats this project's own code and configs — nothing else.
 #
-# `scripts/ci.sh fast` runs `prettier --check .`, so anything not ignored here
-# is a gate failure. The paths below are either not the project's to format
-# (plugin-owned, replaced on every /workflow-update) or generated.
+# `scripts/ci.sh fast` runs `prettier --check .`, so anything NOT ignored here is
+# a gate failure. Two kinds of file must stay out:
+#
+#   1. Plugin-owned files. `/workflow-update` replaces them from the plugin, so
+#      formatting them fixes the gate exactly once and breaks it again at the
+#      next update. `.claude/**`, `CLAUDE.md`, `CONTRIBUTING.md` and
+#      `docs/dev/code-style.md` are all in this category.
+#   2. Prose. Reformatting markdown reflows tables and wraps paragraphs on every
+#      edit, producing diff noise that hides the actual change. Prettier is a
+#      code formatter here, not a prose formatter.
+#
+# Add project-owned code paths back by deleting a line, never by reformatting a
+# plugin-owned file.
 
-# Workflow plugin files — replaced wholesale on update, so formatting them
-# breaks the gate again at the next update.
+# --- plugin-owned (replaced on every /workflow-update) ---
 .claude/
+CLAUDE.md
+CONTRIBUTING.md
+docs/dev/code-style.md
 
-# Prose the project owns but that gains nothing from reformatting, and which
-# reflows noisily on every edit.
-docs/specs/
-CHANGELOG.md
-docs/changelog/
+# --- prose ---
+*.md
+docs/
 
-# Generated / vendored
+# --- CI config: `${{ }}` is GitHub Actions syntax, and these are template-derived ---
+.github/
+
+# --- generated / vendored ---
 dist/
 build/
+out/
 coverage/
 node_modules/
 src/version.ts
-*.min.*
 package-lock.json
+*.min.*

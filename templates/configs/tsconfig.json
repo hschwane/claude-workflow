@@ -1,5 +1,19 @@
 {
-  // Entry-point config used by tsc, eslint (projectService) and editors.
+  // Entry point for editors, `tsc --noEmit` and ESLint's projectService.
+  // It deliberately includes tests: eslint's type-aware rules refuse to parse a
+  // file no tsconfig covers ("was not found by the project service"), so a
+  // src-only config turns the very first test file into a lint error.
+  // The emitting build uses tsconfig.build.json, which is src-only.
+  //
   // Points at the strict profile; switch to ./tsconfig.base.json to relax.
-  "extends": "./tsconfig.strict.json"
+  "extends": "./tsconfig.strict.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The strict profile pins rootDir to ./src for the build; widening the
+    // include to tests/ would then trip TS6059. Nothing is emitted here, so
+    // the root is simply the repo.
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "tests/**/*", "*.config.ts", "*.config.js"],
+  "exclude": ["node_modules", "dist"]
 }
