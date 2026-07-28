@@ -78,7 +78,7 @@ For a directory (`.claude/skills/`, `.claude/agents/`, `.claude/guidelines/`, `.
 
 For a single file (`docs/dev/code-style.md`, `scripts/claude-loop.sh`), replace it when it changed.
 
-**Install what the project does not have.** A `plugin`-class path the new manifest lists and the project lacks is *installed*, not skipped — "only changed files are touched" is about files that exist on both sides. That is how `docs/specs/spec.md.template` (which `/plan` reads for every ticket) reaches a project that predates it.
+**Install what the project does not have.** A `plugin`-class path the new manifest lists and the project lacks is *installed*, not skipped — **unless it configures a tool the project does not use.** `.prettierignore` in a repo with no formatter is noise: report it instead.  — "only changed files are touched" is about files that exist on both sides. That is how `docs/specs/spec.md.template` (which `/plan` reads for every ticket) reaches a project that predates it.
 
 **Exceptions are marked by a `note` in the manifest — read the note before mirroring a directory.**
 
@@ -124,7 +124,9 @@ For `scripts/ci.sh` and `release.sh` specifically: the project's real commands l
 
 When the upstream **template** changed, do not touch the file. Instead, describe what changed and suggest how it might apply here — as a note in the report, for the user to act on or ignore. Most updates will have nothing to say.
 
-**One thing this class does create.** The `CLAUDE.md` and `CONTRIBUTING.md` this update installs ship a "Where things live" index. A path in that index that does not exist is a broken pointer in an always-loaded file — the reader follows it, finds nothing, and stops trusting the table. So for `docs/dev/setup.md`, `docs/VISION.md`, `docs/specs/{backlog,ready,completed}/`, `docs/user/` and `.env.example` (which `setup.md` tells the reader to copy): create what is missing from its template with tokens left as `_TBD_`, and a `.gitkeep` in each directory so a fresh clone still has it. List them in the report as stubs to fill. Derive the set from the two files you just installed rather than from this list — it ages with the templates.
+**One thing this class does create.** The `CLAUDE.md` and `CONTRIBUTING.md` this update installs ship a "Where things live" index. A path in that index that does not exist is a broken pointer in an always-loaded file — the reader follows it, finds nothing, and stops trusting the table. So create what is missing: `docs/dev/setup.md`, `docs/VISION.md`, `docs/specs/{backlog,ready,completed}/` (a `.gitkeep` each, so a fresh clone still has them), and **`docs/user/README.md`** from `templates/dev/user-readme.md.template` — a bare `docs/user/` directory leaves the `[User guide](docs/user/README.md)` link in the README you just installed pointing at nothing. Leave unknown tokens as `_TBD_`.
+
+**`.env.example` ships no template** — its manifest entry has no `source`, so there is nothing to copy. Write it by hand: a header comment naming the project and pointing at `docs/dev/setup.md`, plus any variable the deploy doc already names. `setup.md` tells the reader to `cp .env.example .env`, so its absence is a broken first step. List them in the report as stubs to fill. Derive the set from the two files you just installed rather than from this list — it ages with the templates.
 
 ### 5b. One-time migration, v2.x → v3.0
 
@@ -136,7 +138,7 @@ Run only when the recorded version is below 3.0.0. **Order matters** — later s
 
 Read the *Current* column of `docs/workflow/decisions.md`. Treat a cell as **empty** when it holds `{{…}}`, `TBD`, `—`, `n/a`, **or the v2 template's own instructional filler** — an unfilled template is not an answer, and copying one forward ships a sentence of prose into a file loaded on every turn. The filler does not always look like a token: v2's version-source row ships the literal text *"set at init for this language (e.g. `package.json` version, `Cargo.toml`, `pyproject.toml`, a VERSION file)"*, which reads like an answer and is not one. A cell that lists options, hedges, or says "e.g." is filler.
 
-For anything empty or missing, fall back to the live locations: `docs/workflow/quality.md` (testing scope), `lifecycle.md` (branching), `release.md` (version source), `deploy.md` (deploy target), the `/release` skill (`release-runner`), `.claude/memory/decisions.md` (GitHub integration).
+For anything empty or missing, fall back to the live locations: `docs/workflow/quality.md` (testing scope), `lifecycle.md` (branching), `release.md` (version source), `deploy.md` (deploy target), the `/release` skill (`release-runner`), and for `github`, the repo itself — whether it has a `.github/` directory and a GitHub remote. (`.claude/memory/decisions.md` is listed in older guidance but is created blank by step 0 on a v2 project, so it can never answer this.)
 
 v2 wrote these as prose. Map what you find onto the v3 values:
 
@@ -186,7 +188,7 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
 - Move `deploy.md` → `docs/dev/deploy.md`. If `docs/dev/deploy.md` already exists, merge with confirmation rather than overwriting.
 - Append the **Required Secrets** section from `release.md` — *unless* the moved file already has one. The two are named differently (`## Required Secrets (GitHub Actions)` in the source, `## Required GitHub Secrets` in the destination); they are the same section. If both are still unfilled templates, keep one empty table and say it needs filling. If both have content, show both and ask. Appending blind produces two conflicting secret lists, and the wrong one gets followed at 3am.
 - **Substitute the tokens.** The moved file arrives with a dozen `{{...}}` in it. Fill what step 1 already knows (`{{DEPLOY_TARGET}}`, the secret names from `release.md`) and ask for the rest. An unfilled `{{ROLLBACK_PROCEDURE}}` is worse than an empty one — `CLAUDE.md` sends you here for exactly that, mid-incident.
-- The v3 deploy template differs from v2's only by the `preferences`→`guidelines` rename, which §6 already corrects. There is no diff worth offering — don't manufacture one.
+- The v3 deploy template makes three edits beyond the `preferences`→`guidelines` rename: `## Required GitHub Secrets` → `## Required deployment secrets`, `### Automated Steps (in CI deploy.yml or release.yml)` → `### Automated steps`, and the prerequisite bullet rewritten from "GitHub Secret" to secret-or-environment-variable. Apply those to the moved file — a local release has no GitHub secrets, and the v2 headings say it does. There is nothing else to offer.
 - Then delete `README.md`, `lifecycle.md`, `conventions.md`, `quality.md`, `release.md` **and `decisions.md`**, and remove the now-empty `docs/workflow/`. Before deleting each, diff it against OLD. The `removedIn3` entries carry no `source`, so resolve it by hand: OLD for `docs/workflow/<name>.md` is `templates/workflow/<name>.md.template` at the installed tag. If the project edited it, that content is project-owned — show it and ask where it should go.
 
 **7. `docs/dev/style-guide.md`.** Install `code-style.md`, then diff the old style guide against OLD; anything the project added is offered for `decisions.md` or `src/CLAUDE.md`. Then delete it.
@@ -204,7 +206,9 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
   ```
   The key names are literal — `session-start.sh` and `completeness-check.sh` grep `^unsupervised:`, `auto-resume-guard.sh` greps `^auto_resume:`, `usage-guard.sh` and `statusline.sh` grep `^usage_threshold:`. A file written as `**unsupervised:** false` or `pause_threshold: 90` is silently ignored by every one of them.
 
-**10. `src/CLAUDE.md` and `tests/CLAUDE.md`.** The v3 versions are much smaller because the rules moved to `code-style.md`. These are `project` files: leave them, and tell the user what moved so they can trim their own copies.
+**10. `src/CLAUDE.md` and the test directory's `CLAUDE.md`.** The v3 versions are much smaller because the rules moved to `code-style.md`. These are `project` files: leave them, and tell the user what moved so they can trim their own copies.
+
+If §5b.4 routed a code-level rule into `src/CLAUDE.md`, you have now touched an auto-loaded file that may still hold `{{…}}` from its own init. Fill what you know and replace the rest with `_TBD_` — but never stop the migration over a token that predates it.
 
 **11. Return to §5a** and run the class walk for everything else. `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/guidelines/`, `.claude/memory/.gitignore` and `docs/dev/deploy.md` are already handled — skip them there.
 
@@ -220,9 +224,10 @@ Offer a targeted correction for each hit. Do not rewrite the file wholesale; the
 
 Verify, and report each check:
 - Every `project-specific` marker is paired, and no id appears twice.
-- **No unsubstituted `{{…}}` token** remains in any file this update wrote or moved. Do not work from a list — take the actual set from `git diff --name-only` against the pre-update HEAD, which catches the ones a list forgets (`src/CLAUDE.md`, which §5b.4 routes rules into and which is auto-loaded; `docs/dev/architecture.md`, which §6 rewrites).
-  - In an **always-loaded file or a script**: a hard stop, no exceptions.
-  - In `docs/dev/deploy.md`: tokens that were already unfilled in the v2 file are *not* this update's doing and must not block it. Fill what step 1 knows, replace the rest with `_not documented_`, and list them in the report as work to do. A migration that stalls on a rollback procedure nobody wrote in 2023 is a migration that never runs.
+- **No `{{…}}` token that *this update introduced*** remains anywhere. Take the set from `git diff --name-only` against the pre-update HEAD rather than from a list, then apply two exclusions and one rule:
+  - **Exclude `.claude/skills/`, `.claude/agents/` and `docs/specs/spec.md.template`.** They document the templates and carry tokens on purpose — `project-scaffolder.md` alone has dozens. Without this exclusion the check fails on every migration, forever, and an operator learns to skip it.
+  - **A token that was already unfilled before this update is not this update's doing.** That covers `docs/dev/deploy.md` after the move, `src/CLAUDE.md`, `docs/dev/architecture.md`, `README.md` — any `project`-class file the update touched only to correct a reference. Fill what you know, leave the rest, and list them in the report as pre-existing work. This is what stops §6's dead-reference repair from turning into a self-inflicted stop: correcting a stale path in `README.md` must not make you responsible for tokens that have sat there since init.
+  - **The hard stop is a token this update wrote.** In an always-loaded file or a script, no exceptions.
 - No rescued block was dropped. For a v2→v3 migration the count is meaningless (a v2 project has zero blocks): verify instead that **every project-authored heading identified in §5b.4 and §5b.5 is accounted for** — inside a block, under `## Unplaced project content`, or as an entry in `decisions.md` / `gotchas.md` / `src/CLAUDE.md` named in the report. Routing a standing rule out of `CLAUDE.md` is the correct outcome, not a dropped block; what is forbidden is a heading nobody can say the fate of.
 - The `workflow-settings` block has every key the new version ships and no stale ones.
 - `.claude/settings.json` exists and its hook entries point at scripts that exist. Hooks are executable (`chmod +x .claude/hooks/*.sh`) and pass `bash -n`. Installed-but-unwired hooks are the quietest way for this update to have done nothing.
@@ -230,6 +235,7 @@ Verify, and report each check:
 - `scripts/ci.sh` **and `scripts/release.sh`** pass `bash -n` and contain no `{{`; then run `scripts/ci.sh fast` and report the exit code and the check count it prints.
   **A surviving `{{…}}` in a script is always a hard stop, pre-existing or not.** This is the one place where "the update didn't cause it" is wrong: v2 placeholders were comments and v3's are executable lines, so this update converts a gate that quietly passed into one that aborts with exit 127. Fill the stage, or delete its line — deleting them all still parses, and the script's own `CHECKS` guard then reports an empty gate honestly instead of a false pass.
   **`✓ passed — 0 check(s)` is not a pass.** If the count is zero, or a stage's command is `:`/`true`/`echo`, the gate is a stub: say so in the report and record it in `tech-debt.md`. A green run that tested nothing is the failure this whole section exists to prevent.
+  **Exit 1 with 0 checks is the honest outcome for a project with no toolchain**, not a failed check — the guard is doing its job. Record it in `tech-debt.md` and continue to §8; do not treat it as the "fix it or stop" case below.
 - No dead references remain, or the remaining ones were explicitly declined.
 
 If a check fails, fix it or stop — never commit a half-migrated project.
@@ -245,7 +251,7 @@ If a check fails, fix it or stop — never commit a half-migrated project.
 }
 ```
 
-`repo` is the bare `owner/repo`, never a URL — `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/{{WORKFLOW_REPO}}`. If the file you read at step 1 held a full URL, normalize it here. `variants` records which language/target templates this project was installed from, so the next update can diff a file against a file (§3); carry forward what was already there and add what you resolved.
+`repo` is the bare `owner/repo`, never a URL — `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/{{WORKFLOW_REPO}}`. If the file you read at step 1 held a full URL, normalize it here. `variants` records which language/target templates this project was installed from, so the next update can diff a file against a file (§3); carry forward what was already there and add what you resolved. If nothing could be resolved — no workflow, no `.gitignore`, nothing to detect from — **omit the `variants` key entirely**; an empty object reads to the next update as "resolved to nothing" rather than "never determined".
 
 ```
 git add -A
