@@ -109,7 +109,9 @@ This is the file an onboarded repo is most likely to already have, hand-written 
 
 #### 3c. Make the gate real — the part that actually takes judgment
 
-`scripts/ci.sh` is installed but unfilled. Fill each `check` line with **this project's own commands**, taken from its `package.json` scripts / `Makefile` / `pyproject.toml` / `Cargo.toml`. Use the names that exist here (`npm run fmt`, not `npm run format:check`) and go through the package manager, never a bare binary — `eslint`/`prettier`/`tsc`/`vitest` are not on `PATH` in CI.
+`scripts/ci.sh` is installed but unfilled. Fill each `check <command>` line with **this project's own commands**, taken from its `package.json` scripts / `Makefile` / `pyproject.toml` / `Cargo.toml`. Keep the `check ` prefix — that is what makes the script count its own work. Use the names that exist here (`npm run fmt`, not `npm run format:check`) and go through the package manager, never a bare binary — `eslint`/`prettier`/`tsc`/`vitest` are not on `PATH` in CI.
+
+`{{GENERATE_SOURCES}}` takes **no** prefix: fill it with the command that produces anything gitignored-but-required (a generated version module, a compiled schema, a codegen step) so lint and typecheck see it in a fresh CI clone, or delete the line. Then delete the authoring notes from both scripts — the comment block down to and including the `# --- end of authoring notes ---` rule, plus every `# e.g.` line and the narration for any step you removed. Nothing below that rule.
 
 Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong on a real codebase, and each needs a decision rather than a shrug:
 
@@ -119,6 +121,8 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 - **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
 
 **`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`.
+
+**Then prove it from a clean clone**, which is what CI runs: `git clone . $(mktemp -d)/vc && cd … && <install> && ./scripts/ci.sh full`. Anything gitignored or uncommitted is missing there — that is where a generated file or an uncommitted lockfile shows up, and a local pass says nothing about it.
 
 **Do not reach step 5 with a red gate.** If it cannot be made green, stop: write the reason into `.claude/memory/tech-debt.md` and report `Onboarding incomplete — gate red` instead of the step 6 success block. Everything downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 

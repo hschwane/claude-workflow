@@ -130,16 +130,24 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
   "Create every directory named in `ARCHITECTURE_SUMMARY`" is only half a rule; the other half is "and make the gate cover them". A root the gate cannot see is worse than one that does not exist, because the docs promise it works.
 - **The stub must not import `./version.js`.** That is the same trap one rule over: the import resolves locally because the generated file is sitting there untracked, and fails in a fresh clone with TS2307. Generated modules are imported by real code later — which is why `ci.sh` regenerates them first (`{{GENERATE_SOURCES}}`, filled below). The stub itself stays self-contained.
 
+Every language needs the same three things the TypeScript block spells out, so do them for whichever one applies: **a committed source file** (the gate has nothing to lint or compile otherwise), **a lockfile, generated and committed** (CI installs `--locked` / `npm ci` and fails outright without one), and **the gate's tools declared as dev dependencies** so `ci.sh` can reach them through the package manager.
+
 **Python:**
 - `pyproject.toml` → `pyproject.toml` (fill in project name and description)
+- add `ruff`, `mypy` and `pytest` to the dev dependencies — `ci.sh` calls them via `uv run`
+- `uv lock` (or `uv sync`), and commit `uv.lock`
+- create `src/{package}/__init__.py` and `src/{package}/main.py` with a real stub
 
 **Rust:**
 - Create `Cargo.toml` with `[package] name = "{PROJECT_NAME}" version = "0.1.0" edition = "2021"`
+- `cargo generate-lockfile`, and commit `Cargo.lock`
+- create `src/main.rs` (or `src/lib.rs` for a library) with a real stub
 
 **C++:**
 - `CMakeLists.txt` → `CMakeLists.txt` (fill in project name)
-- `.clang-format` → `.clang-format`
+- `.clang-format` → `.clang-format` (write it inline — no template ships)
 - `version.h.in` → `src/version.h.in`
+- create `src/main.cpp` with a real stub, and configure once (`cmake -S . -B build`) so the gate's `cmake --build build` has something to build
 
 **All languages:** copy `{PLUGIN_SOURCE_DIR}/templates/gitignore/{GITIGNORE_TEMPLATE}.gitignore` → `{TARGET_DIR}/.gitignore`
 
