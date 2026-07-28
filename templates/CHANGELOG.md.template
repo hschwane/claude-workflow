@@ -5,6 +5,8 @@ All notable changes to {{PROJECT_NAME}} are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!-- New entries are prepended automatically by /release -->
+Once this file passes a major bump or ~50 KB, `/release` moves the closed entries to `docs/changelog/` and leaves the current major here. **Earlier releases are not gone — look there.**
+
+<!-- New entries are prepended automatically by /release. Keep each one short: a line in a handful of words. -->
 
 ## [Unreleased]

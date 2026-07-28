@@ -70,7 +70,7 @@ The workflows for PR, release and deploy are maintained alongside the code: when
 | `docs/dev/architecture.md` | How it is built |
 | `docs/dev/setup.md` | Running it locally or against the dev deployment |
 | `docs/user/` | User-facing documentation |
-| `CHANGELOG.md` | Released changes — older majors under `docs/changelog/` |
+| `CHANGELOG.md` | The **current major**'s released changes. Older majors are archived under `docs/changelog/`, split at version headings so no release is ever cut in half — the root file stays where tooling expects it, the archives do not belong there |
 
 ---
 
