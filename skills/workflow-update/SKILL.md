@@ -38,7 +38,7 @@ Delete a leftover directory from a previous run, then `git clone {repo_url} {UPD
 Throughout, a manifest entry's **`source`** field is where the file lives in the plugin repo — the `path` is where it lives in a project, and the two differ (`.claude/skills/` ← `skills/`, `CLAUDE.md` ← `templates/CLAUDE.md.template`). So `OLD` means `git -C {UPDATE_DIR} show v{current}:{entry.source}` and `NEW` means `{UPDATE_DIR}/{entry.source}`. Comparing against the project path instead returns the plugin's own file and the whole work list comes out wrong.
 
 **`OLD` must resolve, or you stop.** Two things break it:
-- **The plugin renamed its own directory.** `.claude/guidelines/` came from `templates/preferences/` before 3.0.0, so `git show v2.15.0:templates/guidelines/railway.md` fails outright. The entry's **`sourceBefore`** map gives the earlier path — use it whenever the installed version is at or below the version it lists.
+- **The plugin renamed its own directory.** `.claude/guidelines/` came from `templates/preferences/` before 3.0.0, so `git show v2.15.0:templates/guidelines/railway.md` fails outright. The entry's **`sourceBefore`** map gives the earlier path — use it when the installed version is **strictly below** the version it lists. At or above it, the current `source` is correct — reading `sourceBefore` there would fail `git show` and abort every later update on that path.
 - **The tag is gone** (a hand-installed project, a deleted tag). Say so and treat every plugin file as changed: that surfaces everything instead of skipping silently.
 
 A failed `git show` is **never** "no OLD, so this is a new file, safe to overwrite." That reading is what silently destroys a project's edit to a shipped file. If OLD does not resolve for a path the project already has, stop and say which path.
@@ -50,9 +50,10 @@ A failed `git show` is **never** "no OLD, so this is a new file, safe to overwri
 Then compute the **actual work list**: for every path in `{UPDATE_DIR}/.claude-plugin/delivery.json`, diff OLD against NEW. A path where they are identical is **not touched** and is not mentioned again. Report the count: "14 of 37 delivered paths changed."
 
 Three rules make that computable:
-- **"Unchanged upstream" only excuses a path the project already has.** A delivered path the project is *missing* goes on the work list whatever the diff says. `templates/hooks/hooks.json` and the workflow YAMLs are often byte-identical across versions — drop them here and `.claude/settings.json` is never installed, leaving every refreshed hook present but unwired, and nothing later notices.
-- **An entry with no `source` is never diffed.** It is project state the plugin does not author (`local-settings.md`, `context-*.md`, `docs/user/`, `LICENSE`, `.env.example`, `docs/changelog/`, `docs/specs/`).
-- **A directory `source` under a single-file `path`** means the plugin ships variants and the project holds one. Read `variants` from `.claude/workflow-source.json` (e.g. `{"ci": "ci-typescript.yml", "release": "release-npm.yml", "gitignore": "typescript.gitignore"}`). If it is absent — a project installed before variants were recorded — identify the member from the project's own file, **write it into `workflow-source.json` in step 8**, and diff against that one. Never diff a file against a whole directory.
+- **"Unchanged upstream" only excuses a path the project already has.** A delivered path the project is *missing* goes on the work list whatever the diff says. `templates/hooks/hooks.json` is often byte-identical across versions — drop it here and `.claude/settings.json` is never installed, leaving every refreshed hook present but unwired, and nothing later notices.
+  **Being on the work list is not the same as being installed.** A missing path is *installed* when its class is `plugin`, and for the three `mixed` paths the workflow cannot run without: `.claude/settings.json`, `scripts/ci.sh`, `scripts/release.sh`. Everything else missing is **reported, not created** — installing `.github/workflows/` into a project with `github: no` is not a fix, it is a surprise. And a missing path whose `source` is a directory has no file to detect the variant from: ask which applies, or omit it.
+- **An entry with no `source` is never diffed.** It is project state the plugin does not author (`local-settings.md`, `context-*.md`, `docs/user/`, `.env.example`, `docs/changelog/`, `docs/specs/`). Take the list from the manifest rather than from memory — entries gain a `source` between versions.
+- **A directory `source` under a single-file `path`** means the plugin ships variants and the project holds one. Read `variants` from `.claude/workflow-source.json` (e.g. `{"ci": "ci-typescript.yml", "release": "release-npm.yml", "gitignore": "typescript.gitignore"}`). If it is absent — a project installed before variants were recorded — identify the member by comparing the project's file byte-for-byte against each candidate **at the installed tag**, then **write the result into `workflow-source.json` in step 8** and diff against that one. If the project has no such file at all, omit the key rather than guessing, and say so in the report. Never diff a file against a whole directory.
 
 ### 4. Confirm
 
@@ -92,7 +93,7 @@ For a single file (`docs/dev/code-style.md`, `scripts/claude-loop.sh`), replace 
 1. Parse the project's copy for `project-specific: start: <id>` / `end: <id>`. **A marker counts only when it is the entire line** after trimming — the same text inside a sentence, inline code or a fenced block is prose, and every shipped `CLAUDE.md` contains exactly that as documentation.
 2. **Unpaired marker → stop and ask.** Never guess where a block ends; guessing deletes the rest of the file.
 3. **Duplicate id → stop and ask.** The id is what makes re-insertion unambiguous.
-4. Take NEW as the base and fill each of its blocks with the project's content for the same id. **Substitute the template tokens as at install time** (`{{PROJECT_NAME}}`, `{{WORKFLOW_REPO}}` from `.claude/workflow-source.json`) — they live in the plugin region, so they arrive unfilled on every regeneration. Their filled values in the project's copy are not project edits: exclude those lines from the step-6 diff.
+4. Take NEW as the base and fill each of its blocks with the project's content for the same id. **Substitute the template tokens as at install time** (`{{PROJECT_NAME}}`, `{{WORKFLOW_REPO}}` from `.claude/workflow-source.json`). This applies to tokens in the file's **plugin region** — `CONTRIBUTING.md`'s title and its plugin banner. A token inside a `project-specific` block is different: that block is filled from the project's own copy, so its values come from there and are never re-substituted. Filled plugin-region tokens are not project edits — exclude those lines from the step-6 diff.
 5. A rescued block whose id NEW no longer has: append it at the end under `## Unplaced project content`, and **say so in the report**. Never drop it.
 6. Before replacing, diff the project's *plugin* regions against OLD. If the project edited one, that edit is about to be lost — show it and ask, rather than replacing quietly.
 
@@ -100,9 +101,9 @@ For a single file (`docs/dev/code-style.md`, `scripts/claude-loop.sh`), replace 
 
 #### `mixed` — merge by hand, every time
 
-`scripts/ci.sh`, `scripts/release.sh`, the two workflow YAMLs, `.claude/settings.json`. Markers cannot work here: the plugin's scaffolding and the project's content are interleaved, or the format carries no comments.
+The manifest's `mixed` entries — today `scripts/ci.sh`, `scripts/release.sh`, the two workflow YAMLs, `.github/dependabot.yml` and `.claude/settings.json`. Read the class off the manifest rather than this list, which ages. Markers cannot work here: the plugin's scaffolding and the project's content are interleaved, or the format carries no comments.
 
-**If the project has no copy at all, install NEW and stop for the project's real commands.** A missing `scripts/ci.sh` is a missing gate, not an unchanged file — say plainly that the placeholders must be filled before the next commit, because an unfilled `ci.sh` exits 0 having run nothing.
+**If the project has no copy at all, install NEW and stop for the project's real commands.** A missing `scripts/ci.sh` is a missing gate, not an unchanged file — say plainly that the placeholders must be filled before the next commit: in v3 a placeholder is an executable line, so an unfilled `ci.sh` **aborts with exit 127 on the first stage** — every `/commit`, `/verify` and `/release` fails until it is filled.
 
 Otherwise, only when OLD ≠ NEW: perform a three-way merge — **base** OLD, **ours** the project's file, **theirs** NEW. Carry the plugin's change into the project's file while keeping everything the project put there. Then **show the resulting diff and ask before writing.**
 
@@ -120,6 +121,8 @@ For `scripts/ci.sh` and `release.sh` specifically: the project's real commands l
 `README.md`, `docs/**`, `src/CLAUDE.md`, `tests/CLAUDE.md`, the configs, `.claude/memory/*`. These were handed to the project at creation.
 
 When the upstream **template** changed, do not touch the file. Instead, describe what changed and suggest how it might apply here — as a note in the report, for the user to act on or ignore. Most updates will have nothing to say.
+
+**One thing this class does create.** The `CLAUDE.md` and `CONTRIBUTING.md` this update installs ship a "Where things live" index. A path in that index that does not exist is a broken pointer in an always-loaded file — the reader follows it, finds nothing, and stops trusting the table. So for `docs/dev/setup.md`, `docs/VISION.md` and `docs/specs/{ready,completed}/`: create what is missing from its template with tokens left as `_TBD_` (a `.gitkeep` for the directories), and list them in the report as stubs to fill.
 
 ### 5b. One-time migration, v2.x → v3.0
 
@@ -142,11 +145,13 @@ v2 wrote these as prose. Map what you find onto the v3 values:
 | | "e2e", "end-to-end", "full pyramid" | `unit+integration+e2e` |
 | `branching` | "trunk", "main only", "commit straight to main" | `main-only` |
 | | "git-flow", "develop branch", "release branches" | `git-flow` |
-| `version-source` | the manifest named in `release.md` | `package.json` · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` |
-| `deploy` | the platform named in `deploy.md` | `railway` · `docker` · a short platform name · `none` |
+| `version-source` | the manifest named in `release.md` | one of the values `/workflow-settings` allows — see below |
+| `deploy` | the platform named in `deploy.md` | one of the values `/workflow-settings` allows — see below |
 | `github` | issues/labels mirrored | `yes` / `no` |
 | `ci-on-claude` | CI runs on Claude's own pushes | `yes` / `no` |
 | `release-runner` | release runs via GitHub Actions | `ci`, otherwise `local` |
+
+**Take the allowed values from `/workflow-settings`, not from here.** That skill's table is authoritative for `deploy` (`railway` · `vercel` · `aws` · `self-hosted` · `manual` · `none`) and `version-source` (a manifest path, `VERSION`, or `none`). Map the v2 prose onto one of those; if none fits, ask. Writing a value outside the set — `docker`, a free-text platform name — puts something into an always-loaded block that `/workflow-settings` will reject the first time anyone tries to change it.
 
 **`version-source` has a terminal branch:** a project with no manifest at all (a scripts or docs repo) has nothing to bump — set it to `none` and say so, so `/release` asks for the version instead of reading a file that isn't there. But `none` is only right when nothing is versioned: if the project has no manifest yet its release workflow publishes a package, **ask** rather than defaulting.
 
@@ -162,13 +167,14 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
 - For each library file the project does have, **diff it against OLD before overwriting.** A project that appended its own line to a shipped guideline (a region override, a tightened limit) loses it otherwise. Show the edit and ask where it goes — normally `decisions.md` as a dated deviation naming the guideline — and only then overwrite.
 - Overwrite the library files **and `README.md`** from NEW; the README is plugin-owned and still describes the directory by its old name until you do.
 - Regenerate `INDEX.md`: the new template's header, then one row per guideline file actually present, trigger text from `LIBRARY.md`. Drop the template's authoring comment — it points at `LIBRARY.md`, which stays on the plugin side.
-- Offer the newly shipped guidelines whose "install when" matches this project (`app-baseline`, `changelog`, `ui-frontend`, `ai-integration`, `logging`, `service-architecture`, `background-jobs` are all new since 2.x). Install the accepted ones with their rows.
+- Compute the offer set and offer it: every file in the new `templates/guidelines/` that the project does **not** have and whose `LIBRARY.md` "install when" matches this project. Do not filter by "new since the installed version" and do not work from a hard-coded list — the useful case is usually a guideline that has existed for ages and simply never matched before (a React PWA that predates anyone noticing `web-app-pwa.md`). Install the accepted ones with their rows.
 
-**3. `.claude/project-notes/` → memory.** For each note, show it and ask which file it belongs in (`decisions.md` for a rule, `gotchas.md` for a fact). These were trigger-indexed and fired on a keyword match; they will now be read during `/plan` instead — say that, because it changes when they fire. Remove the directory once every note has a home.
+**3. `.claude/project-notes/` → memory.** `README.md` and `INDEX.md` there are plugin scaffolding, not notes — delete them without asking. For each actual note, show it and ask which file it belongs in (`decisions.md` for a rule, `gotchas.md` for a fact). These were trigger-indexed and fired on a keyword match; they will now be read during `/plan` instead — say that, because it changes when they fire. Remove the directory once every note has a home.
 
 **4. `CLAUDE.md`.** Take the new template as the base.
 - Into the `identity` block go the title, description, architecture summary and stack — **what the project *is***.
 - A project-authored `##` section is identity only if it describes the project. A **standing rule** ("always use X", "never call Y directly") is not: it belongs in `decisions.md`, or in `src/CLAUDE.md` if it is code-level. **Never `docs/dev/code-style.md`** — that file is plugin-owned and carries no marker blocks, so anything put there is deleted by the next update. Ask per section instead of sweeping everything into the block — an identity block full of rules is a rule nobody reads at the moment it applies. **Name every section you moved, and where it went, in the report**; §7 checks against that list.
+- **One exception.** A safety, privacy or legal constraint ("this data is never logged, not even at debug level") has to hold on *every* turn, not only during `/plan`. Moving it to `decisions.md` is a real behavior change, because ad-hoc work outside a ticket never reads that file. Offer to keep it as a one-line constraint in the `identity` block as well, and say in the report that its always-loaded status was at stake.
 - Diff the plugin sections against OLD first and surface anything the project edited (§5a, step 6).
 - Fill the `workflow-settings` block from step 1, and **substitute every remaining `{{…}}`**.
 
@@ -178,7 +184,7 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
 - Move `deploy.md` → `docs/dev/deploy.md`. If `docs/dev/deploy.md` already exists, merge with confirmation rather than overwriting.
 - Append the **Required Secrets** section from `release.md` — *unless* the moved file already has one. The two are named differently (`## Required Secrets (GitHub Actions)` in the source, `## Required GitHub Secrets` in the destination); they are the same section. If both are still unfilled templates, keep one empty table and say it needs filling. If both have content, show both and ask. Appending blind produces two conflicting secret lists, and the wrong one gets followed at 3am.
 - **Substitute the tokens.** The moved file arrives with a dozen `{{...}}` in it. Fill what step 1 already knows (`{{DEPLOY_TARGET}}`, the secret names from `release.md`) and ask for the rest. An unfilled `{{ROLLBACK_PROCEDURE}}` is worse than an empty one — `CLAUDE.md` sends you here for exactly that, mid-incident.
-- `docs/dev/deploy.md` is a `project` file, so the v3 template does not replace it — but its structure did change (health check, rollback, hotfix). **Offer the diff** against `{UPDATE_DIR}/templates/dev/deploy.md.template` as a suggestion. Do not write it.
+- The v3 deploy template differs from v2's only by the `preferences`→`guidelines` rename, which §6 already corrects. There is no diff worth offering — don't manufacture one.
 - Then delete `README.md`, `lifecycle.md`, `conventions.md`, `quality.md`, `release.md` **and `decisions.md`**, and remove the now-empty `docs/workflow/`. Before deleting each, diff it against OLD: if the project edited it, that content is project-owned — show it and ask where it should go.
 
 **7. `docs/dev/style-guide.md`.** Install `code-style.md`, then diff the old style guide against OLD; anything the project added is offered for `decisions.md` or `src/CLAUDE.md`. Then delete it.
@@ -206,12 +212,15 @@ Offer a targeted correction for each hit. Do not rewrite the file wholesale; the
 
 Verify, and report each check:
 - Every `project-specific` marker is paired, and no id appears twice.
-- **No unsubstituted `{{…}}` token** remains in **any file this update wrote or moved** — `CLAUDE.md`, `CONTRIBUTING.md`, the memory files, `docs/dev/deploy.md`, `scripts/*.sh`. Grep the whole set; a hit in an always-loaded file or in a script is a hard stop.
+- **No unsubstituted `{{…}}` token** remains in any file this update wrote or moved — `CLAUDE.md`, `CONTRIBUTING.md`, the memory files, `docs/dev/deploy.md`, `scripts/*.sh`. Grep the whole set.
+  - In an **always-loaded file or a script**: a hard stop, no exceptions.
+  - In `docs/dev/deploy.md`: tokens that were already unfilled in the v2 file are *not* this update's doing and must not block it. Fill what step 1 knows, replace the rest with `_not documented_`, and list them in the report as work to do. A migration that stalls on a rollback procedure nobody wrote in 2023 is a migration that never runs.
 - No rescued block was dropped. For a v2→v3 migration the count is meaningless (a v2 project has zero blocks): verify instead that **every project-authored heading identified in §5b.4 and §5b.5 is accounted for** — inside a block, under `## Unplaced project content`, or as an entry in `decisions.md` / `gotchas.md` / `src/CLAUDE.md` named in the report. Routing a standing rule out of `CLAUDE.md` is the correct outcome, not a dropped block; what is forbidden is a heading nobody can say the fate of.
 - The `workflow-settings` block has every key the new version ships and no stale ones.
 - `.claude/settings.json` exists and its hook entries point at scripts that exist. Hooks are executable (`chmod +x .claude/hooks/*.sh`) and pass `bash -n`. Installed-but-unwired hooks are the quietest way for this update to have done nothing.
 - `.claude/guidelines/INDEX.md` has one row per file in that directory, and every row's file exists.
-- `scripts/ci.sh` passes `bash -n`, contains no `{{`, and has a real command in every stage — then run `scripts/ci.sh fast`. If a stage was **already** an unfilled placeholder before this update, report it as a pre-existing finding — it means the gate has been passing on nothing — but do not block the update on a defect the update did not cause.
+- `scripts/ci.sh` **and `scripts/release.sh`** pass `bash -n`, contain no `{{`, and have a real command in every stage — then run `scripts/ci.sh fast` and report the exit code.
+  **A surviving `{{…}}` in a script is always a hard stop, pre-existing or not.** This is the one place where "the update didn't cause it" is wrong: v2 placeholders were comments and v3's are executable lines, so this update converts a gate that quietly passed into one that aborts with exit 127 on its first stage. Fill the stage, or delete the stage line and record the gap — never commit a script that greps positive for `{{`.
 - No dead references remain, or the remaining ones were explicitly declined.
 
 If a check fails, fix it or stop — never commit a half-migrated project.

@@ -296,9 +296,9 @@
     },
     {
       "path": ".prettierignore",
-      "class": "project",
+      "class": "plugin",
       "source": "templates/configs/.prettierignore",
-      "note": "Required wherever prettier is in the gate: `prettier --check .` otherwise fails on every plugin-owned file under .claude/."
+      "note": "Plugin scaffolding, not project content: it exists so `prettier --check .` does not fail on the ~40 plugin-owned files under `.claude/`. Formatting those instead is not a fix — the update replaces them. `plugin` class so an update installs it into a project that predates it. A project adding its own ignores should do it in `.prettierignore.local` or accept that this file is replaced."
     }
   ],
   "removedIn3": [
@@ -363,6 +363,6 @@
     "The most specific path wins. `docs/specs/spec.md.template` is `plugin` even though `docs/specs/` is `project`; a directory entry never overrides a file entry inside it.",
     "An entry with no `source` is project state the plugin does not author (`local-settings.md`, `context-*.md`, `docs/user/`, `LICENSE`, …). It is never diffed and never written by an update.",
     "Where `source` is a directory but `path` is a single file, the plugin ships language/target variants and the project holds exactly one. Resolve the member from `variants` in `workflow-source.json`; if that is missing, detect it from the project's own file and record it. Never diff the whole directory.",
-    "`sourceBefore` records where an entry's source lived in earlier plugin versions. Resolving OLD for a version at or below the listed one uses that path — `git show v{current}:{source}` fails outright when the plugin renamed its own directory, and a failed OLD must never be read as 'new file, safe to overwrite'."
+    "`sourceBefore` records where an entry's source lived in earlier plugin versions. Use it when the installed version is STRICTLY BELOW the version it lists; at or above it the current `source` is correct. `git show v{current}:{source}` fails outright when the plugin renamed its own directory, and a failed OLD must never be read as 'new file, safe to overwrite'."
   ]
 }
