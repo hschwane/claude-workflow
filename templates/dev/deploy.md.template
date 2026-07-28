@@ -30,10 +30,10 @@
 ## Deploy Steps
 
 ### Prerequisites
-- GitHub Secret `{{DEPLOY_SECRET_NAME}}` must be set
+- Secret `{{DEPLOY_SECRET_NAME}}` must be set (a GitHub Actions secret where the release runs in CI; an environment variable on the deploy host otherwise)
 - {{OTHER_PREREQUISITES}}
 
-### Automated Steps (in CI `deploy.yml` or `release.yml`)
+### Automated steps
 {{AUTOMATED_DEPLOY_STEPS}}
 
 ### Manual Steps (if any)
@@ -52,7 +52,7 @@ After deploy, verify:
 - [ ] {{HEALTH_CHECK_URL}} returns 200
 - [ ] {{SMOKE_TEST_DESCRIPTION}}
 
-## Required GitHub Secrets
+## Required deployment secrets
 | Secret | Description |
 |--------|-------------|
 | `{{SECRET_NAME}}` | {{SECRET_DESCRIPTION}} |

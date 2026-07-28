@@ -69,6 +69,7 @@ Ask the user (in chat — plain message, wait for the reply) — **skip question
 1. **Project name** (if not in args and not in design doc)
 2. **Short description** (one sentence)
 3. **Project type**: Web App (fullstack — backend + its own frontend/PWA) / Web API / Web Frontend / CLI tool / Library / Desktop App / Other
+4. **Copyright holder** for the LICENSE — offer `git config user.name` as the default, but show it and confirm: in a container that is often the agent's own name, and `Copyright (c) 2026 Claude` on someone's project is not a typo anyone catches later. If a GitHub repo is wanted, take the **owner** here too (`gh api user --jq .login`) — `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing.
 4. **Primary language**: TypeScript (recommended) / Python / Rust / C++ / Other
 
 If user selects JavaScript instead of TypeScript: note "TypeScript is recommended for better AI-assistance and type safety. Use TypeScript? [yes / no, JavaScript is fine]"
@@ -190,7 +191,9 @@ RELEASE_TYPE: {npm | pypi | github | docker | internal}
 DEPLOY: {railway | none | manual | vercel | aws | other | self-hosted}
 BRANCHING_MODEL: {main-only | git-flow}
 GITHUB_REPO: {yes-public | yes-private | no}
-COPYRIGHT_HOLDER: {the licence holder — ask, or default to `git config user.name` and say so}
+COPYRIGHT_HOLDER: {from question 4}
+GITHUB_OWNER: {the owner the repo will live under, or empty when GITHUB_REPO is no}
+MODE: init
 PLUGIN_SOURCE_DIR: {absolute path determined above}
 TARGET_DIR: {absolute path to the new project directory}
 LIBRARY_GUIDELINES: {comma list computed from LIBRARY.md, or empty}
@@ -241,7 +244,7 @@ The clone is the point: anything gitignored, untracked or generated is absent th
 
 Report the exit code in step 9.
 
-**`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`. Read the check count `ci.sh` prints; a gate that ran nothing is a defect to fix here, not a green light.
+**`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`. Read the check count `ci.sh` prints; a gate that ran nothing is a defect to fix here, not a green light. (The one exception is a deliberate, recorded stub — a project with no toolchain that set `CI_ALLOW_EMPTY=1` and has a `tech-debt.md` entry saying so. `/project-init` never produces one: it always has a language.)
 
 The scaffolder reports only its **local** `ci.sh fast` result — it is explicitly not allowed to report on the clone, because a check performed and reported on by the same actor is one that quietly stops happening. Treat any clean-clone claim in its report as noise and run the check yourself regardless.
 
@@ -324,7 +327,7 @@ IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/d
 
 Do **not** create GitHub issues here — on a new project the remote does not exist yet and the labels have not been created; both happen in step 8, which mirrors the backlog once it can.
 
-After all milestones: **commit the backlog** — `git add docs/specs/ && git commit -m "docs(specs): initial backlog  [skip ci]"`. Nothing else in this skill commits it, and leaving `/project-init` with 30 untracked spec files means the next session's SessionStart hook sees no work at all.
+After all milestones: **commit the backlog** — `git add -A && git commit -m "docs(specs): initial backlog  [skip ci]"`. Use `-A`, not `docs/specs/`: step 1.5 explicitly invites a late guideline install once the architecture and deploy target are settled, and a narrow `git add` leaves those files behind. Nothing else in this skill commits it, and leaving `/project-init` with 30 untracked spec files means the next session's SessionStart hook sees no work at all.
 
 Then print a summary — version string, item count, and ID range for each.
 
@@ -344,7 +347,7 @@ gh label create "in-progress" --force --color fbca04 --description "Being implem
 gh label create done --force --color cfd3d7 --description "Implemented and merged"
 ```
 
-**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {spec path} --label "{feature|bug},backlog"` (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
+**Mirror the backlog to issues.** Now that the remote and the labels exist, create one issue per accepted item from step 7 — `gh issue create --title "{spec title}" --body-file {stripped} --label "{feature|bug},backlog"`, where `{stripped}` is the spec **without its YAML frontmatter** (`sed '1{/^---$/!q};1,/^---$/d' {spec} > {tmp}`) — GitHub renders the raw block as a horizontal rule and a run-on line of `id: … type: … status: …` above the actual goal, on every issue (the label follows the spec's own `type`, since the backlog can hold bugs too) — and write the returned number back into that spec's `github_issue:` frontmatter. Skip this when `github: no`.
 
 Fill the README CI badge: replace `{{GITHUB_REPO}}` in `README.md` with `{owner}/{repo}` of the repo just created. (The scaffolder leaves the placeholder because the repo does not exist yet at scaffolding time.)
 
@@ -359,6 +362,8 @@ Check `git status` afterwards — `/project-init` must not end on a dirty tree.
 ### 8b. Branching model
 
 Runs whether or not a GitHub repo was created — a local-only project still needs the right branch.
+
+**Finish clean, whichever path ran.** `git status --short` must be empty — this is the only such check that runs for a `github: no` project, since step 8 is skipped entirely there. Anything left over is something an earlier step created and did not stage.
 
 **Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). With a remote, `git push -u origin develop` and `gh repo edit --default-branch develop`.
 **main-only:** nothing to do; the scaffolder already left HEAD on `main`.
@@ -388,7 +393,7 @@ Scaffolding (project-scaffolder agent):
 
 Verification (step 5c):
   Lockfile: {present}
-  Clean-clone `ci.sh full`: {exit 0 | FAILED — this is a blocker, not a note}
+  Clean-clone `ci.sh full`: {exit 0 — N check(s) | FAILED — this is a blocker, not a note}
 
   {GitHub repo: https://github.com/.../...}
 

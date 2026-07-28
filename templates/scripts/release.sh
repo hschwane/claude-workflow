@@ -51,4 +51,11 @@ step {{DEPLOY}}
 # e.g. step curl -fsS https://<app>/health
 step {{HEALTHCHECK}}
 
+if [ "$STEPS" -eq 0 ] && [ "${RELEASE_ALLOW_EMPTY:-0}" != "1" ]; then
+  echo "✗ release.sh $VERSION: no steps are configured — this released nothing." >&2
+  echo "  Fill the steps in scripts/release.sh. If this project genuinely publishes and deploys" >&2
+  echo "  nothing, record that in .claude/memory/tech-debt.md and set RELEASE_ALLOW_EMPTY=1." >&2
+  exit 1
+fi
+
 echo "✓ release.sh $VERSION complete — $STEPS step(s)"

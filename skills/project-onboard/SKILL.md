@@ -57,156 +57,125 @@ Ask (in chat — plain message, wait for the reply):
 
 ### 3. Install Workflow Infrastructure
 
-**a) Copy from claude-workflow plugin:**
-Create `.claude/` directory with:
+The mechanical install is the same one `/project-init` does, so **it is not duplicated here** — this skill owns only what is specific to an existing codebase: merging its `CLAUDE.md`, making its real commands into a working gate, and reconciling its existing CI. Everything else is delegated, because a second hand-written copy of the install is a second copy that drifts, and only one of them gets tested.
+
+#### 3a. Delegate the mechanical install
+
+Invoke the `project-scaffolder` agent with `MODE: onboard` (see that agent's **Onboard mode** section — in short: never overwrite anything that exists, skip what the project already provides, install the rest). Pass the same decisions block `/project-init` step 5b uses, filled from the step 1 analysis and the step 2 answers, plus:
+
 ```
-.claude/
-├── settings.json          ← from templates/hooks/hooks.json (merge `hooks`/`statusLine`/`permissions` keys if settings.json exists — including adding a hook EVENT TYPE the project lacks, e.g. `UserPromptSubmit`, not just entries under existing ones; keep an existing statusLine; union `permissions.allow` — add any template entries that are absent, never remove existing ones)
-├── hooks/
-│   ├── auto-format.sh     ← parses stdin JSON, formats by language
-│   ├── protect-files.sh   ← blocks edits to .env, lock files, etc.
-│   ├── completeness-check.sh  ← Stop hook: keeps unsupervised work going
-│   ├── session-start.sh   ← shows in-progress work / auto-resume directive
-│   ├── auto-resume-guard.sh  ← UserPromptSubmit hook: arms the recovery heartbeat when auto_resume is on (cloud)
-│   ├── usage-guard.sh     ← 90% usage pause for unsupervised (where usage is readable)
-│   └── statusline.sh      ← status line + usage cache for the guard
-├── agents/                ← copy all agent .md files
-├── skills/                ← copy all skill directories (each as {name}/SKILL.md), incl. /auto-resume
-├── workflow-source.json
-└── memory/
-    ├── decisions.md
-    ├── gotchas.md
-    ├── tech-debt.md
-    └── .gitignore      ← from templates/memory/.gitignore
+MODE: onboard
+EXISTING: {what the analysis found — manifest, configs, test dir name, CI, docs}
 ```
 
-Write `.claude/workflow-source.json`. Read the `repository` and `version` fields from **this plugin's own `.claude-plugin/plugin.json`** (in the plugin root — the directory this skill was loaded from). Do not invent them; if they cannot be found, leave `repo` empty and note it in the report.
-```json
-{
-  "repo": "{owner/repo}",
-  "version": "{version from plugin.json}",
-  "installed": "{today}",
-  "variants": { "ci": "ci-{lang}.yml", "release": "release-{type}.yml", "gitignore": "{lang}.gitignore" }
-}
-```
-`repo` is the bare `owner/repo` — strip the `https://github.com/` prefix that `plugin.json` carries. `/workflow-update` builds the clone URL from it and `CONTRIBUTING.md` interpolates it into `https://github.com/{{WORKFLOW_REPO}}`, so a full URL here produces a doubled link. `variants` records which language/target templates were installed, so a later update diffs a file against a file rather than against a directory; omit a key whose template was not installed.
+It installs `.claude/` (agents, skills, hooks, `settings.json`, guidelines, memory files **with `{{PROJECT_NAME}}` filled**, `local-settings.md` in the literal `key: value` form the hooks grep for), `docs/specs/` **with `spec.md.template`** and a `.gitkeep` in each subdirectory, `docs/dev/`, `docs/VISION.md`, `.prettierignore`, `CONTRIBUTING.md`, the three `scripts/`, and `workflow-source.json`.
 
-Write `.claude/memory/local-settings.md` with `unsupervised: false`, `auto_resume: false`, `usage_threshold: 90` — `CLAUDE.md` names it and three hooks read it, and it is gitignored, so nothing else will create it.
+Three of those are easy to think of as optional and are not: **`.prettierignore`** (the ~40 markdown files just installed under `.claude/` are not prettier-formatted, so a project whose format check covers the repo now fails it), **`docs/specs/spec.md.template`** (`/draft` and `/plan` refuse to invent frontmatter without it, so the first command your own report recommends would fail), and **`docs/VISION.md`** (`/ship` reads it, and the `CLAUDE.md` you are about to install points at it).
 
-Make hook scripts executable: `chmod +x .claude/hooks/*.sh`
+Review its report. Then handle what it deliberately left to you, below.
 
-**Two standing-guidance folders:**
-- `.claude/guidelines/` (**plugin-owned** — replaced wholesale on `/workflow-update`): copy `templates/guidelines/{README.md, INDEX.md.template→INDEX.md}`; the rows come from the library install below.
-- `.claude/memory/` (**project-owned**): copy `templates/memory/{decisions.md.template, gotchas.md.template, tech-debt.md.template}` (skip any the project already has) and `.gitignore`. This is where anything project-specific goes — a deliberate deviation from a guideline is a dated entry in `decisions.md` that names the guideline.
+#### 3b. Merge the root `CLAUDE.md`
 
-**Root `CLAUDE.md` — check for an existing one first.** This is the file an onboarded repo is most likely to already have, and it is usually hand-written and valuable.
-- **No `CLAUDE.md`:** write it from `templates/CLAUDE.md.template`, filling the `identity` block from the analysis and the `workflow-settings` block from the answers in step 2.
-- **One exists:** do **not** overwrite it. Take the template as the base, move the project's own content into the `identity` block, and show the result before writing. Anything that is a standing *rule* rather than a description of the project goes to `decisions.md` (or `src/CLAUDE.md` if it is code-level) instead of into the block — say where each piece went.
+This is the file an onboarded repo is most likely to already have, hand-written and load-bearing.
 
-If the analysis surfaced local conventions worth keeping, record them now — a house rule or deliberate deviation as a dated entry in `decisions.md`, a non-obvious trap in `gotchas.md`.
+- **None exists:** write it from `templates/CLAUDE.md.template`, filling the `identity` block from the analysis and `workflow-settings` from the step 2 answers.
+- **One exists:** do **not** overwrite it. Take the template as the base and sort the project's content by what it *is*:
+  - a description, layout or stack → the `identity` block
+  - a standing **rule** ("never use an ORM", "all money is integer cents") → a dated entry in `.claude/memory/decisions.md`, and a code-level one also into `src/CLAUDE.md`
+  - an operational procedure (deploy, rollback, restart) → `docs/dev/deploy.md`, verbatim
+  - a known trap → `.claude/memory/gotchas.md`
 
-**Install matching guidelines:** consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, detect which guidelines fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway` (also covered by step e2 below); a backend/service with a domain/application/infrastructure-style layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines; skip all if none match.
+  Show the mapping and the result before writing, and **name every piece and its destination in the step 6 report**. Nothing may be dropped for want of a home.
 
-**Check the developer-utility baseline and draft tickets for what's missing.** For anything bigger than a small script, check what `app-baseline.md` requires against what the project actually has — structured logging with adjustable levels, version visibility, an update mechanism, an in-app changelog, a way for Claude to smoke-test a live instance, and an access gate / API token auth where applicable. For each gap, create a backlog draft (`/draft`-style, in `docs/specs/backlog/`) and tell the user it's there. These are debugging and development infrastructure, so they're worth doing before the next feature — say that, but don't block onboarding on them; the user decides when to pull them in. A gap the user judges irrelevant for this project gets dropped with a stated reason, not silently.
+  **Moving a rule out of `CLAUDE.md` changes when it fires.** It was on every turn; `decisions.md` is read at `/plan`, `src/CLAUDE.md` only when work touches `src/`. For most rules that is the right trade. For a **safety, privacy or legal** constraint ("never log booking payloads — they contain customer names") it is not: offer to keep a one-line version in the `identity` block as well, and say in the report that its always-loaded status was at stake.
 
-**Canonical scripts (the parity anchor — `/commit`, `/verify`, `/release` and CI all call these):**
-- Copy `templates/scripts/ci.sh` → `scripts/ci.sh` and **fill the `{{...}}` placeholders** with this project's *existing* commands (detect from package.json scripts / Makefile / pyproject / Cargo — reuse what the project already uses for format/lint/typecheck/test/build). `fast` = format-check + lint + typecheck + unit; `full` = + integration/e2e + build.
-- Copy `templates/scripts/release.sh` → `scripts/release.sh` and fill in the project's build/publish/deploy steps.
-- Copy `templates/scripts/claude-loop.sh` → `scripts/claude-loop.sh`.
-- `chmod +x scripts/*.sh`
-- If the project already has an equivalent script, point `ci.sh`/`release.sh` at it (or skip and note it) rather than duplicating.
-- **Verify the gate before moving on.** Each placeholder is a command line, not a comment: run `bash -n scripts/ci.sh`, then `scripts/ci.sh fast`, and confirm it actually executed this project's commands. A stage left empty or still holding `{{...}}` makes the script exit 0 having checked nothing — a gate that always passes. If a stage genuinely does not apply here, delete its line and say so.
+**Do not rewrite `.claude/memory/decisions.md` after this.** It now holds the project's own house rules. Anything further — the tech-stack summary, observed patterns — is *appended* as one more dated entry.
 
-**b) Create developer documentation** (from plugin `templates/`):
-```
-docs/dev/
-├── code-style.md     ← templates/dev/code-style.md.template   (plugin-owned; do not edit per project)
-├── setup.md          ← templates/dev/setup.md.template
-├── architecture.md   ← templates/dev/architecture.md.template, filled from the step 1 analysis
-└── deploy.md         ← templates/dev/deploy.md.template        (only if the project deploys somewhere)
-docs/user/README.md   ← templates/dev/user-readme.md.template   (only if absent)
-```
+Record the project's actual test directory name (`test/`, `tests/`, `spec/`) as a decision: the plugin-owned `CLAUDE.md` names `tests/CLAUDE.md` generically and cannot be corrected per project.
 
-There is no `docs/workflow/` in v3: the procedure lives in the skills, which update with the plugin, and the human-facing version lives in `CONTRIBUTING.md`. The seven tunable settings live in the `workflow-settings` block of `CLAUDE.md` — fill them from the answers in step 2 (`testing-scope` from question 5, `github` from question 2, `branching` main-only unless git-flow is detected, `version-source` from the manifest the project actually has, `deploy` from the detected or asked target, `ci-on-claude: no`, `release-runner: local`).
+#### 3c. Make the gate real — the part that actually takes judgment
 
-If `docs/` already exists, only create files that are missing — never overwrite existing docs.
+`scripts/ci.sh` is installed but unfilled. Fill each `check` line with **this project's own commands**, taken from its `package.json` scripts / `Makefile` / `pyproject.toml` / `Cargo.toml`. Use the names that exist here (`npm run fmt`, not `npm run format:check`) and go through the package manager, never a bare binary — `eslint`/`prettier`/`tsc`/`vitest` are not on `PATH` in CI.
 
-**c) Set up specs directory:**
-```
-docs/specs/
-├── backlog/    ← (empty)
-├── ready/      ← (empty)
-└── completed/  ← (empty)
-```
+Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong on a real codebase, and each needs a decision rather than a shrug:
 
-**d) Memory initialization:**
-Write initial `.claude/memory/decisions.md`:
-```markdown
-# Architecture Decisions
+- **No command exists for a stage** (common: no `typecheck` script). Add one to the project's manifest rather than inlining a bare binary, and say you did. If the stage genuinely does not apply, delete its line — deleting them all still parses, and the script's own check counter then reports an empty gate honestly.
+- **An existing command fails.** That is a pre-existing break which the gate has just made load-bearing. Show the failure, propose the smallest fix, and get agreement before editing `package.json` or dependencies. Do not quietly work around it.
+- **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
 
-## Tech Stack
-{tech stack from analysis}
-Added: {today}
+**`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`.
 
-## Existing Patterns
-{key patterns observed from analysis}
+**Do not reach step 5 with a red gate.** If it cannot be made green, stop: write the reason into `.claude/memory/tech-debt.md` and report `Onboarding incomplete — gate red` instead of the step 6 success block. Everything downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
-## Integrations
-```
+Fill `scripts/release.sh` the same way. Its healthcheck must be a real command; only the deploy step may be a no-op.
 
-(Do NOT create `context.md` — that name is a gitignored runtime note. Put any project overview worth keeping into `.claude/memory/decisions.md` (tracked); runtime state lives in the repo.)
+**Reconcile `testing-scope` with reality.** If the step 2 answer names a level the project has no directory or runner for, either scaffold it now or narrow the setting — never record a scope the gate does not enforce.
 
-Copy `templates/memory/.gitignore` → `.claude/memory/.gitignore` (prevents runtime state files from being committed to git).
+#### 3d. Reconcile the existing CI
 
-**e) Language-specific CI (if missing or user wants to add):**
-Check `.github/workflows/` — if no CI exists, offer to create it.
-Copy the matching `templates/github/ci-{language}.yml` as `.github/workflows/ci.yml`.
+If `.github/workflows/` already has CI, **do not leave it alone.** The `CLAUDE.md` you just installed asserts that the GitHub workflows call `scripts/ci.sh` — two independent definitions of "does this pass" make that false in an auto-loaded file, and the drift is invisible until something red merges.
 
-**e2) Railway deployment (if deployed on Railway):**
+Diff its steps against `ci.sh`, show the user the difference, and offer to replace the check steps with `- run: bash scripts/ci.sh full`, keeping the project's own triggers, matrix and any deploy/publish jobs (`templates/github/ci-{lang}.yml` is the shape to aim at). If the user declines, record the divergence in `.claude/memory/tech-debt.md` and say so in the report.
+
+If there is no CI at all, offer `templates/github/ci-{language}.yml`.
+
+#### 3e. Guidelines and the baseline gap check
+
+**Install matching guidelines:** consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, detect which fit and offer to install them (copy the file + add its INDEX row from LIBRARY.md). Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway`; a backend/service with domain/application/infrastructure layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines.
+
+**Check the developer-utility baseline and draft tickets for what's missing.** For anything bigger than a small script, check what `app-baseline.md` requires against what the project actually has — structured logging with adjustable levels, version visibility, an update mechanism, an in-app changelog, a way for Claude to smoke-test a live instance, and an access gate / API token auth where applicable. For each gap, create a backlog draft in `docs/specs/backlog/` (from `spec.md.template`) and tell the user it's there. These are debugging and development infrastructure, so they're worth doing before the next feature — say that, but don't block onboarding on them. A gap the user judges irrelevant gets dropped with a stated reason, not silently.
+
+#### 3f. Railway (if deployed there)
+
 If the project already deploys on Railway (a `railway.json`/`railway.toml` at the repo root, a Railway CI step, or the user confirms it):
-- **Install the Railway guideline** — copy `templates/guidelines/railway.md` → `.claude/guidelines/railway.md` and add its row to `.claude/guidelines/INDEX.md`: `| Railway deploy, railway.json, deployment/hosting | .claude/guidelines/railway.md |`. This carries the standing details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the Railway-specifics-behind-an-interface portability rule) so `/plan` picks them up when a ticket touches deployment.
-- **Watch paths** — ensure `build.watchPatterns` are set so the workflow's constant docs/spec commits don't trigger redeploys:
-  - If **no** `railway.json`/`railway.toml` exists: offer to copy `templates/configs/railway.json` → repo root `railway.json` (watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown).
-  - If one **already exists** with no `build.watchPatterns`: offer to add the `watchPatterns` array (merge into the existing `build` object; don't clobber other keys).
-  - If it already has `watchPatterns`: leave them — the project has made a deliberate choice; just mention the docs/spec-commit rationale in case they want to exclude those paths.
-Set `deploy: railway` in the `workflow-settings` block of `CLAUDE.md` and record the operational detail — platform settings, health check, required secrets — in `docs/dev/deploy.md` (the standing rules live in the guideline, not duplicated there). If the app serves markdown/docs/tests content at runtime, drop the matching `!` line from `railway.json` and note the exception.
+- **Install the Railway guideline** — `templates/guidelines/railway.md` → `.claude/guidelines/railway.md` plus its INDEX row: `| Railway deploy, railway.json, deployment/hosting | .claude/guidelines/railway.md |`.
+- **Watch paths** — so the workflow's constant docs/spec commits don't trigger redeploys:
+  - No `railway.json`/`railway.toml`: offer `templates/configs/railway.json` at the repo root.
+  - One exists without `build.watchPatterns`: offer to add the array, merging into the existing `build` object.
+  - It already has them: leave them — a deliberate choice; just mention the docs/spec-commit rationale.
+- Set `deploy: railway` in `workflow-settings` and record platform settings, health check and required secrets in `docs/dev/deploy.md`. If the app serves markdown/docs/tests content at runtime, drop the matching `!` line from `railway.json` and note the exception.
 
-**f) Subdirectory CLAUDE.md files (if src/ and tests/ exist):**
-Create `src/CLAUDE.md` with brief code convention note (user can expand).
-Create `tests/CLAUDE.md` with testing pattern note.
+#### 3g. Other root files
 
-**g) CONTRIBUTING.md (if not present):**
-Create from `templates/CONTRIBUTING.md.template` (fill `{{WORKFLOW_REPO}}` and `{{PROJECT_NAME}}`).
-
-**g2) README.md (if not present):**
-Create root `README.md` from `templates/README.md.template`, filled with the detected project name, description, and tech stack from the analysis. **Never overwrite an existing README** — if one exists, only offer to append a short "Development" section linking to `CONTRIBUTING.md`.
-
-**h) CLAUDE.md** — already handled in step 3a, which is the only place that writes it. Nothing to do here.
+- **`README.md`:** never overwrite one that exists — offer to append a short "Development" section linking to `CONTRIBUTING.md`. Create it from `templates/README.md.template` only if absent.
+- **`.env.example`:** `docs/dev/setup.md` tells the reader to `cp .env.example .env`. If the project uses a `.env` and has none, generate one from the variables the analysis found (keys only, no values). If it uses no `.env` at all, delete that section from `setup.md` rather than shipping a `cp` of a file that isn't there.
 
 The skills, agents and hooks just installed under `.claude/` are picked up at **session start**, so they are not live in this session. Don't try to invoke one yet; the report in step 6 tells the user to restart.
 
 ### 4. GitHub Setup (if applicable)
-Only run this step if the `github` setting written into `CLAUDE.md` in step 3a is `yes`:
+Only run this step if the `github` setting is `yes` **and `git remote -v` resolves a GitHub remote.** Onboarding a local repo that will get its remote later is a common case for this skill, and `gh label create` fails outright with "no git remotes found".
+
 - Create labels: `gh label create feature --force --color 0075ca` etc. (feature, bug, backlog, ready, in-progress, done — `--force` because defaults like `bug` already exist)
 - Create `.github/ISSUE_TEMPLATE/feature.md` and `bug.md`
 
+With `github: yes` but no remote yet: create the issue templates, skip the labels, and tell the user to re-run the `gh label create` block once the remote exists.
+
 ### 5. Commit
 ```
-git add .claude/ docs/ scripts/ CLAUDE.md CONTRIBUTING.md README.md .github/
-git add railway.json .env.example 2>/dev/null || true    # only if this onboarding created them
+git add -A
+git status --short          # read it — every line must be something you meant to do
 git commit -m "chore: install claude-workflow infrastructure"
 ```
-Stage every path this onboarding created or changed — `scripts/` in particular, since `ci.sh` and `release.sh` are what `/commit`, `/verify` and CI all call. Check `git status` before committing and report anything left unstaged rather than printing "complete" over it.
+
+**`git add -A`, not a list.** An explicit list is a trap here: between them, this skill and the scaffolder also create `src/CLAUDE.md`, the test directory's `CLAUDE.md`, `.prettierignore`, a lockfile, and whatever manifest or config edit step 3c needed to make the gate green. A list written once is always missing the newest of those. Account for every line of `git status --short` before committing; `/project-onboard` must not end on a dirty tree.
 
 ### 6. Report
+
+Print this **only when the gate is green** (step 3c). Otherwise report `Onboarding incomplete — gate red`, name the failing stage and why, and point at the `tech-debt.md` entry. A success banner over a red gate is the one outcome that makes everything downstream unsafe.
+
 ```
 Onboarding complete ✓
 
 Installed:
-  .claude/ (agents, skills, hooks, memory)
-  docs/dev/ (code-style, setup, deploy) + docs/specs/
-  docs/specs/ (backlog, ready, completed directories)
-  {CLAUDE.md / CONTRIBUTING.md / CI workflow — if created}
+  .claude/ (agents, skills, hooks, memory, guidelines)
+  docs/dev/ (code-style, setup, architecture, deploy) · docs/VISION.md
+  docs/specs/ (backlog, ready, completed + spec.md.template)
+  scripts/ (ci.sh, release.sh, claude-loop.sh) · .prettierignore
+  {CLAUDE.md / CONTRIBUTING.md / README section / CI workflow — as created}
+
+Gate: ci.sh fast exit {0} — {N} check(s)   ·   clean clone: exit {0}
+Existing CLAUDE.md content moved to: {file → what went there, per item}
+CI reconciliation: {workflow now calls ci.sh | divergence recorded in tech-debt.md}
 
 Next steps:
 

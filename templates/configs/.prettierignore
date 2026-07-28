@@ -24,7 +24,7 @@ docs/dev/code-style.md
 *.md
 docs/
 
-# --- CI config: `${{ }}` is GitHub Actions syntax, and these are template-derived ---
+# --- CI config: GitHub Actions expression syntax, and these are template-derived ---
 .github/
 
 # --- generated / vendored ---

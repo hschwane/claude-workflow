@@ -23,7 +23,7 @@ echo "▶ ci.sh ($MODE)"
 #     A bare `eslint`/`prettier`/`tsc`/`vitest` is not on PATH in GitHub Actions (they live in
 #     node_modules/.bin) — it exits 127 in CI while passing on a laptop with globals installed.
 #   * If a stage genuinely does not apply here, DELETE its line. Never leave the placeholder:
-#     `{{LINT}}` as a bare command aborts the run with "command not found".
+#     A bare placeholder token as a command aborts the run with "command not found".
 #
 # `check` counts what it runs, so a script with every stage deleted fails loudly at the end
 # instead of reporting a pass it never earned.

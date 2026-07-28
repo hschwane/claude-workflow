@@ -17,7 +17,7 @@ The `[PROJECT DECISIONS]` block contains:
 |-------|--------|
 | `PROJECT_NAME` | Project name (slug used for directories/package names) |
 | `PROJECT_DESCRIPTION` | One-sentence description |
-| `PROJECT_TYPE` | Web API / Web Frontend / CLI tool / Library / Desktop App / Other |
+| `PROJECT_TYPE` | Web App (fullstack) / Web API / Web Frontend / CLI tool / Library / Desktop App / Other |
 | `LANGUAGE` | TypeScript / Python / Rust / C++ / Other |
 | `ARCHITECTURE_LABEL` | e.g. "Clean Architecture + Express + Zod + Vitest + Prisma" |
 | `ARCHITECTURE_SUMMARY` | 1–3 sentence paragraph for CLAUDE.md |
@@ -30,6 +30,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `GITHUB_REPO` | yes-public / yes-private / no |
 | `PLUGIN_SOURCE_DIR` | Absolute path to the plugin root (contains `agents/`, `skills/`, `templates/`) |
 | `TARGET_DIR` | Absolute path to the new project directory |
+| `GITHUB_OWNER` | the owner the repo will live under, when `GITHUB_REPO` is not `no`. `{{REPO_URL}}` in `docs/dev/setup.md` is `https://github.com/{GITHUB_OWNER}/{project}` — without it you cannot build a clone URL, and you must not guess one |
 | `COPYRIGHT_HOLDER` | name for the `LICENSE` file's copyright line |
 | `LIBRARY_GUIDELINES` | comma list of guidelines to install. A bare name resolves against `{PLUGIN_SOURCE_DIR}/templates/guidelines/`; an **absolute path** is used as-is, which is how a user-global guideline from `~/.claude/guidelines/` gets installed |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
@@ -40,6 +41,24 @@ The `[PROJECT DECISIONS]` block contains:
 | `TODAY` | Date in YYYY-MM-DD format |
 | `WORKFLOW_REPO` | `owner/repo` (the templates prefix `https://github.com/` themselves) |
 | `WORKFLOW_VERSION` | Plugin version string |
+| `MODE` | `init` (default) or `onboard` — see **Onboard mode** below |
+| `EXISTING` | onboard only: what the codebase already has (manifest, configs, test dir name, CI, docs) |
+
+## Onboard mode
+
+`MODE` is `init` (default) or `onboard`. In **onboard mode** the target is an existing codebase with its own history, configs and conventions, so three rules override everything below:
+
+1. **Never overwrite a file that exists.** Skip it and list it in your report. This applies to every step without exception — a project's `tsconfig.json`, `.gitignore`, `README.md`, `package.json` and source tree are not yours.
+2. **Skip what the project already provides**, rather than installing a second copy: its own manifest, formatter/linter/TS configs, its `.gitignore`, its CI workflow, its test directory layout. The `EXISTING` field of the prompt tells you what step 1 of `/project-onboard` found.
+3. **Install everything else in full.** The workflow's own surface is not optional, and these four are the ones most easily mistaken for optional:
+   - `.prettierignore` — the ~40 markdown files you are about to install under `.claude/` are not prettier-formatted, so a project whose format check covers the repo now fails it.
+   - `docs/specs/spec.md.template` — `/draft` and `/plan` refuse to invent frontmatter without it.
+   - `docs/VISION.md` — `/ship` reads it and the root `CLAUDE.md` points at it.
+   - `.claude/memory/local-settings.md` — in the literal `key: value` form; three hooks grep for it.
+
+Also in onboard mode: do **not** write the root `CLAUDE.md` or `README.md` (`/project-onboard` merges those itself, because an existing one is usually hand-written and load-bearing), do not create `src/` or the test directory, and use the project's existing test directory name rather than `tests/unit` + `tests/integration`. Skip Step J entirely — the onboarding skill commits.
+
+Everything else — `.claude/` in full, `docs/dev/`, `docs/specs/`, `CONTRIBUTING.md`, the three `scripts/`, `workflow-source.json`, the `.gitkeep` sweep — is identical to init mode.
 
 ## Step A: Create Directories
 
@@ -54,8 +73,6 @@ Create all required directories (use `mkdir -p`) — **the fixed list below plus
 {TARGET_DIR}/docs/specs/backlog/
 {TARGET_DIR}/docs/specs/ready/
 {TARGET_DIR}/docs/specs/completed/
-{TARGET_DIR}/.github/workflows/
-{TARGET_DIR}/.github/ISSUE_TEMPLATE/
 {TARGET_DIR}/.claude/hooks/
 {TARGET_DIR}/.claude/agents/
 {TARGET_DIR}/.claude/skills/
@@ -63,6 +80,8 @@ Create all required directories (use `mkdir -p`) — **the fixed list below plus
 {TARGET_DIR}/.claude/guidelines/
 {TARGET_DIR}/scripts/
 ```
+
+**Only when `GITHUB_REPO` is not `no`**, also create `{TARGET_DIR}/.github/workflows/` and `{TARGET_DIR}/.github/ISSUE_TEMPLATE/`. Creating them regardless is not harmless: the `.gitkeep` sweep in Step B then makes the empty directories permanent, so a local-only project ships a `.github/` it never asked for, against what `delivery.json` says and what `/workflow-update` will expect.
 
 Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/README.md` → `README.md` and `templates/guidelines/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
 
@@ -130,6 +149,7 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
+- **Delete the authoring notes once the stages are filled.** Remove the `# --- how to fill this in ---` block from both scripts, and every `# e.g. …` hint line — not only the ones beside a deleted stage. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
 - The **clean-clone** check is not yours — `/project-init` step 5c runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Do not report on it; report your local `ci.sh fast` exit code and check count, and leave the repo in a state that passes the clone.
@@ -176,7 +196,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |
 | `docs/dev/setup.md`: `{{VAR_NAME}}` `{{DESCRIPTION}}` | one row per variable in `.env.example`; delete the table if there are none yet |
 | `docs/dev/setup.md`: `{{TROUBLESHOOTING_NOTES}}` | delete the section — a new project has no known traps yet |
-| `{{REPO_URL}}` | the GitHub repo **if one is being created**; otherwise the local path. Never guess an org from the plugin's own repo — a local-only project told to `git clone https://github.com/<plugin-author>/<project>` sends its first contributor to a URL that does not exist |
+| `{{REPO_URL}}` | `https://github.com/{GITHUB_OWNER}/{project}` when a repo is being created. With `GITHUB_REPO: no` there is no URL: delete the clone block and write "This project has no remote yet — work in place." Never guess an org from the plugin's own repo, and never emit an absolute path from the scaffolding machine — both send the first contributor somewhere that does not exist for them |
 | `docs/user/README.md` | a real stub for this project — replace every token with prose, do not ship `{{…}}` to end users |
 
 **The sweep runs at the end, not here.** After Step I — once every file is written — grep the target tree for `{{` and fix every hit outside this exempt list:
@@ -347,7 +367,7 @@ Infrastructure: .claude/ (agents N, skills N, hooks N, memory, settings.json)
               — count what you actually copied (`ls .claude/agents | wc -l`), don't estimate; this report is all the main session sees
 Root files: CLAUDE.md, README.md, .gitignore, LICENSE, .env.example
 Git: initial commit on {main|develop}
-Local `ci.sh fast`: {exit code, and the check count it printed}
+Local `ci.sh fast`: {exit code} — {N} check(s)
 
 Notes: {any warnings, defaults applied, or files skipped}
 ```
