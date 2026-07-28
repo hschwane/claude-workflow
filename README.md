@@ -52,7 +52,7 @@ Skills are the user-facing commands. Setup skills:
 |-------|--------------|
 | `/project-init` | Create a new project from scratch: vision workshop, architecture decision, configs, CI, GitHub repo, hooks, initial backlog |
 | `/project-onboard` | Install the workflow into an existing project without disrupting it (analyzes the codebase first via `code-explorer`) |
-| `/workflow-update` | Pull a newer plugin version into the project; overwrites system files, never touches project files |
+| `/workflow-update` | Pull a newer plugin version into the project. The delivery manifest decides ownership per path: plugin files are replaced (project content inside `project-specific` marker blocks survives), project files are only suggested at, and the few genuinely shared ones are merged with you watching |
 
 The development lifecycle:
 
@@ -188,27 +188,30 @@ Inside a project that uses this workflow:
 
 ```
 .claude-plugin/plugin.json    ← plugin manifest (metadata only; components are auto-discovered)
+.claude-plugin/delivery.json  ← ownership of every delivered path (project / plugin / mixed); drives /workflow-update
 skills/                       ← one directory per skill ({name}/SKILL.md)
 agents/                       ← subagent definitions
 templates/
 ├── CLAUDE.md.template, README.md.template, CONTRIBUTING.md.template
 ├── CHANGELOG.md.template, spec.md.template, vision.md.template
-├── src-claude.md.template, tests-claude.md.template
-├── workflow/                 ← workflow doc templates
-├── dev/                      ← developer doc templates (setup, style guide, ADR, …)
-├── configs/                  ← tsconfig, eslint, pyproject, CMakeLists, etc.
+├── src-claude.md.template, tests-claude.md.template, LICENSE-MIT.template
+├── dev/                      ← developer doc templates: code-style (the engineering standards,
+│                               plugin-owned), setup, deploy, architecture, user-readme
+├── guidelines/               ← standing per-technology guidelines + LIBRARY.md (install-when index)
+├── ui/                       ← reusable UI templates a guideline references
+├── configs/                  ← tsconfig, eslint, prettier, pyproject, CMakeLists, etc.
 ├── github/                   ← CI/release/dependabot workflow templates
 ├── gitignore/                ← per-language .gitignore templates
 ├── hooks/                    ← hooks.json (→ project .claude/settings.json) + hook scripts
-├── memory/                   ← .gitignore for runtime memory files
-└── scripts/                  ← claude-loop.sh (local auto-resume supervisor)
+├── memory/                   ← decisions / gotchas / tech-debt templates + .gitignore
+└── scripts/                  ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```
 
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) with the claude-workflow plugin
 - `git`
-- `gh` (GitHub CLI) — for GitHub integration
+- `gh` (GitHub CLI) — only if the project uses GitHub (`github: yes`)
 - Language-specific tools (npm, python, cargo, etc.) installed per project needs
 
 ## License
