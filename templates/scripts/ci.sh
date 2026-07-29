@@ -5,34 +5,68 @@
 #
 # Modes:
 #   ./scripts/ci.sh fast   → format-check + lint + typecheck/compile + unit tests   (per-subtask gate)
-#   ./scripts/ci.sh full   → everything in fast + integration/e2e + the deployable build
+#   ./scripts/ci.sh full   → everything in fast + the build + integration/e2e       (merge / release gate)
 #   ./scripts/ci.sh        → same as full
 #
 # project-init / project-onboard fill in the real commands for this project's language.
-# Keep every command FAST-FAILing (set -e) so the first failure is the report.
-set -euo pipefail
+set -uo pipefail
 MODE="${1:-full}"
 
 echo "▶ ci.sh ($MODE)"
 
 # --- how to fill this in ---------------------------------------------------------------
 # Each stage below is a `check <command>` line — a COMMAND LINE, not a comment. Replace the
-# whole placeholder line, keeping the `check ` prefix. Two rules:
+# whole placeholder line, keeping the `check ` prefix. Three rules:
 #
 #   * Go through the package manager: `npm run lint`, `uv run ruff check .`, `cargo clippy`.
 #     A bare `eslint`/`prettier`/`tsc`/`vitest` is not on PATH in GitHub Actions (they live in
 #     node_modules/.bin) — it exits 127 in CI while passing on a laptop with globals installed.
 #   * If a stage genuinely does not apply here, DELETE its line. Never leave the placeholder:
-#     A bare placeholder token as a command aborts the run with "command not found".
+#     a bare placeholder token as a command aborts the run with "command not found".
+#   * NEVER append `|| true`, `|| :` or `; true` to a stage. `check` records the failure before
+#     the suffix can swallow it, so the gate still fails — it just fails with a confusing
+#     message instead of the real one. If a check is too noisy to keep, delete it and say so.
 #
-# `check` counts what it runs, so a script with every stage deleted fails loudly at the end
-# instead of reporting a pass it never earned.
+# `check` counts what it runs and remembers what failed, so a gate cannot report a pass it
+# never earned: not with every stage deleted, not with a suppressed failure, and not by
+# running `full` with no full-only stages configured.
 # --- end of authoring notes; everything below is live code ------------------------------
 CHECKS=0
+FULL_CHECKS=0
+FAILED=0
+IN_FULL=0
+
+# --- verdict ----------------------------------------------------------------------------
+# Written where the calling session can read it directly, instead of trusting a subagent's
+# prose summary of this output. Runtime state: gitignored.
+write_result() {
+  local status="$1"
+  mkdir -p .claude/memory 2>/dev/null || true
+  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"failed":%d,"sha":"%s"}\n' \
+    "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$FAILED" \
+    "$(git rev-parse HEAD 2>/dev/null || echo unknown)" \
+    > .claude/memory/last-gate.json 2>/dev/null || true
+}
+
+
 check() {
   CHECKS=$((CHECKS + 1))
+  [ "$IN_FULL" -eq 1 ] && FULL_CHECKS=$((FULL_CHECKS + 1))
   echo "  → $*"
+  # Capture the status of the command itself. Do NOT wrap this in `if "$@"; then …; fi`
+  # and read $? afterwards: $? is then the status of the completed `if`, which is 0, so a
+  # failing check would report "FAILED (exit 0)" and exit 0 — a green gate on a red check.
   "$@"
+  local code=$?
+  [ "$code" -eq 0 ] && return 0
+  FAILED=1
+  echo "  ✗ FAILED (exit $code): $*" >&2
+  echo "✗ ci.sh ($MODE): failed at check $CHECKS of $CHECKS run." >&2
+  write_result failed
+  # `exit`, not `return` — a `|| true` appended to the stage would swallow a return code
+  # and let the gate report green on a failed check. Exiting here means the suffix is
+  # never evaluated, so the suppression trick cannot work at all.
+  exit "$code"
 }
 
 # --- prepare: generate sources the checks need ------------------------------------------
@@ -52,6 +86,7 @@ check {{TYPECHECK}}
 check {{UNIT_TESTS}}
 
 if [ "$MODE" = "full" ]; then
+  IN_FULL=1
   # --- full: added at feature-done / merge / release -----------------------------------
   # BUILD COMES FIRST. Integration and E2E tests usually drive the built artifact — a CLI
   # binary, a container, a bundled service. Run them before the build and they exercise
@@ -70,7 +105,18 @@ if [ "$CHECKS" -eq 0 ] && [ "${CI_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ ci.sh ($MODE): no checks are configured — this gate proves nothing." >&2
   echo "  Fill the stages in scripts/ci.sh. If this project genuinely has no toolchain yet," >&2
   echo "  record that in .claude/memory/tech-debt.md and set CI_ALLOW_EMPTY=1 to acknowledge it." >&2
+  write_result empty
   exit 1
 fi
 
-echo "✓ ci.sh ($MODE) passed — $CHECKS check(s)"
+if [ "$MODE" = "full" ] && [ "$FULL_CHECKS" -eq 0 ] && [ "${FULL_ALLOW_NONE:-0}" != "1" ]; then
+  echo "✗ ci.sh (full): no full-only stages are configured — 'full' ran exactly what 'fast' runs." >&2
+  echo "  A merge or release gated on this proves nothing more than a per-subtask check did." >&2
+  echo "  Add the build and integration stages, or set FULL_ALLOW_NONE=1 if this project" >&2
+  echo "  genuinely has neither and record that in .claude/memory/tech-debt.md." >&2
+  write_result full-degraded
+  exit 1
+fi
+
+write_result passed
+echo "✓ ci.sh ($MODE) passed — $CHECKS check(s)$([ "$MODE" = full ] && echo ", $FULL_CHECKS full-only")"

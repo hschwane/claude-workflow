@@ -50,11 +50,15 @@ step {{PUBLISH}}
 # e.g. step railway up | step : (Railway auto-deploys on merge)
 step {{DEPLOY}}
 
-# 5. Healthcheck — report so the caller can verify / roll back.
-# This must be a REAL command. `docs/dev/deploy.md` carries the URL. A release that reports
-# success having verified nothing is worse than one that stops: if the endpoint is genuinely
-# unknown, put `exit 1` here with a TODO rather than a no-op.
-# e.g. step curl -fsS https://<app>/health
+# 5. Healthcheck — must ASSERT, not just run.
+# `step curl -fsS https://<app>/health` proves the endpoint answered; it does not prove the
+# NEW version is live. `step node dist/index.js --version` prints a version and discards it —
+# a release of 9.9.9 that still reports 0.2.0 exits 0. Compare against "$VERSION":
+#   step sh -c 'node dist/index.js --version | grep -q "$0"' "$VERSION"
+#   step sh -c 'curl -fsS https://<app>/health | grep -q "\"version\":\"$0\""' "$VERSION"
+# `docs/dev/deploy.md` carries the URL. If it is genuinely unknown, put `exit 1` here with a
+# TODO rather than a no-op — a release that reports success having verified nothing is worse
+# than one that stops.
 step {{HEALTHCHECK}}
 
 if [ "$STEPS" -eq 0 ] && [ "${RELEASE_ALLOW_EMPTY:-0}" != "1" ]; then

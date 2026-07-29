@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Workflow Settings
 
-The seven knobs that change how the workflow behaves in this project. The **values** live in the `workflow-settings` block of the root `CLAUDE.md`, so they are always in context. The **meanings and allowed values** live here, so they cost nothing until someone changes one.
+The knobs that change how the workflow behaves in this project (the table below is the count that matters — don't hard-code a number in prose that goes stale the first time one is added). The **values** live in the `workflow-settings` block of the root `CLAUDE.md`, so they are always in context. The **meanings and allowed values** live here, so they cost nothing until someone changes one.
 
 ## Usage
 ```

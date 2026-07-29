@@ -28,6 +28,10 @@ Default: **self-review** — reread the diff (`git diff {integration-branch}...H
 
 Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes) on the diff. Use sparingly — most changes don't need it.
 
+**Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, and that at least one criterion is anchored to something independent. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
+
+Same for **unsourced constants and seed data** the ticket introduced: if a magic number or a reference table arrived without a citation, say so in the report.
+
 ### 3. Manual smoke test
 
 Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close.

@@ -60,41 +60,15 @@ Nothing below is auto-loaded. Read a file when its trigger fires, not before.
 
 ## Agents — delegate proactively
 
-Use them when they fit; don't ask first. Anything that reads many files or produces bulk output belongs in a subagent. `reviewer` and `advisor` are named here deliberately and are **exempt from any general limit on spawning higher-tier agents**.
+Use them when they fit; don't ask first. Anything that reads many files or produces bulk output belongs in a subagent — their `description:` fields are already in context, so pick from those rather than from a table here.
 
-| Agent | Use when |
-|-------|----------|
-| `code-explorer` (Sonnet/low) | Understand code across >3–4 files, or "how does X work / where is it?" — orients via project docs, then targeted search. Prefer over the built-in Explore |
-| `text-scout` (Haiku) | Extract or summarize facts from a lot of text (code, logs, docs, big output) — a sourced digest, never invents |
-| `runner` (Haiku) | Run the gate, a test suite, or the release script — reports pass/fail + key output, never fixes or judges |
-| `smoke-tester` (Sonnet/low) | Exercise a running app from prose steps (blackbox — no spec, no code). Hand it **concrete steps**: exact action, literal inputs, exact expected result |
-| `reviewer` (best/high) | Fresh-eyes review of a genuinely critical diff — read-only. Default is inline self-review |
-| `advisor` (best/high) | Hard thinking on a briefed question. Driven by `/consult`; advises, never implements |
+**One scout by default.** Most questions need a single `code-explorer` (understand code) or `text-scout` (extract from text). Fan out only for genuinely large codebases — and from here, since subagents cannot spawn subagents. Both cite every claim; rely only on what is sourced. `reviewer` and `advisor` are **exempt from any general limit on spawning higher-tier agents**.
 
-**One scout by default.** Most questions need a single `code-explorer` or `text-scout`. Fan out only for genuinely large codebases — and from here, since subagents cannot spawn subagents. Both cite every claim; rely only on what is sourced.
-
-**Never proceed on a missing result.** A subagent can fail. Re-run it (they are idempotent); if it fails again, ask, or write `## Blocked` in unsupervised mode.
+**Never proceed on a missing result.** A subagent can fail. Re-run it (they are idempotent); if it fails again, ask, or write `## Blocked` in unsupervised mode. And a subagent's summary is evidence, not proof: where a machine-readable result exists — `ci.sh` writes `.claude/memory/last-gate.json` — read that yourself rather than trusting the prose.
 
 ## Skills — invoke proactively
 
-**When a request matches a skill, invoke it.** Don't improvise a process a skill already covers.
-
-| Skill | Invoke when the user says… |
-|---|---|
-| `/draft feature\|bug "title"` | "capture this idea/bug" → lands in the backlog |
-| `/plan FEAT-001 […]` | "plan / spec out X", "make X ready" → spec, all questions up front |
-| `/implement FEAT-001` | "implement / build X" → tests + code per subtask, then `/verify` |
-| `/verify [FEAT-001]` | "does it actually work?" → full gate + review + smoke |
-| `/commit` | "commit" → gated conventional commit |
-| `/release patch\|minor\|major` | "release / publish / bump version" |
-| `/ship [IDs] \| "topic"` | "ship a version", "work toward X" → the whole chain |
-| `/resume` | "continue", "I was interrupted" |
-| `/consult "question"` | "I'm stuck"; a hard architecture or security call |
-| `/unsupervised on\|off` | "work on its own", "stop asking me" |
-| `/auto-resume on\|off` | "keep going after the limit resets" |
-| `/pr [base]` | "open a PR" — optional; the default merges locally |
-| `/workflow-settings [name]` | "change how the workflow behaves" → the block above |
-| `/workflow-update` | "update the workflow" |
+**When a request matches a skill, invoke it.** Don't improvise a process a skill already covers; their `description:` fields are in context and say when each applies. `/ship` chains the whole lifecycle; `/resume` picks up interrupted work; `/consult` delegates a hard call to `advisor`.
 
 Several tasks in one message: work through them in order. In unsupervised mode apply the autonomous defaults and don't stop between them.
 
@@ -114,7 +88,7 @@ Under `branching: git-flow`, features merge into `develop`; `/release` runs the 
 
 ## CI — you run it, so CI does not
 
-`scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you. `fast` (format, lint, types, affected tests) gates each subtask; `full` (everything plus integration/e2e and the build) gates a merge and a release.
+`scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you. `fast` (format, lint, types, unit tests) gates each subtask; `full` adds the build and the integration/e2e suites, and gates a merge and a release. `full` refuses to run when it has no stages of its own — a `full` that equals `fast` proves nothing extra.
 
 - **Your commits carry `[skip ci]`** unless `ci-on-claude: yes` — Actions minutes are not spent repeating a gate that just ran locally.
 - **That skip is a debt you must pay.** Running `ci.sh full` before a merge or release is not optional; skipping CI only makes sense because you did the equivalent yourself. Never merge or release on an unrun gate.

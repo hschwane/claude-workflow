@@ -48,11 +48,18 @@ Types: `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `perf` ·
 
 ## How CI works here
 
+<!-- project-specific: start: ci-note -->
+<!-- If this project has no GitHub remote (`github: no`), replace this whole section with:
+     "There is no CI service here. `scripts/ci.sh` is the only gate, and it runs on
+     whoever's machine is committing — run it yourself before you push."
+     Leaving the text below in place promises a safety net that does not exist. -->
+<!-- project-specific: end: ci-note -->
+
 `scripts/ci.sh` is the single definition of "does this pass" — the GitHub workflows call it, Claude calls it, you call it. There is no separate list of checks that can drift out of sync.
 
 | | `fast` | `full` |
 |---|---|---|
-| runs | format, lint, types, affected tests | everything, plus integration/e2e and the build |
+| runs | format, lint, types, unit tests | the above, plus the build and integration/e2e |
 | when | every commit | before a merge, a PR, a release |
 
 **Why you will see `[skip ci]` on Claude's commits.** Claude runs the identical gate locally before committing, so re-running it in Actions would spend minutes proving something already proven. The marker suppresses that duplicate run — and it comes with an obligation: Claude must actually run `ci.sh full` before any merge or release, never skip both.

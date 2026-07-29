@@ -68,6 +68,7 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 ### 4. Documentation (minimal, per policy)
 
 Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
+- **`CHANGELOG.md`:** add a line under `## [Unreleased]` naming the ticket. `/release` builds the next section from the commit log, but between releases the changelog is the only place a reader sees what has landed since the tag — leave it empty and the file is behind the shipped truth, quietly, until someone cuts a release.
 - **`README.md`:** if the change altered how the tool is invoked — a new command, a changed flag, a different install step — update the usage example now. `/release` re-checks it, but leaving it stale means every branch and every PR in between documents the wrong thing.
 - **Technical:** keep `docs/dev/architecture.md` accurate if structure, algorithms, APIs, or the data model changed, and record a lasting choice as a dated entry in `.claude/memory/decisions.md`. A pure bug fix usually needs nothing — but check.
 - **User docs (`docs/user/`):** only if user-facing behavior changed (new/changed command, endpoint, UI, config). Prefer self-explanatory UI + in-app hints over prose.

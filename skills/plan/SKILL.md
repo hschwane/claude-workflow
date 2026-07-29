@@ -33,6 +33,13 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 
 - **Goal / user story** — what and for whom, in one or two sentences.
 - **Acceptance criteria** — **observable** statements (an action → an expected, checkable result: "run `x --foo` → prints Z"; "POST /bar → 200 + `{id}`"; "click Save → row persists + toast"). These are the contract `/verify` checks against, so they must be demonstrable, not vague ("should work").
+
+  **Where does the expected value come from?** A criterion is only worth what its oracle is worth. If you compute the expected result from the same model, formula or constant the implementation will use, the criterion proves the code matches itself and nothing more — it will pass, `/verify` will pass, and the answer can still be wrong. That failure is invisible to every gate in this workflow, because every gate downstream trusts these criteria.
+
+  So for anything with a **right answer that exists outside the code** — a physical or financial calculation, a protocol, a format, a rate or tax table, a domain constant — say in the spec where the expected values came from, and prefer an **independent** source: a published table, a reference implementation, a worked example from a standard, a value someone can check by hand. Where an authority exists, write at least one criterion against it with a stated tolerance ("within ±20 min of the published tide table for 2026"), not just against internal consistency.
+
+  **Constants and seed data need provenance too.** A magic number or a table of reference values that arrives without a citation is a guess wearing a lab coat. Record the source, and its validity window if it has one, in the spec and in `decisions.md`. If a value genuinely cannot be sourced yet, say so as an explicit assumption and create a follow-up ticket — do not let it pass silently into `main` looking precise.
+
 - **Approach / interfaces** — the key interfaces or signatures to add/change, and a short note on the approach. Enough to implement without re-deciding architecture mid-build; not a full design doc.
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
 - **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the `testing-scope` setting in `CLAUDE.md`. Quality over quantity — the important behaviors.

@@ -49,7 +49,7 @@ Formatting is a tool's job, not a discussion. The project's formatter runs in `s
 
 - **No secrets in code, ever** — environment variables or a secret store. A `.env` is protected by the file-protection hook and must never be committed.
 - Validate anything crossing a trust boundary against a schema, and reject silently-wrong shapes rather than trusting them.
-- Dependency audits run in the canonical gate. A new advisory is a ticket, not a warning to scroll past.
+- Run a dependency audit before each release (`npm audit`, `uv run pip-audit`, `cargo audit`) — it is not one of `ci.sh`'s stages, because a new advisory published overnight would turn every unrelated commit red. A new advisory is a ticket, not a warning to scroll past.
 - Authentication and authorization are checked **before** the handler does work, not inside it.
 - Security-sensitive diffs (auth, crypto, payments, personal data) get the `reviewer` agent during `/verify`, not just an inline self-review.
 
