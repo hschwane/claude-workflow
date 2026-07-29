@@ -45,9 +45,13 @@ IN_FULL=0
 write_result() {
   local status="$1"
   mkdir -p .claude/memory 2>/dev/null || true
-  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"failed":%d,"sha":"%s"}\n' \
+  # `dirty` covers uncommitted work: HEAD does not move when a file is edited, so a
+  # sha-only record lets a caller skip the gate on a tree that changed since it ran.
+  local dirty=false
+  [ -n "$(git status --porcelain 2>/dev/null)" ] && dirty=true
+  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"failed":%d,"sha":"%s","dirty":%s}\n' \
     "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$FAILED" \
-    "$(git rev-parse HEAD 2>/dev/null || echo unknown)" \
+    "$(git rev-parse HEAD 2>/dev/null || echo unknown)" "$dirty" \
     > .claude/memory/last-gate.json 2>/dev/null || true
 }
 

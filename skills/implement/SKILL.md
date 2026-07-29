@@ -45,7 +45,7 @@ For each subtask:
 
 **c) Gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + unit tests). It digests output so raw logs stay out of this context. Read the verdict from `.claude/memory/last-gate.json` rather than the agent's prose. Fix anything red before committing — **never commit on a red gate.**
 
-**If this subtask adds or changes integration or E2E tests, run `scripts/ci.sh full` here instead of `fast`.** `fast` excludes exactly those stages, so the subtask that adds them would be committed green having never executed one of them — and the next `full` run, possibly days later, is where you find out.
+**Run `scripts/ci.sh full` here instead of `fast` if this subtask adds or changes integration or E2E tests — *or changes behaviour those tests already assert*: a CLI's output or which stream it writes to, an HTTP contract, a serialized format, an exit code.** When in doubt, run `full`; it costs one build. `fast` excludes exactly those stages, so the subtask that adds them would be committed green having never executed one of them — and the next `full` run, possibly days later, is where you find out.
 
 **d) Commit** (green only) and push:
 ```
@@ -68,6 +68,8 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 ### 4. Documentation (minimal, per policy)
 
 Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
+Do this **before** running `/verify`, not after. Documentation commits move HEAD, so a `/verify` that ran first leaves `last-gate.json` pointing at a sha that is no longer HEAD — and the Merge policy's "the full gate already passed on this exact HEAD → fast-forward, no re-run" can then never fire. Worse, a doc commit can itself break the format check.
+
 - **`CHANGELOG.md`:** add a line under `## [Unreleased]` naming the ticket. `/release` builds the next section from the commit log, but between releases the changelog is the only place a reader sees what has landed since the tag — leave it empty and the file is behind the shipped truth, quietly, until someone cuts a release.
 - **`README.md`:** if the change altered how the tool is invoked — a new command, a changed flag, a different install step — update the usage example now. `/release` re-checks it, but leaving it stale means every branch and every PR in between documents the wrong thing.
 - **Technical:** keep `docs/dev/architecture.md` accurate if structure, algorithms, APIs, or the data model changed, and record a lasting choice as a dated entry in `.claude/memory/decisions.md`. A pure bug fix usually needs nothing — but check.

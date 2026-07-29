@@ -21,16 +21,16 @@ Resolve the spec: the argument, or the in-progress spec on the current branch. R
 ### 1. Full gate
 Invoke the `runner` agent with `scripts/ci.sh full` (format + lint + typecheck + **all** automated tests incl. integration/e2e + the deployable build). Fix anything red, commit the fix, re-run until green. This is the authoritative correctness gate.
 
-**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha}`. Skip the re-run only when that file says `"mode":"full"`, `"status":"passed"`, and its `sha` equals `git rev-parse HEAD`. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
+**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha, dirty}`. Skip the re-run only when **all four** hold: the file says `"mode":"full"` and `"status":"passed"`, its `sha` equals `git rev-parse HEAD`, **and `"dirty":false`** (confirm with `git status --porcelain` now). The fourth is not optional — uncommitted edits do not move HEAD, so without it the one path that skips the authoritative gate is reachable on a tree whose code has changed since the green run. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
 
 No file, a different sha, or any other status → **run it**. And read the file yourself rather than taking the `runner`'s word for the outcome: the agent's prose is the failure excerpt, this is the verdict.
 
 ### 2. Review (Claude's judgment)
 Default: **self-review** — reread the diff (`git diff {integration-branch}...HEAD`) adopting a reviewer's perspective: correctness, security basics, conventions, test quality. Fix what you find.
 
-Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes) on the diff. Use sparingly — most changes don't need it.
+Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes). Use sparingly — most changes don't need it.
 
-**Prefer a step whose expected result is fixed.** A step can be perfectly observable and still non-deterministic — "the answer is in the future", "the list is sorted by recency" — and pass against a broken build because of when the clock happened to be, or which row happened to sort first. Pin the inputs (an explicit timestamp, a seeded fixture) so the expected result is the same every run. A step that only detects the bug half the time is worse than none: it reports a pass you will trust.
+**Hand the reviewer the spec, not just the diff.** Its whole added value over your own read is an independent check that the code produces what the *criteria* say; given only a diff it can confirm the code is coherent, which a wrong implementation with matching tests always is.
 
 **Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, and that at least one criterion is anchored to something independent. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
 
@@ -40,11 +40,18 @@ Same for **unsourced constants and seed data** the ticket introduced: if a magic
 
 Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close.
 
-**Every acceptance criterion must actually be met — this is the gate against a half-built ticket.** Map each one:
-- Implemented + covered by a passing automated test → done, cite it.
-- Implemented but not test-covered → needs a smoke step to demonstrate it.
-- **Not implemented / stubbed / "deferred" / silently narrowed → verify FAILS.** This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it.
-- Implemented and clearly correct but genuinely impossible to demonstrate by test or smoke (rare) → note it explicitly with why.
+**Every acceptance criterion must actually be met — this is the gate against a half-built ticket, and against a wrongly-built one.**
+
+Build a table with one row per criterion and **three columns: the criterion's literal expected value, the literal observed value, and where the observed value came from.** Both values are quoted verbatim. This is the single mechanism in the workflow that can catch an implementation whose own tests agree with it, so it has to produce an artifact someone can audit, not a judgment you report.
+
+| Outcome | What it takes |
+|---|---|
+| **Met** | The observed literal equals the expected literal. Evidence is either a run you performed, or an automated test **that asserts the criterion's own expected value** — quote the assertion. "Covered by a passing test" is *not* evidence on its own: a test written from the same wrong model as the code passes, and citing it certifies nothing. If the test asserts something other than the criterion's literal, treat the criterion as not test-covered and run it. |
+| **Not covered** | Implemented but nothing asserts the criterion's value → it needs a smoke step, below. |
+| **UNMET → verify FAILS** | Not implemented, stubbed, "deferred", silently narrowed, **or the observed literal differs from the expected one**. This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it. |
+| **Undemonstrable** | Genuinely impossible to demonstrate *because of the environment* (needs hardware, a third-party sandbox you cannot reach) → note it explicitly with why, and pass. **Not** applicable when it is undemonstrable because the criterion never said what to compare against — that is a spec defect: send it back to `/plan`. |
+
+**Never derive an expected value from the code, the tests, or a run.** Take it from the criterion as written. The moment you read the implementation to decide what the answer should be, this table certifies that the code agrees with itself, which it always does. If a criterion's expected value is missing or unusable, that is a finding about the spec, not something to fill in from the output.
 
 **Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Breadth is the automated tests' job; don't re-test everything here.
 
@@ -52,7 +59,10 @@ Run it for anything a user can observe. Skip it only for a change with **no user
 - an **exact action** with the **literal inputs** — the precise URL/route or command, the exact values to type, which control to click by its visible label, the test credentials to use. Not "log in" but "open `http://localhost:3000/login`, type `test@example.com` / `pw123`, click **Sign in**".
 - an **exact, observable expected result** — a specific visible string, element, route, status code, or output. Not "it works" or "the dashboard loads" but "lands on `/dashboard` and shows the text **Welcome, test**". If a human couldn't tell pass from fail by reading your step, the agent can't either.
 
-Derive these concretes from the acceptance criteria yourself (that's your job as the sighted caller); hand the agent only the resolved, unambiguous steps.
+- **derived from the acceptance criterion, never from the code or its output.** This is the same rule as the mapping table above, and it is the step most often broken: running the tool, seeing what it prints and writing that down as the expected result produces a smoke run that passes against any implementation, including a wrong one. Take the expected string from the criterion.
+- **a fixed expected result.** A step can be perfectly observable and still non-deterministic — "the answer is in the future", "the newest item is first" — and pass against a broken build because of when the clock happened to be. Pin the inputs: an explicit timestamp, a seeded fixture. A step that only detects the bug half the time reports a pass you will trust.
+
+Hand the agent only the resolved, unambiguous steps.
 
 **You (the main session) prepare the environment — the smoke-tester never sets anything up.** Bring up the app on a **local/test instance with test data — never production**, run any needed migrations/seeds yourself, and confirm it's reachable. If it genuinely can't run locally (needs cloud services/hardware), do not skip: agree a project-specific strategy with the user (debug/staging deploy) and record it in `deploy.md`. In unsupervised mode with no such strategy on record, note it as a blocker rather than testing against prod. Use a throwaway/test database, not a dev DB you care about.
 

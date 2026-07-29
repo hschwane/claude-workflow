@@ -17,7 +17,8 @@ The main session prepares the judgment parts (version bump, changelog), then the
 
 ### 1. Pre-flight
 - Read `branching` and **`trunk-branch`** in `CLAUDE.md`. Be on the right branch (main-only: the trunk; git-flow: `develop`). The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
-- Working tree clean (`git status`); `git pull` so the release includes everything merged.
+- Working tree clean (`git status`); `[ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"` so the release includes everything a remote already has. The guard matters: `github: no` is supported, and an unguarded `git pull` makes the first executable line of `/release` exit 1.
+- **Check for unmerged ticket branches: `git branch --no-merged {trunk-branch}`.** A finished ticket that is not merged is simply not in this release, and nothing else notices — the pull above only fetches what a remote has. Merge it per the **Merge policy** in `CLAUDE.md` (fast-forward if the full gate passed on this exact HEAD, otherwise resolve, re-run `ci.sh full`, then merge), or say explicitly that it is being held back.
 - The full gate runs inside `scripts/release.sh`, which this skill invokes at **its own step 7** below (the script calls that stage "1. Gate") — so don't run the gate separately here. For `release-runner: ci` **only**, run `scripts/ci.sh full` via the `runner` now as a fail-fast check before dispatching to Actions.
 
 ### 2–6. Prepare version + changelog (main session — the judgment part)

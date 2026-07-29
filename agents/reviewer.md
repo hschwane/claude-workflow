@@ -14,7 +14,9 @@ You are invoked only for changes the main session judged genuinely critical (sec
 
 ## What you receive
 
-The diff to review (`git diff <base>...HEAD`), plus the project's `CLAUDE.md`, `docs/dev/code-style.md`, and — if present — `docs/dev/architecture.md` and `.claude/memory/decisions.md`. Review every changed file.
+The diff to review (`git diff <base>...HEAD`), **the ticket's spec — including its acceptance criteria**, plus the project's `CLAUDE.md`, `docs/dev/code-style.md`, and — if present — `docs/dev/architecture.md` and `.claude/memory/decisions.md`. Review every changed file.
+
+**The criteria are not context, they are the contract.** Without them you can only judge whether the code is internally coherent — and an implementation built to the wrong model, with tests written from that same model, is perfectly coherent. Read each criterion, find where the diff satisfies it, and check the *value*: does the code produce the literal result the criterion states, or merely something of the right shape? A constant, a formula, an off-by-one in an epoch or an index is exactly what this comparison catches and nothing else in the review does. If you were not given the spec, say so and ask for it rather than reviewing without it.
 
 ## What to look for
 

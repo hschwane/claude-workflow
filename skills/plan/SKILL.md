@@ -38,7 +38,9 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 
   So for anything with a **right answer that exists outside the code** — a physical or financial calculation, a protocol, a format, a rate or tax table, a domain constant — say in the spec where the expected values came from, and prefer an **independent** source: a published table, a reference implementation, a worked example from a standard, a value someone can check by hand. Where an authority exists, write at least one criterion against it with a stated tolerance ("within ±20 min of the published tide table for 2026"), not just against internal consistency.
 
-  **Constants and seed data need provenance too.** A magic number or a table of reference values that arrives without a citation is a guess wearing a lab coat. Record the source, and its validity window if it has one, in the spec and in `decisions.md`. If a value genuinely cannot be sourced yet, say so as an explicit assumption and create a follow-up ticket — do not let it pass silently into `main` looking precise.
+  **Name the artifact, not just the authority.** "Agrees with the observatory's own converter" has the right shape — an action and a checkable result — and is not vague, so it reads as the *best* criterion in a list. It is also untestable: nobody can run it. A criterion that appeals to an external source must carry the source's actual output — the URL, the table, or the reference values themselves, written into the spec — so `/verify` can compare against something. An unnamed authority is a `[USER]` question, not a criterion.
+
+**Constants and seed data need provenance too.** A magic number or a table of reference values that arrives without a citation is a guess wearing a lab coat. Record the source, and its validity window if it has one, in the spec and in `decisions.md`. If a value genuinely cannot be sourced yet, say so as an explicit assumption and create a follow-up ticket — do not let it pass silently into `main` looking precise.
 
 - **Approach / interfaces** — the key interfaces or signatures to add/change, and a short note on the approach. Enough to implement without re-deciding architecture mid-build; not a full design doc.
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
@@ -65,7 +67,7 @@ If resolving the spec needs the user's input, collect every `[USER]` question.
 When a spec has a goal, observable acceptance criteria, an approach, subtasks, and no open questions:
 - Set frontmatter `status: ready`; `git mv docs/specs/backlog/{file} docs/specs/ready/{file}`.
 - If `github_issue` is set and the `github` setting in `CLAUDE.md` is not `no`: move labels to `ready`.
-- Commit: `git add docs/specs/ && git commit -m "docs(specs): plan {id}  [skip ci]"` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.
+- Commit: `git add docs/specs/ .claude/memory/decisions.md && git commit -m "docs(specs): plan {id}  [skip ci]"` — `decisions.md` too, because step 2 may have recorded provenance or an answered conflict there; left unstaged it is swept into the next `feat(...)` commit by `/implement`'s `git add -A` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.
 
 ### 6. Report
 ```
