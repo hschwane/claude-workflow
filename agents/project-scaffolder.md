@@ -64,6 +64,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `src/index.ts`, `src/version.ts`, `scripts/generate-version.js` | the project already has an entry point; a second one gets compiled and linted alongside it |
 | `LICENSE` | choosing a licence for someone else's repo is not yours to do — and an MIT file on a `"private": true` internal service is a real mistake |
 | `package.json`, `tsconfig*.json`, `.prettierrc`, `eslint.config.js` | the project's own configs stay authoritative. Installing the plugin's `tsconfig.strict.json` beside a `tsconfig.json` that does not extend it just leaves orphans |
+| `.env.example` | `/project-onboard` §3g owns it: only that step knows whether the project's `.env` claim is backed by a discoverable variable, and rule 1 means a stub you create first wins and locks its better branches out |
 
 `.prettierignore` is the exception in that family and **is** installed — the files you are adding under `.claude/` are what make it necessary.
 
@@ -71,7 +72,9 @@ Also in onboard mode: do **not** write the root `CLAUDE.md` or `README.md` (`/pr
 
 **Two files Step A and Step D tell you the main session already wrote — it did not.** Those notes are written for init, where `/project-init` produces them before handing off. In onboard nothing has: **create `docs/VISION.md`** from `templates/vision.md.template` (a stub the user fills, if the analysis cannot) and **`docs/dev/architecture.md`** from its template, filled from `EXISTING`. Skip either only if the project already has it. Both are pointed at by the root `CLAUDE.md` and `CONTRIBUTING.md` you are installing, and `/ship` reads VISION unconditionally.
 
-Everything else — `.claude/` in full, `docs/dev/`, `docs/specs/`, `CONTRIBUTING.md`, the three `scripts/`, `workflow-source.json`, the `.gitkeep` sweep — is identical to init mode.
+Everything else — `.claude/` in full, `docs/dev/`, `docs/specs/`, `CONTRIBUTING.md`, `workflow-source.json`, the `.gitkeep` sweep — is identical to init mode.
+
+**`scripts/` is the exception.** Copy `ci.sh`, `release.sh` and `claude-loop.sh` and `chmod +x` them, then stop: **do not replace a placeholder, do not delete the authoring notes, and do not run `ci.sh`.** Step C's language table lists the script names *init* creates (`format:check`, `typecheck`, `test:integration`); an existing project's are whatever its author chose, so filling from that table writes commands that do not exist and hands you a red gate on someone else's codebase — with `package.json` on your own never-touch list and no authority to fix it. `/project-onboard` §3c fills them from the project's real commands, and only it has looked.
 
 ## Step A: Create Directories
 
@@ -166,7 +169,7 @@ Every language needs the same four things the TypeScript block spells out, so do
 
 **Write a `.gitkeep` into every directory that is still empty at the end of the run** — not a fixed list. Use the language's own package marker where one exists — `__init__.py` for a Python package directory — and `.gitkeep` only where none does. Do this as a sweep after Step I, and remove a `.gitkeep` again as soon as something real lands in that directory (`/project-init` step 7 fills `docs/specs/backlog/`). Sweep: `find {TARGET_DIR} -type d -empty -not -path '*/.git/*' -not -path '*/node_modules/*' -exec touch {}/.gitkeep \;`. Git does not track directories, so an empty one is simply absent from a fresh clone: `docs/specs/backlog/` disappears and `/draft` has nowhere to write, `docs/specs/ready/` disappears and `/plan`'s `git mv` fails on the first ticket, and a frontend directory the architecture doc describes turns out not to exist. A fixed list goes stale the moment the architecture adds a directory.
 
-**Also create `{TARGET_DIR}/.env.example`** — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
+**Also create `{TARGET_DIR}/.env.example`** — **init only**; in onboard `/project-onboard` §3g owns it — `docs/dev/setup.md` tells the reader to `cp .env.example .env`, so it must exist. A commented stub is fine; add real keys as the project gains them. Never create `.env` itself.
 
 **Write `{TARGET_DIR}/LICENSE`** from `{PLUGIN_SOURCE_DIR}/templates/LICENSE-MIT.template`, filling `{{YEAR}}` (the current year) and `{{COPYRIGHT_HOLDER}}` (`COPYRIGHT_HOLDER` from the decisions block; fall back to `git config user.name` and say which you used). The README's `{{LICENSE}}` is filled with `MIT`. If the user chose another licence, use that text instead.
 
@@ -175,9 +178,11 @@ Every language needs the same four things the TypeScript block spells out, so do
 **Canonical entrypoints (the parity anchor — CI and Claude's local gate both call these):**
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/ci.sh` → `{TARGET_DIR}/scripts/ci.sh` — then **replace each `{{...}}` placeholder LINE with a real command**. Each placeholder is a command line of its own; the `# e.g. …` line above it is the hint. A stage left as a comment makes the script exit 0 having checked nothing — a gate that always passes. Delete the line for a stage this project genuinely does not have (e.g. `{{E2E_TESTS}}` when no E2E framework is configured), never leave the token — and delete the `# e.g. …` hint line with it, so the project's script carries its own commands and nothing else. Fill with this language's real commands (fast: format-check + lint + typecheck/compile + unit tests; full: + integration/e2e + build).
 
-Every stage is a `check <command>` line — keep the `check ` prefix when you replace a placeholder; that is what makes the script count its own work and refuse to report a pass it never earned. `{{GENERATE_SOURCES}}` has **no** prefix (it is preparation, not a check): fill it with the command that produces anything gitignored-but-required — for TypeScript `node scripts/generate-version.js` — or delete the line. Getting this wrong is how the gate passes locally and fails on the first push, since a fresh CI clone has none of the generated files.
+Every stage is a `check <command>` line — keep the `check ` prefix when you replace a placeholder; that is what makes the script count its own work and refuse to report a pass it never earned. `{{GENERATE_SOURCES}}` keeps the **`prepare `** prefix (it is preparation, not a check, and `prepare` guards it — this script has no `set -e`, so a bare command that fails is simply ignored and the gate reports a pass against missing sources): fill it with the command that produces anything gitignored-but-required — for TypeScript `node scripts/generate-version.js` — or delete the line. Getting this wrong is how the gate passes locally and fails on the first push, since a fresh CI clone has none of the generated files.
 
 **Never write a bare tool name.** `prettier`, `eslint`, `tsc` and `vitest` are not on `PATH` in GitHub Actions — `npm ci` installs them into `node_modules/.bin`, which only a package script or `npx` sees. A bare `prettier --check .` exits **127** in CI while passing on a laptop that happens to have it installed globally, which is the worst possible way for a gate to be wrong. Go through the package manager:
+
+**This table lists the script names *init* creates.** In onboard mode you do not fill these at all (see Onboard mode); `/project-onboard` §3c uses whatever the project already calls them.
 
 | | fast | full adds |
 |---|---|---|
@@ -190,6 +195,7 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 The TypeScript scripts already exist in `package.json.template`, and `test` there is `vitest run --passWithNoTests` — a project with no tests yet is the normal state at scaffold time, and plain `vitest run` exits 1 on it.
 - `{PLUGIN_SOURCE_DIR}/templates/scripts/release.sh` → `{TARGET_DIR}/scripts/release.sh` — same rule: each placeholder is a command line, not a comment. Fill build/migrations/publish/deploy/healthcheck for RELEASE_TYPE + DEPLOY (delete `step {{MIGRATIONS}}` when the project has no database) (Railway auto-deploys on merge, so DEPLOY step may be a no-op + a healthcheck curl).
+- **If you deleted the `prepare` line, delete the `prepare()` function too** (and the same for `step()` in `release.sh` if every step went). A defined-but-never-called helper is dead code shipped into someone's repo.
 - **Delete the authoring notes once the stages are filled.** In each script, delete the comment lines from `# --- how to fill this in ---` down to and including the `# --- end of authoring notes ---` rule — **nothing below that rule**, which is the `CHECKS`/`STEPS` counter and the `check`/`step` function the filled stages call. Also delete every `# e.g. …` hint line, not only the ones beside a deleted stage, **and the narration belonging to any step you deleted** — a `# 2. Build the release artifact.` header with nothing under it, or a comment explaining a trade-off for a line that is gone, reads as an instruction to the next maintainer. Fix the two file headers too: both claim the GitHub workflows call these scripts, which is false when `GITHUB_REPO` is `no`. They are addressed to you, not to the project; left in, they read to the next maintainer as project documentation. When you are done, neither script contains a `# e.g.` line, an authoring block, or a placeholder token.
 - `chmod +x {TARGET_DIR}/scripts/ci.sh {TARGET_DIR}/scripts/release.sh`
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.

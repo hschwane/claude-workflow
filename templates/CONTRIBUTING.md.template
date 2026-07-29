@@ -49,10 +49,15 @@ Types: `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `perf` ·
 ## How CI works here
 
 <!-- project-specific: start: ci-note -->
-<!-- If this project has no GitHub remote (`github: no`), replace this whole section with:
-     "There is no CI service here. `scripts/ci.sh` is the only gate, and it runs on
-     whoever's machine is committing — run it yourself before you push."
-     Leaving the text below in place promises a safety net that does not exist. -->
+<!-- Three cases; pick one and delete this comment.
+     * `github: no` — replace this whole section with: "There is no CI service here.
+       `scripts/ci.sh` is the only gate, and it runs on whoever's machine is committing —
+       run it yourself before you push."
+     * `github: yes` but no remote yet — keep the section, and add: "The workflows below are
+       in the repo but have never run; they start on the first push to a GitHub remote."
+     * `github: yes` with a remote — leave the section as it is.
+     Leaving the default text in place for the first two promises a safety net that has
+     never run. -->
 <!-- project-specific: end: ci-note -->
 
 `scripts/ci.sh` is the single definition of "does this pass" — the GitHub workflows call it, Claude calls it, you call it. There is no separate list of checks that can drift out of sync.

@@ -15,6 +15,14 @@ Build whatever update mechanism fits the architecture — fully automatic where 
 
 For a **self-hosted deployment** (Docker on a VPS/Pi, no managed platform auto-deploying it), pull the update at the **infrastructure level** instead: a script that pulls the new image, recreates the container, health-checks it, and **automatically rolls back to the previous image** if the new one doesn't come up healthy — scheduled via a periodic timer, opt-in (don't silently auto-update a self-hosted box by default). This is a different layer from the in-app update control above (that one refreshes the running app's cached assets; this one replaces the running deployment) — a project may need one, the other, or both depending on how it's deployed.
 
+## Version visibility (required)
+
+The running app must be able to say which version it is — a `--version` flag, a `/health` payload carrying it, a footer line. Without it you cannot tell whether a deploy actually landed, and `scripts/release.sh`'s healthcheck has nothing to assert against, so a release that deployed the previous build reports success. Wire it from the manifest at build time rather than typing the number twice.
+
+## An access gate where the app is reachable (required when applicable)
+
+Anything exposed beyond localhost needs *some* gate before it holds real data — a password for a private single-user tool, API-token auth for a service, an account system where there are several users. Retrofitting authentication after the data model exists is a rewrite of every handler.
+
 ## Claude-driven smoke-testing must always be possible (required)
 Claude must always be able to run a smoke test and debug failures against a **live instance** — clicking through the UI, hitting the API, whatever fits the app. Satisfy this one of two ways:
 - Run the app **locally** (the common case — see the `run` skill), or

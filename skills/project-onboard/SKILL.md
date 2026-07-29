@@ -56,6 +56,7 @@ Ask (in chat — plain message, wait for the reply):
 5. **Test scope** — "What test levels should the workflow use for this project? [Unit only / Unit + Integration / Unit + Integration + E2E]" — pre-select from the test setup detected in step 1, and say that step 3c may narrow it to what the gate can actually run.
 6. **Branching** — "main-only or git-flow?" — detect from the existing branches and offer that as the default.
 7. **Deploy target** — "Where does this deploy? [railway / vercel / aws / self-hosted / manual / none]" — detect from `railway.json`, a Procfile, a Dockerfile, a deploy workflow.
+7b. **Deploy details** — only when the answer to 7 is not `none`: "What URL or command answers for a deployed instance, and what secret does the deploy need?" `release.sh`'s healthcheck must assert the released version against something, and `docs/dev/deploy.md` ships `{{HEALTH_CHECK_URL}}`, `{{DEPLOY_SECRET_NAME}}` and `{{PLATFORM_SETTINGS}}` — in init the main session has already written that doc, but here nothing has, so an unasked question becomes an invented hostname.
 8. **Release** — "How does a release publish? [npm / pypi / github release / docker / internal / none]", and "run releases locally or via Actions? [local (default) / ci]".
 9. **GitHub owner** — only when question 2 was yes: "Which owner will the repo live under?" (`gh api user --jq .login` is the default). `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing one.
 
@@ -63,7 +64,9 @@ Ask (in chat — plain message, wait for the reply):
 - from the step 1 analysis: `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`)
 - fixed or conditional: `ci-on-claude: no`; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
 - from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION`
-- mechanically, without asking: `PROJECT_NAME` (the directory or the manifest), `LANGUAGE`, `TODAY`, `PLUGIN_SOURCE_DIR`, `TARGET_DIR`. `PROJECT_DESCRIPTION` needs judgment — draft it from the README and confirm it, don't invent one silently Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
+- mechanically, without asking: `PROJECT_NAME` (the directory or the manifest), `LANGUAGE`, `TODAY`, `PLUGIN_SOURCE_DIR`, `TARGET_DIR`. `PROJECT_DESCRIPTION` needs judgment — draft it from the README and confirm it, don't invent one silently.
+
+Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
 
 ### 3. Install Workflow Infrastructure
 
@@ -117,7 +120,7 @@ This is the file an onboarded repo is most likely to already have, hand-written 
 
 `scripts/ci.sh` is installed but unfilled. Fill each `check <command>` line with **this project's own commands**, taken from its `package.json` scripts / `Makefile` / `pyproject.toml` / `Cargo.toml`. Keep the `check ` prefix — that is what makes the script count its own work. Use the names that exist here (`npm run fmt`, not `npm run format:check`) and go through the package manager, never a bare binary — `eslint`/`prettier`/`tsc`/`vitest` are not on `PATH` in CI.
 
-`{{GENERATE_SOURCES}}` takes **no** prefix: fill it with the command that produces anything gitignored-but-required (a generated version module, a compiled schema, a codegen step) so lint and typecheck see it in a fresh CI clone, or delete the line. Then delete the authoring notes from both scripts — the comment block down to and including the `# --- end of authoring notes ---` rule, plus every `# e.g.` line and the narration for any step you removed. Nothing below that rule.
+`{{GENERATE_SOURCES}}` keeps the **`prepare `** prefix (it is guarded separately, because a bare command that fails there is ignored and the gate then checks missing sources): fill it with the command that produces anything gitignored-but-required (a generated version module, a compiled schema, a codegen step) so lint and typecheck see it in a fresh CI clone, or delete the line. Then delete the authoring notes from both scripts — the comment block down to and including the `# --- end of authoring notes ---` rule, plus every `# e.g.` line and the narration for any step you removed. Nothing below that rule.
 
 Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong on a real codebase, and each needs a decision rather than a shrug:
 

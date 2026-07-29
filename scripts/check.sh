@@ -74,7 +74,11 @@ BEFORE=$FAILED
 echo "workflow settings defaults"
 python3 scripts/_check_settings.py || FAILED=$((FAILED + 1))
 
-# --- 6. templates carry no stale paths removed in 3.0 ------------------------------------
+BEFORE=$FAILED
+echo "cross-file consistency"
+python3 scripts/_check_consistency.py || FAILED=$((FAILED + 1))
+
+# --- 7. templates carry no stale paths removed in 3.0 ------------------------------------
 BEFORE=$FAILED
 echo "stale paths"
 for p in "docs/workflow/" "\.claude/preferences/" "\.claude/project-notes/" "docs/dev/style-guide" "docs/dev/adr/" "memory/settings\.md"; do
