@@ -40,6 +40,15 @@ step {{BUILD_ARTIFACT}}
 # e.g. step npm publish | step twine upload dist/* | step gh release create v$VERSION --generate-notes
 step {{PUBLISH}}
 
+# 3b. Schema migrations, if this project has a database.
+# Ordering is a real decision, not a detail: migrate BEFORE the deploy only when the change is
+# backward-compatible with the running version (expand), and do the destructive half (contract)
+# in a LATER release once nothing reads the old shape. A migration that breaks the currently
+# running code turns a deploy into an outage. Record which half this release is in the
+# changelog entry, and put the rollback for it in docs/dev/deploy.md.
+# e.g. step npm run migrate:up | step uv run alembic upgrade head   (delete if no database)
+step {{MIGRATIONS}}
+
 # 4. Deploy. This is the ONE step that may legitimately be a no-op: a platform that
 # auto-deploys on merge (Railway, Vercel) genuinely has nothing to run here.
 #

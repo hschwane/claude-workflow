@@ -49,11 +49,13 @@ Read the `release-runner` setting in `CLAUDE.md`.
 
 ### 7b. Hotfix on an already-released version
 
-For a critical patch on a version that is already out:
+A hotfix runs this skill from a **hotfix branch**, not from the branch step 1 requires — that is deliberate, and it is the one exception to the pre-flight check. It also tags once, on the hotfix branch, and step 8's git-flow merge-and-tag does **not** run again (tagging the merge commit too would try to create the same tag name twice).
+
 1. Branch from the release tag: `git checkout -b hotfix/v1.2.1 v1.2.0`
 2. Apply the fix and commit.
-3. Run `/release patch` from the hotfix branch.
-4. Merge back — into the trunk under `branching: main-only`, into **both** the trunk and `develop` under `git-flow`, so the fix is not lost on the next release.
+3. Run steps 2–6 here (bump, changelog, commit) **on the hotfix branch**, skipping step 1's branch check.
+4. Run `scripts/release.sh` (step 7), then tag `v1.2.1` on the hotfix branch and push the tag.
+5. Merge back — into the trunk under `branching: main-only`; into **both** the trunk and `develop` under `git-flow`, so the fix is not lost on the next release. Merge commits only; do not re-tag.
 
 ### 8. Tag + push
 ```

@@ -21,7 +21,9 @@ Resolve the spec: the argument, or the in-progress spec on the current branch. R
 ### 1. Full gate
 Invoke the `runner` agent with `scripts/ci.sh full` (format + lint + typecheck + **all** automated tests incl. integration/e2e + the deployable build). Fix anything red, commit the fix, re-run until green. This is the authoritative correctness gate.
 
-**Skip only if** you can be certain HEAD is unchanged since the last green full run in *this* session (e.g. `/verify` was just run and nothing committed since). After a `/resume` or any uncertainty, **re-run** — the repo doesn't record the last green sha, so when in doubt, run it.
+**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha}`. Skip the re-run only when that file says `"mode":"full"`, `"status":"passed"`, and its `sha` equals `git rev-parse HEAD`. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
+
+No file, a different sha, or any other status → **run it**. And read the file yourself rather than taking the `runner`'s word for the outcome: the agent's prose is the failure excerpt, this is the verdict.
 
 ### 2. Review (Claude's judgment)
 Default: **self-review** — reread the diff (`git diff {integration-branch}...HEAD`) adopting a reviewer's perspective: correctness, security basics, conventions, test quality. Fix what you find.

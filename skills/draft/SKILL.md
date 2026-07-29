@@ -19,6 +19,8 @@ Creates a minimal backlog entry. No planning required — `/plan` fleshes it out
 
 1. **Parse**: `type` (feature|bug — ask only if truly ambiguous), `title`, optional `description`, optional `version:X` (`~` if absent).
 2. **Next ID**: scan `docs/specs/{backlog,ready,completed}/`, take the highest `FEAT-NNN`/`BUG-NNN` (both share one sequence), +1, zero-pad to 3 (`FEAT-007`). None yet → `001`.
+
+   **This races across parallel sessions.** `CLAUDE.md` allows several sessions on different branches, and two that draft at the same time both see the same highest ID and both claim the next one. Before committing, re-scan and also check `git log --all --oneline -- docs/specs/ | head -20` for the id you picked; if it is taken, take the next free one. On a collision discovered later, renaming the *newer* spec is safe — nothing references it yet.
 3. **Create** `docs/specs/backlog/{TYPE}-{NNN}-{kebab-title}.md` **from `docs/specs/spec.md.template`** — copy it and fill the frontmatter (`id`, `type`, `status: draft`, `version` or `~`, `created`/`updated` = today, leaving `test_scope: ~` and `github_issue: ~` for `/plan` and step 4). Restating the frontmatter here is how it drifts from the template every other skill reads; if the template is missing, say so rather than inventing the fields.
 
    Body: for a feature, the Goal user story plus the description with unknowns marked `[?]`; for a bug, Observed / Expected / Repro. Leave Acceptance Criteria as `- [ ] (defined in /plan)`.

@@ -12,5 +12,8 @@ context-*.md
 # Cached rate-limit data (written by statusline.sh where a UI is attached)
 usage-cache.json
 
+# Last gate verdict (written by scripts/ci.sh) — per-machine, per-checkout
+last-gate.json
+
 # Loop log
 *.log

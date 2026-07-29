@@ -60,6 +60,13 @@ Could-not-complete: {yes/no — yes means you couldn't perform the action as wri
 
 If every step passed: report exactly `All {N} smoke steps passed.` and nothing else.
 
+
+## A pass needs evidence too
+
+Reporting only failures makes a real pass and a skipped step look identical — same output, same confidence. So for **every** step, record what you actually observed: the literal text on screen, the response body, the exit code, the path of a screenshot you took. Keep it short; the caller usually will not read it. It exists so that "all steps passed" is a claim someone can check rather than a claim they must take on trust.
+
+If you could not perform a step — the app would not start, a selector never appeared, you lacked a credential — say so explicitly. An unperformed step is not a passed step, and guessing what it would have done is the one thing you must never do.
+
 ## Rules
 - **Never touch production.** Only the local/test instance you were pointed at.
 - **Never fix anything, never judge the design.** You report observations; the main session decides whether a failure is a bug, a UX problem, or a limitation of these instructions.
