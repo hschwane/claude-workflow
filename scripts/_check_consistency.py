@@ -88,6 +88,31 @@ CASES = [
     ("init passes TRUNK_BRANCH to the scaffolder",
      "TRUNK_BRANCH" in Path("skills/project-init/SKILL.md").read_text()),
 
+    # lifecycle.md's trunk sentence is plugin boilerplate: it ships BOTH models with
+    # hardcoded names and leaves `This project uses: {{BRANCHING_MODEL}}` unfilled. Reading
+    # it returns `master` for every git-flow project and `main` for every main-only one, so
+    # it is a constant that is right about half the time — not evidence. Resolution must
+    # come from git topology (release tags, develop-merge targets), which discriminates
+    # correctly on both a master-trunk and a main-trunk fixture.
+    ("the update does not read the trunk from lifecycle.md boilerplate",
+     "Do not use `docs/workflow/lifecycle.md`" in UPDATE
+     and "git tag --merged" in UPDATE
+     and "merge-base --is-ancestor" in UPDATE),
+
+    # A backstop that passes when it has no evidence is a formality. §7 must stop.
+    ("section 7 fails rather than passes without trunk evidence",
+     "this check FAILS — it does not pass by default" in UPDATE),
+
+    # §5b owns CLAUDE.md/CONTRIBUTING.md, so the §5a class walk never runs on them and
+    # step 4b was unreachable on the one path that writes the comments for the first time.
+    ("the v2 migration steps reach step 4b",
+     UPDATE.count("§5a step 4b") >= 3),
+
+    # Three blocks ship an authoring comment, and `contributing`'s is a placeholder for the
+    # user — treating it as a defect hard-stops the update on most projects' default state.
+    ("the block-comment check knows contributing's comment is a placeholder",
+     "Three blocks ship one" in UPDATE and "placeholder addressed to the user" in UPDATE),
+
     # The two marker blocks whose resolution is CONDITIONAL on a setting must be named
     # by an owner. `identity`/`contributing` are prose-filled and need no id mention;
     # these two ship their authoring comment to the user if nobody resolves them — and

@@ -159,7 +159,7 @@ v2 wrote these as prose. Map what you find onto the v3 values:
 | | "e2e", "end-to-end", "full pyramid" | `unit+integration+e2e` |
 | `branching` | "trunk", "main only", "commit straight to main" | `main-only` |
 | | "git-flow", "develop branch", "release branches" | `git-flow` |
-| `trunk-branch` | no v2 equivalent — v2 hardcoded `main`/`master` in every workflow | Resolve **in this order**: (1) the release target `lifecycle.md` names — "merges `develop → X`" makes X the trunk; (2) `git symbolic-ref --short refs/remotes/origin/HEAD`; (3) `git branch --show-current`, **but only under `main-only`**. Never the template default. |
+| `trunk-branch` | no v2 equivalent — v2 hardcoded `main`/`master` in every workflow | **Ask the repo, not the docs** — resolve in the order below. Never the template default, and never `lifecycle.md`'s boilerplate. |
 | `version-source` | the manifest named in `release.md` | one of the values `/workflow-settings` allows — see below |
 | `deploy` | the platform named in `deploy.md` | one of the values `/workflow-settings` allows — see below |
 | `github` | issues/labels mirrored | `yes` / `no` |
@@ -172,12 +172,39 @@ v2 wrote these as prose. Map what you find onto the v3 values:
 
 Anything still unresolved: **ask, do not guess.** Defaults if the user has no opinion: `testing-scope: unit+integration`, `branching: main-only`, `github: yes`, `ci-on-claude: no`, `release-runner: local`, `deploy: none`, `version-source` from whichever manifest the project has, else `none`. **`trunk-branch` has no default at all** — see below.
 
-**`trunk-branch` never falls through to a default, the template's or anyone else's.** It is the one setting whose wrong value is silently destructive: §5a substitutes it into the CI workflow's push trigger and `/release` merges and tags on it. Write `main` into a repo whose trunk is `master` and CI never fires again while releases target a branch that does not exist. Resolve it from the repo in the order the table gives, and note the two traps that make the obvious answers wrong:
+**`trunk-branch` never falls through to a default, the template's or anyone else's.** It is the one setting whose wrong value is silently destructive: §5a substitutes it into the CI workflow's push trigger and `/release` merges and tags on it. Write `main` into a repo whose trunk is `master` and CI never fires again while releases target a branch that does not exist — no error, valid YAML, dead trigger.
 
-- **Under `git-flow`, `git branch --show-current` is the wrong source.** You are almost certainly standing on `develop` — that is where the workflow leaves you and where migration work happens. `trunk-branch: develop` is not a value anything rejects: the branch exists, so the CI trigger becomes `[develop, develop]` and `/release` merges `develop → develop` and tags there, while the real trunk never advances again. Take the release target from `lifecycle.md` instead, and only fall back to the current branch under `main-only`.
-- **A repo that has both `main` and `master` will accept either.** GitHub creates `main` on repo creation and plenty of projects then went on using `master`, leaving a vestigial branch that resolves perfectly well. Existence proves nothing here. Say in the report which branch you picked and which of the three sources decided it, so a wrong pick is visible rather than merely valid.
+**Resolve it from git history, in this order. Stop at the first source that answers:**
 
-If none of the three sources answers, **ask.** This is not a setting to guess at.
+1. **Which branch carries the release tags.** `/release` tags on the trunk, so the trunk has them and a vestigial branch has none:
+   ```bash
+   for b in $(git for-each-ref --format='%(refname:short)' refs/heads | grep -v '^develop$'); do
+     echo "$b: $(git tag --merged "$b" | wc -l) tag(s), $(git rev-list --count "$b") commit(s)"
+   done
+   ```
+   **Zero tags everywhere means this source did not answer** — a project that has never released has none to carry. Fall through; do not read "0 and 0" as a tie to break on commit count.
+2. **Which branch `develop` is actually merged into** — the same question asked of merge commits rather than tags:
+   ```bash
+   for b in $(git for-each-ref --format='%(refname:short)' refs/heads | grep -v '^develop$'); do
+     n=0
+     for m in $(git log --first-parent --merges --format='%H' "$b"); do
+       git merge-base --is-ancestor "$m^2" develop 2>/dev/null && n=$((n+1))
+     done
+     echo "$b: $n develop-merge(s)"
+   done
+   ```
+   The branch with merges is the release target; a vestigial branch has none. This is the source that survives a repo with no tags and no remote, which is why it comes before the two that need one.
+3. `git symbolic-ref --short refs/remotes/origin/HEAD` (only with a remote; it fails on a repo that has none).
+4. `git branch --show-current`, **and only under `branching: main-only`**.
+
+**Do not use `docs/workflow/lifecycle.md`.** Its trunk sentence looks like the perfect answer and is plugin boilerplate: the file ships *both* models with hardcoded names — "main-only: … tags on `main`" and "git-flow: … merges `develop → master`" — while the only project-specific line is `This project uses: **{{BRANCHING_MODEL}}**`, which v2 left as an unfilled token. Reading it therefore returns `master` for **every** git-flow project and `main` for **every** main-only one, whatever the repo actually does. That is not evidence, it is a constant that happens to be right about half the time. (If a project genuinely edited that sentence — diff it against `templates/workflow/lifecycle.md.template` at the installed tag — then it *is* evidence. Byte-identical to the template means it is not.)
+
+Two traps behind the ordering:
+
+- **Under `git-flow`, `git branch --show-current` is the wrong source**, which is why it is gated to `main-only`. You are almost certainly standing on `develop` — that is where the workflow leaves you and where migration work happens. `trunk-branch: develop` is not a value anything rejects: the branch exists, so the CI trigger becomes `[develop, develop]` and `/release` merges `develop → develop` and tags there while the real trunk never advances again.
+- **A repo with both `main` and `master` accepts either.** GitHub creates `main` at repo creation and plenty of projects went on using `master`, leaving a branch that resolves perfectly well and means nothing. Existence is not trunk-ness — that is exactly what sources 1 and 2 discriminate and a bare `rev-parse` cannot.
+
+**Say in the report which branch you picked and which numbered source decided it**, so a wrong pick is visible rather than merely valid. If no source answers, **ask**, naming the candidates. This is not a setting to guess at.
 
 **Two settings are not in the v3 block and must not be lost with the file.** v2's `decisions.md` also carries `## Pause threshold (unsupervised)` and `## Auto-resume`. These are personal, so they go to `.claude/memory/local-settings.md` (step 9), not into `CLAUDE.md`. Collect them here, before step 6 deletes the file.
 
@@ -198,9 +225,9 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
 - A project-authored `##` section is identity only if it describes the project. A **standing rule** ("always use X", "never call Y directly") is not: it belongs in `decisions.md`, or in `src/CLAUDE.md` if it is code-level. **Never `docs/dev/code-style.md`** — that file is plugin-owned and carries no marker blocks, so anything put there is deleted by the next update. Ask per section instead of sweeping everything into the block — an identity block full of rules is a rule nobody reads at the moment it applies. **Name every section you moved, and where it went, in the report**; §7 checks against that list.
 - **One exception.** A safety, privacy or legal constraint ("this data is never logged, not even at debug level") has to hold on *every* turn, not only during `/plan`. Moving it to `decisions.md` is a real behavior change, because ad-hoc work outside a ticket never reads that file. Offer to keep it as a one-line constraint in the `identity` block as well, and say in the report that its always-loaded status was at stake.
 - Diff the plugin sections against OLD first and surface anything the project edited (§5a, step 6).
-- Fill the `workflow-settings` block from step 1, and **substitute every remaining `{{…}}`**.
+- Fill the `workflow-settings` block from step 1, **resolve the `ci-model` authoring comment and delete it exactly as §5a step 4b prescribes**, and **substitute every remaining `{{…}}`**. Step 4b is easy to miss from here: §5b owns these two files, so the §5a class walk never runs on them, and the comment carries no token for the substitution sweep to catch. This is the only pass in which it gets resolved — after this it is project content inside a marker block, in the always-loaded root file, and no later update can touch it.
 
-**5. `CONTRIBUTING.md`.** Install NEW, substituting `{{PROJECT_NAME}}` and `{{WORKFLOW_REPO}}` — the latter is the **bare `owner/repo`**, normalized from `repo` in `.claude/workflow-source.json` *now*, not at step 8. A v2 file holds the full URL, and the template interpolates it as `https://github.com/{{WORKFLOW_REPO}}`, so passing it through produces a doubled link in the banner at the top of the file. Diff the project's copy against OLD; anything the project added goes into the `contributing` block, the rest is replaced. The v2 file contradicts the current rules — it claims merges only happen via `/pr` and names four agents deleted in 2.x — so replacing it is the point.
+**5. `CONTRIBUTING.md`.** Install NEW, substituting `{{PROJECT_NAME}}` and `{{WORKFLOW_REPO}}` — the latter is the **bare `owner/repo`**, normalized from `repo` in `.claude/workflow-source.json` *now*, not at step 8. A v2 file holds the full URL, and the template interpolates it as `https://github.com/{{WORKFLOW_REPO}}`, so passing it through produces a doubled link in the banner at the top of the file. Diff the project's copy against OLD; anything the project added goes into the `contributing` block, the rest is replaced. **Resolve the `ci-note` authoring comment and delete it, per §5a step 4b** — same reasoning as `ci-model` above. The v2 file contradicts the current rules — it claims merges only happen via `/pr` and names four agents deleted in 2.x — so replacing it is the point.
 
 **6. `docs/workflow/`.**
 - Move `deploy.md` → `docs/dev/deploy.md`. If `docs/dev/deploy.md` already exists, merge with confirmation rather than overwriting.
@@ -228,7 +255,7 @@ Record the **variants** while you are at it — which `ci-<lang>.yml`, `release-
 
 If §5b.4 routed a code-level rule into `src/CLAUDE.md`, you have now touched an auto-loaded file that may still hold `{{…}}` from its own init. Fill what you know and replace the rest with `_TBD_ (was {{TOKEN_NAME}})` — keeping the name, because four bare `_TBD_`s in an auto-loaded file tell the reader something is missing without telling them what. Never stop the migration over a token that predates it.
 
-**11. Return to §5a** and run the class walk for everything else. `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/guidelines/`, `.claude/memory/.gitignore` and `docs/dev/deploy.md` are already handled — skip them there.
+**11. Return to §5a** and run the class walk for everything else. `CLAUDE.md`, `CONTRIBUTING.md`, `.claude/guidelines/`, `.claude/memory/.gitignore` and `docs/dev/deploy.md` are already handled — skip **their class walk** there. §5a step 4b still applies to `CLAUDE.md` and `CONTRIBUTING.md`: it is the only place the `ci-model` and `ci-note` authoring comments are resolved, and steps 4 and 5 above are where you do it.
 
 ### 6. Check for dead references
 
@@ -244,16 +271,18 @@ Offer a targeted correction for each hit **in a file the project owns**. Do not 
 
 Verify, and report each check:
 - Every `project-specific` marker is paired, and no id appears twice.
-- **No authoring comment survives inside a marker block.** Grep each block's contents for `<!--`; the `ci-model` and `ci-note` blocks are the ones that ship one. A hit means step 4b was skipped, and it is unrecoverable by any later update — the comment is now project content in an always-loaded file.
+- **No authoring comment survives inside a marker block.** Grep each block's contents for `<!--`. **Three blocks ship one, and they are not the same case.** For `ci-model` and `ci-note` a hit means step 4b was skipped, and it is unrecoverable by any later update — the comment is now project content in an always-loaded file. `contributing`'s comment is a *placeholder addressed to the user*, not an instruction to you: delete it if the project has content for that block, leave it if the block is empty, and say which in the report. Treating it as a defect hard-stops the update on the default state of most projects.
 - **No `{{…}}` token that *this update introduced*** remains anywhere. Take the set from `git diff --name-only` against the pre-update HEAD rather than from a list, then apply two exclusions and one rule:
   - **Exclude `.claude/skills/`, `.claude/agents/` and `docs/specs/spec.md.template`.** They document the templates and carry tokens on purpose — `project-scaffolder.md` alone has dozens. Without this exclusion the check fails on every migration, forever, and an operator learns to skip it.
   - **A token that was already unfilled before this update is not this update's doing.** That covers `docs/dev/deploy.md` after the move, `src/CLAUDE.md`, `docs/dev/architecture.md`, `README.md` — any `project`-class file the update touched only to correct a reference. Fill what you know, leave the rest, list them in the report as pre-existing work, **and append one line per file to `.claude/memory/tech-debt.md`**. A report line is read once and evaporates; an auto-loaded file with a raw token is read on every turn until someone fixes it. This is what stops §6's dead-reference repair from turning into a self-inflicted stop: correcting a stale path in `README.md` must not make you responsible for tokens that have sat there since init.
   - **Inside `.github/workflows/`, `${{ … }}` is GitHub Actions expression syntax, never a template token.** `group: ci-${{ github.ref }}` and `${{ secrets.NPM_TOKEN }}` are correct code. Match `{{ *[A-Z_]` rather than `{{` there — allow the spaces, since `{{ CI_BRANCHES }}` is just as dead as the unpadded form — so the real one — `{{CI_BRANCHES}}` in the push trigger — still stops you. A check that fires on every workflow file teaches the operator to wave workflow hits through, which is exactly how a dead CI trigger ships.
-  - **The hard stop is a token this update wrote.** In an always-loaded file, a script, **or a CI workflow**, no exceptions. A workflow earns the same treatment as a script even though nothing crashes: the failure mode is a trigger that matches no branch, so the update's own evidence — "CI is green" — becomes "CI never ran".
+  - **The hard stop is a token this update wrote.** In an always-loaded file, a script, **or a CI workflow**, no exceptions — except the `_TBD_ (was {{NAME}})` form §5b.10 mandates, which is a deliberate marker naming what is missing, not an unfilled token. A workflow earns the same treatment as a script even though nothing crashes: the failure mode is a trigger that matches no branch, so the update's own evidence — "CI is green" — becomes "CI never ran".
 - No rescued block was dropped. For a v2→v3 migration the count is meaningless (a v2 project has zero blocks): verify instead that **every project-authored heading identified in §5b.4 and §5b.5 is accounted for** — inside a block, under `## Unplaced project content`, or as an entry in `decisions.md` / `gotchas.md` / `src/CLAUDE.md` named in the report. Routing a standing rule out of `CLAUDE.md` is the correct outcome, not a dropped block; what is forbidden is a heading nobody can say the fate of.
 - The `workflow-settings` block has every key the new version ships and no stale ones, **and every value is one the target version's `/workflow-settings` table lists for that key** — for `version-source`, that the named file exists. Checking keys alone passes a block whose values are template defaults, which is how a wrong `trunk-branch` reaches a commit.
 
-  **For `trunk-branch`, `git rev-parse --verify` is necessary and nowhere near sufficient** — it proves the branch exists, not that it is the trunk, and every wrong candidate exists. So also assert: it is **not** `develop` (nor any other integration branch) when `branching: git-flow`; and if the repo holds both `main` and `master`, that the one you wrote is the one `lifecycle.md` or `origin/HEAD` identifies — a vestigial `main` in a `master` repo passes a bare existence check and makes it inert on the majority of real repos. Name the branch and the source that decided it in the report. This block is always-loaded and `/workflow-settings` will reject a bad value the first time anyone edits it.
+  **For `trunk-branch`, `git rev-parse --verify` is necessary and nowhere near sufficient** — it proves the branch exists, not that it is the trunk, and every wrong candidate exists. So also assert: it is **not** `develop` (nor any other integration branch) when `branching: git-flow`; and if the repo holds both `main` and `master`, that the one you wrote is the one carrying the release tags and the `develop` merges (§5b.1 sources 1 and 2). A vestigial `main` in a `master` repo passes a bare existence check, which makes it inert on the majority of real repos.
+
+  **If you cannot get evidence, this check FAILS — it does not pass by default.** That is the whole difference between a backstop and a formality: a repo with no tags, no merges and no remote gives the check nothing to work with, and "unevaluable" must mean stop and ask which branch is the trunk, naming both candidates. Do **not** reach for `docs/workflow/lifecycle.md` to break the tie — §5b.6 deleted it several steps ago, and §5b.1 explains why its answer was never evidence in the first place. Name the branch and the numbered source that decided it in the report. This block is always-loaded and `/workflow-settings` will reject a bad value the first time anyone edits it.
 - `.claude/settings.json` exists and its hook entries point at scripts that exist. Hooks are executable (`chmod +x .claude/hooks/*.sh`) and pass `bash -n`. Installed-but-unwired hooks are the quietest way for this update to have done nothing.
 - `.claude/guidelines/INDEX.md` has one row per file in that directory, and every row's file exists.
 - `scripts/ci.sh` **and `scripts/release.sh`** pass `bash -n` and contain no `{{`; then run `scripts/ci.sh fast` and report the exit code and the check count it prints.
