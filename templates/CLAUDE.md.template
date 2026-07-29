@@ -94,7 +94,12 @@ Under `branching: git-flow`, features merge into `develop`; `/release` runs the 
 <!-- At `github: no` replace the line above with:
      "`scripts/ci.sh` is the only gate there is — no CI service runs it. Nothing catches a
      skipped run, so never merge or release without one."
-     and delete the `[skip ci]` paragraphs below, which describe machinery this repo lacks. -->
+     and delete the `[skip ci]` paragraphs below, which describe machinery this repo lacks.
+
+     THEN DELETE THIS COMMENT, in every case. It is addressed to whoever installs this file,
+     and it is inside a project block — so nothing ever replaces it again, and this is the
+     always-loaded root file. Left in, it is read on every turn of every session. No `{{`
+     sweep will catch it: there is no token here. -->
 <!-- project-specific: end: ci-model -->
 
 `fast` (format, lint, types, unit tests) gates each subtask; `full` adds the build and the integration/e2e suites, and gates a merge and a release. `full` refuses to run when it has no stages of its own — a `full` that equals `fast` proves nothing extra.

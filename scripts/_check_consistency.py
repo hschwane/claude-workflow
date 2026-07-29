@@ -51,6 +51,23 @@ CASES = [
     ("every writer of the CI workflow fills CI_BRANCHES",
      all("{{CI_BRANCHES}}" in t for t in (SCAFF, ONBOARD, UPDATE))),
 
+    # Every conditional authoring comment a template ships must tell its reader to delete
+    # it. `ci-note` did and was resolved; `ci-model` did not and froze into the always-loaded
+    # root CLAUDE.md, where — being inside a project block — no later update can remove it.
+    # A `{{` sweep cannot catch either: they contain no tokens.
+    ("conditional authoring comments say to delete themselves",
+     all("DELETE THIS COMMENT" in Path(p).read_text().upper()
+         or "delete this comment" in Path(p).read_text()
+         for p in ("templates/CLAUDE.md.template",
+                   "templates/CONTRIBUTING.md.template"))),
+
+    # `git branch --show-current` returns `develop` under git-flow, and every wrong
+    # trunk candidate passes `rev-parse --verify`. Both were shipped defaults once.
+    ("the update warns that git-flow breaks show-current",
+     "`git branch --show-current` is the wrong source" in UPDATE),
+    ("the update knows branch existence is not trunk-ness",
+     "nowhere near sufficient" in UPDATE and "vestigial `main`" in UPDATE),
+
     # The two marker blocks whose resolution is CONDITIONAL on a setting must be named
     # by an owner. `identity`/`contributing` are prose-filled and need no id mention;
     # these two ship their authoring comment to the user if nobody resolves them — and
