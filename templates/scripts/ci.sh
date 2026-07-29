@@ -10,6 +10,9 @@
 #
 # project-init / project-onboard fill in the real commands for this project's language.
 set -uo pipefail
+# Run from the repo root whatever the caller's cwd is — CONTRIBUTING tells humans to run
+# `scripts/ci.sh fast`, and a session with two source roots is often cd'd elsewhere.
+cd "$(dirname "$0")/.." || exit 1
 MODE="${1:-full}"
 
 echo "▶ ci.sh ($MODE)"
@@ -23,7 +26,7 @@ echo "▶ ci.sh ($MODE)"
 #     node_modules/.bin) — it exits 127 in CI while passing on a laptop with globals installed.
 #   * If a stage genuinely does not apply here, DELETE its line. Never leave the placeholder:
 #     a bare placeholder token as a command aborts the run with "command not found".
-#   * NEVER append `|| true`, `|| :` or `; true` to a stage. `check` records the failure before
+#   * NEVER append `|| true`, `|| :` or `; true` to a stage or to the prepare line. `check` records the failure before
 #     the suffix can swallow it, so the gate still fails — it just fails with a confusing
 #     message instead of the real one. If a check is too noisy to keep, delete it and say so.
 #
@@ -49,6 +52,18 @@ write_result() {
 }
 
 
+prepare() {
+  echo "  ⚙ $*"
+  "$@"
+  local code=$?
+  [ "$code" -eq 0 ] && return 0
+  echo "  ✗ PREPARE FAILED (exit $code): $*" >&2
+  echo "✗ ci.sh ($MODE): a preparation step failed; the checks would run against missing or stale sources." >&2
+  FAILED=1
+  write_result failed
+  exit "$code"
+}
+
 check() {
   CHECKS=$((CHECKS + 1))
   [ "$IN_FULL" -eq 1 ] && FULL_CHECKS=$((FULL_CHECKS + 1))
@@ -72,8 +87,10 @@ check() {
 # --- prepare: generate sources the checks need ------------------------------------------
 # Anything gitignored-but-required must be produced HERE, before lint/typecheck run — a fresh
 # CI clone does not have it, which is how a gate passes locally and fails on the first push.
-# e.g. node scripts/generate-version.js | (delete this line if nothing is generated)
-{{GENERATE_SOURCES}}
+# Keep the `prepare ` prefix: this script does not use `set -e`, so an unwrapped command that
+# fails is simply ignored and the gate goes on to report a pass with the file still missing.
+# e.g. prepare node scripts/generate-version.js | (delete this line if nothing is generated)
+prepare {{GENERATE_SOURCES}}
 
 # --- fast: cheap, runs on every subtask -------------------------------------------------
 # e.g. check npm run format:check | check uv run ruff format --check . | check cargo fmt --check

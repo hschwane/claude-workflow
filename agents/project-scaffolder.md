@@ -125,7 +125,7 @@ Copy from `{PLUGIN_SOURCE_DIR}/templates/configs/` to `{TARGET_DIR}/`. Replace `
 - **Create a committed entry point, `src/index.ts`**, with a real exported stub. `src/version.ts` is gitignored, so without this the repo has *no* TypeScript source after a clone and CI is deterministically red: `eslint .` exits 2 ("all of the files matching the glob pattern are ignored") and `tsc --noEmit` exits with TS18003 ("No inputs were found").
 - **Every source root the architecture names must be covered by the gate, not just created.** Step A makes the directories; on its own that ships a `web/` (or `client/`, `app/`) whose first file turns `eslint .` red with *"was not found by the project service"*, is never type-checked (`tsc --noEmit` returns 0 on a genuine type error there), and is absent from `npm run build`. For each additional root:
   - add it to `tsconfig.json`'s `include` (`"web/**/*"`) so lint and typecheck see it;
-  - **give a browser root the DOM libs.** The shipped profile is `"lib": ["ES2022"]` — Node's. Add `"lib": ["ES2022", "DOM", "DOM.Iterable"]` to the config `tsc --noEmit` and eslint use, or give the frontend its own `web/tsconfig.json` and reference it. Without this the first line of *real* browser code fails with `TS2304: Cannot find name 'HTMLElement'` — a pure-TS file passes, so this hides until someone touches the DOM;
+  - **give a browser root the DOM libs, in the ROOT `tsconfig.json`.** The shipped profile is `"lib": ["ES2022"]` — Node's. Add `"lib": ["ES2022", "DOM", "DOM.Iterable"]` there. A separate `web/tsconfig.json` is **not** an alternative for this: `tsc --noEmit` and eslint's projectService both read the root config (which has to include `web/**/*` anyway), so the Node-only `lib` still applies and the first line of real browser code fails with `TS2304: Cannot find name 'HTMLElement'`. A pure-TS file passes, so this hides until someone touches the DOM. `web/tsconfig.json` is for the *build* only;
   - **build it with a second step, not a widened `tsconfig.build.json`.** The strict profile pins `rootDir: "./src"`, so adding `web/**/*` to the build include gives `TS6059: not under rootDir` for every file. Add a second `tsc -p web/tsconfig.json` to the `build` script (overriding `rootDir`/`outDir` there) so `ci.sh full`'s "deployable build" actually contains the frontend;
   - commit an entry point there, for the same reason `src/index.ts` exists;
   - **document it.** `src/CLAUDE.md` is auto-loaded only under `src/`, so a second root has no guide at all. Either write a `CLAUDE.md` in it too, or have `src/CLAUDE.md` describe both — and say which you did.
@@ -195,6 +195,8 @@ The TypeScript scripts already exist in `package.json.template`, and `test` ther
 - **Verify:** `bash -n` both scripts, then run `scripts/ci.sh fast` and paste the exit code into your report. A run that prints only the header and `passed` means the placeholders are still comments.
 - The **clean-clone** check is not yours — `/project-init` step 5c runs it after you return, because a check that the scaffolder both performs and reports on is a check that quietly stops happening. Do not report on it; report your local `ci.sh fast` exit code and check count, and leave the repo in a state that passes the clone.
 
+**At init the healthcheck usually has nothing to assert yet.** Version visibility is itself a tech-backbone ticket, so a brand-new project cannot compare a running version against `$VERSION`. Write the asserting form anyway, pointing at the endpoint or command that *will* carry it, and say plainly in your report that `release.sh` is blocked until that ticket lands — `/project-init` step 9 repeats it. A release script that stops is correct here; one that reports success having verified nothing is not.
+
 **`release.sh`: `:` is only ever acceptable for the deploy step** (a platform that auto-deploys on merge genuinely has nothing to run). The **healthcheck must be a real command** — `docs/dev/deploy.md` already carries the URL by the time you write this. If it is genuinely unknown, emit `exit 1` with a TODO comment rather than `:`; a release that reports success having verified nothing is worse than one that stops.
 
 **GitHub Actions — skip this whole block when `GITHUB_REPO` is `no`.** A local-only project has no use for workflows, a dependabot config or issue templates, and `delivery.json` already says the issue templates are created only when GitHub integration is on. (Thin wrappers around the scripts above — run on human commits + dispatch:)
@@ -221,7 +223,7 @@ These carry the maintainer's standing "how I like X done" rules (Railway details
 
 ## Step D: Docs Templates
 
-From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME, `{{BRANCHING_MODEL}}` → BRANCHING_MODEL, `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
+From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NAME and `{{WORKFLOW_REPO}}` → WORKFLOW_REPO throughout.
 
 **Leave no `{{…}}` token behind.** `src/CLAUDE.md` and the test directory's `CLAUDE.md` are auto-loaded whenever Claude touches that directory, so a raw token there is read on every edit. Derive what you can and **delete the line** for anything you genuinely cannot know — an absent line is better than a placeholder:
 
@@ -234,6 +236,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `{{TEST_EXAMPLE}}` | a three-line example in that framework — written in the project's own style — double quotes, matching the shipped `.prettierrc`, so a reader copying it does not introduce a diff |
 | `{{TEST_FIXTURES}}` | delete the section if the project has none yet |
 | `docs/dev/setup.md`: `{{PREREQUISITE}}` `{{INSTALL_COMMAND}}` `{{RUN_COMMAND}}` `{{TEST_COMMAND}}` `{{BUILD_COMMAND}}` | LANGUAGE + the manifest's scripts |
+| `CONTRIBUTING.md`: the `project-specific: ci-note` block | **Only at `GITHUB_REPO: no`.** Replace the block's HTML comment with: "There is no CI service here. `scripts/ci.sh` is the only gate, and it runs on whoever's machine is committing — run it yourself before you push." Left as shipped, a local-only project reads an authoring comment followed by a paragraph promising GitHub workflows it does not have |
 | `docs/dev/setup.md`: `{{VERSION}}` | the minimum runtime version the manifest requires (`engines.node`, `requires-python`, `rust-version`) |
 | `docs/dev/setup.md`: `{{VAR_NAME}}` `{{DESCRIPTION}}` | one row per variable in `.env.example`; delete the table if there are none yet |
 | `docs/dev/setup.md`: `{{TROUBLESHOOTING_NOTES}}` | delete the section — a new project has no known traps yet |

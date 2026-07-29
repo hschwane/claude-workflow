@@ -65,35 +65,7 @@ done
 # The defect class this repo exists to prevent, asserted rather than trusted.
 BEFORE=$FAILED
 echo "ci.sh integrity"
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
-python3 - "$T" <<'PY'
-import re, sys
-t = sys.argv[1]
-s = open("templates/scripts/ci.sh").read()
-def fill(full=True, soften=False, empty=False, failing=False):
-    x = s.replace("{{GENERATE_SOURCES}}", "true")
-    for k, v in [("FORMAT_CHECK","true"),("LINT","true"),("TYPECHECK","true"),("UNIT_TESTS","true")]:
-        x = x.replace("check {{%s}}" % k, "check %s" % v)
-    if full:
-        for k in ("BUILD","INTEGRATION_TESTS","E2E_TESTS"):
-            x = x.replace("check {{%s}}" % k, "check true")
-    else:
-        x = re.sub(r"^\s*check \{\{(BUILD|INTEGRATION_TESTS|E2E_TESTS)\}\}\s*\n", "", x, flags=re.M)
-    if soften:  x = x.replace("check true", 'check sh -c "exit 3" || true', 1)
-    if failing: x = x.replace("check true", 'check sh -c "exit 3"', 1)
-    if empty:   x = re.sub(r"^\s*check \S.*\n", "", x, flags=re.M)
-    return x
-for name, kw in [("pass",{}),("degraded",{"full":False}),("soft",{"soften":True}),
-                 ("fail",{"failing":True}),("empty",{"full":False,"empty":True})]:
-    open(f"{t}/{name}.sh","w").write(fill(**kw))
-PY
-run() { ( cd "$T" && bash "$1.sh" "$2" >/dev/null 2>&1 ); echo $?; }
-[ "$(run pass full)"     = 0 ] || fail "a fully-filled ci.sh should pass"
-[ "$(run fail fast)"     != 0 ] || fail "a failing stage must fail the gate"
-[ "$(run soft fast)"     != 0 ] || fail "'|| true' on a stage must NOT produce a green gate"
-[ "$(run degraded full)" != 0 ] || fail "'full' with no full-only stages must not report a pass"
-[ "$(run empty full)"    != 0 ] || fail "a gate with no checks must not report a pass"
-[ "$FAILED" -eq "$BEFORE" ] && ok "gate refuses to report an unearned pass (5 cases)"
+python3 scripts/_check_gate.py || FAILED=$((FAILED + 1))
 
 # --- 5. every workflow setting marks exactly one default -----------------------------------
 # /workflow-update reads that marker when a release adds a setting: the template ships a

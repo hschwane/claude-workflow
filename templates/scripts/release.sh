@@ -10,6 +10,7 @@
 #
 # project-init / project-onboard fill in the real steps for this project's release type.
 set -euo pipefail
+cd "$(dirname "$0")/.." || exit 1
 VERSION="${1:?usage: release.sh <version>}"
 
 echo "▶ release.sh $VERSION"
@@ -20,13 +21,26 @@ echo "▶ release.sh $VERSION"
 # --- how to fill this in ---------------------------------------------------------------
 # Each step below is a `step <command>` line — a COMMAND LINE, not a comment. Replace the
 # whole placeholder, keeping the `step ` prefix; DELETE the line for a step this project does
-# not have. `step` counts what it runs, so a release that published nothing says so.
+# not have. NEVER append `|| true` — `step` exits before the suffix is evaluated, so it cannot
+# hide a failure, but writing it means the release stops with a confusing message instead of
+# the real one. `step` counts what it runs, so a release that published nothing says so.
 # --- end of authoring notes; everything below is live code ------------------------------
 STEPS=0
+FAILED=0
 step() {
   STEPS=$((STEPS + 1))
   echo "  → $*"
+  # Same shape as ci.sh's check(): capture the command's own status (never via an `if`
+  # block, whose $? is 0), then EXIT rather than return — a `|| true` appended to the step
+  # would otherwise swallow the failure and let a release that published and deployed
+  # nothing report success.
   "$@"
+  local code=$?
+  [ "$code" -eq 0 ] && return 0
+  FAILED=1
+  echo "  ✗ FAILED (exit $code): $*" >&2
+  echo "✗ release.sh $VERSION: failed at step $STEPS. Nothing after this point ran." >&2
+  exit "$code"
 }
 
 # 2. Build the release artifact.

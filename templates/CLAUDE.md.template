@@ -88,7 +88,16 @@ Under `branching: git-flow`, features merge into `develop`; `/release` runs the 
 
 ## CI — you run it, so CI does not
 
-`scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you. `fast` (format, lint, types, unit tests) gates each subtask; `full` adds the build and the integration/e2e suites, and gates a merge and a release. `full` refuses to run when it has no stages of its own — a `full` that equals `fast` proves nothing extra.
+<!-- project-specific: start: ci-model -->
+`scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you.
+
+<!-- At `github: no` replace the line above with:
+     "`scripts/ci.sh` is the only gate there is — no CI service runs it. Nothing catches a
+     skipped run, so never merge or release without one."
+     and delete the `[skip ci]` paragraphs below, which describe machinery this repo lacks. -->
+<!-- project-specific: end: ci-model -->
+
+`fast` (format, lint, types, unit tests) gates each subtask; `full` adds the build and the integration/e2e suites, and gates a merge and a release. `full` refuses to run when it has no stages of its own — a `full` that equals `fast` proves nothing extra.
 
 - **Your commits carry `[skip ci]`** unless `ci-on-claude: yes` — Actions minutes are not spent repeating a gate that just ran locally.
 - **That skip is a debt you must pay.** Running `ci.sh full` before a merge or release is not optional; skipping CI only makes sense because you did the equivalent yourself. Never merge or release on an unrun gate.

@@ -340,6 +340,11 @@
       "path": "Cargo.lock",
       "class": "project",
       "note": "Rust lockfile — generated at init and committed. `cargo --locked` in CI fails without it."
+    },
+    {
+      "path": "web/",
+      "class": "project",
+      "note": "An additional source root named by the architecture (a frontend, a worker). The scaffolder creates it, adds it to tsconfig's include, gives it a build step and commits an entry point — a root the gate cannot see is worse than one that does not exist. Everything in it is the project's."
     }
   ],
   "removedIn3": [

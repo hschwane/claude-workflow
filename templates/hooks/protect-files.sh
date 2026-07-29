@@ -36,6 +36,7 @@ BLOCKED_PATTERNS=(
   "pnpm-lock\.yaml$"
   "poetry\.lock$"
   "uv\.lock$"
+  "src/version\.(ts|js|py|rs|h)$"
   "Cargo\.lock$"
 )
 

@@ -228,6 +228,10 @@ test -f package-lock.json         # or: uv.lock · Cargo.lock — whichever this
 # 2. Fold it into the scaffolder's initial commit, keeping that commit's message.
 #    `--amend -m` would REPLACE the message; `--no-edit` alone keeps it.
 git add -A && { git diff --cached --quiet || git commit --amend --no-edit; }
+# Under git-flow the scaffolder left HEAD on `develop`, so that amend rewrote develop only —
+# `main` still points at the pre-amend commit, with the same subject line, so nothing looks
+# wrong. `main` is what /release merges into and tags, and what a deploy target watches.
+[ "$(git rev-parse --abbrev-ref HEAD)" = develop ] && git branch -f main develop
 
 # 3. The clone is the point.
 git clone . "$CLONE"
@@ -238,7 +242,7 @@ rm -rf "$CLONE"
 
 The clone is the point: anything gitignored, untracked or generated is absent there, which is precisely what GitHub Actions sees on the first push. A local pass proves nothing about it — and the classic failure is a generated module (`src/version.ts`) that the local run has and the clone does not, which is why `ci.sh` regenerates it in its `{{GENERATE_SOURCES}}` stage before anything else.
 
-**Also check what the tokens claim.** Confirm `docs/dev/setup.md`'s clone URL is real for *this* project (a local-only project must not be given a GitHub URL), and that `.env.example` lists the variables `docs/dev/deploy.md` and `docs/dev/architecture.md` declare as required. Nothing else verifies the token fills.
+**Also check what the tokens claim.** Confirm `docs/dev/setup.md`'s clone URL is real for *this* project (a local-only project must not be given a GitHub URL), and that `.env.example` lists the **runtime** variables `docs/dev/architecture.md` and `docs/dev/setup.md` declare — not deploy-machine credentials like `RAILWAY_TOKEN`, which belong in the platform's secret store and must never reach a file `setup.md` tells people to `cp` to `.env`. Nothing else verifies the token fills.
 
 **A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
@@ -391,12 +395,13 @@ Design (main session):
 
 Scaffolding (project-scaffolder agent):
   Config: {tsconfig.strict.json|pyproject.toml|CMakeLists.txt}
-  CI: .github/workflows/ci.yml{ + release.yml if a release template was used}
+  CI: {.github/workflows/ci.yml{ + release.yml if a release template was used} | none (github: no)}
   Infrastructure: .claude/ (agents, skills, hooks, memory)
   Docs: dev/code-style.md, dev/setup.md{, dev/deploy.md}, user/README.md
   Root files: CLAUDE.md, README.md, CONTRIBUTING.md, CHANGELOG.md, LICENSE
   Committed: yes (branch: {main|develop})
 
+Release readiness: {release.sh runs | blocked on {ticket} until the app exposes its version — the healthcheck asserts it}
 Verification (step 5c):
   Lockfile: {present}
   Clean-clone `ci.sh full`: {exit 0 — N check(s) | FAILED — this is a blocker, not a note}
