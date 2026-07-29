@@ -21,37 +21,53 @@ Resolve the spec: the argument, or the in-progress spec on the current branch. R
 ### 1. Full gate
 Invoke the `runner` agent with `scripts/ci.sh full` (format + lint + typecheck + **all** automated tests incl. integration/e2e + the deployable build). Fix anything red, commit the fix, re-run until green. This is the authoritative correctness gate.
 
-**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha, dirty}`. Skip the re-run only when **all four** hold: the file says `"mode":"full"` and `"status":"passed"`, its `sha` equals `git rev-parse HEAD`, **and `"dirty":false`** (confirm with `git status --porcelain` now). The fourth is not optional — uncommitted edits do not move HEAD, so without it the one path that skips the authoritative gate is reachable on a tree whose code has changed since the green run. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
+**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha, dirty}`. Skip the re-run only when **all five** hold:
+  1. the file says `"mode":"full"`,
+  2. and `"status":"passed"`,
+  3. and its `sha` equals `git rev-parse HEAD`,
+  4. and it says `"dirty":false`,
+  5. **and `git status --porcelain` is empty right now.**
+
+  (5) is not a restatement of (4). The record is a snapshot taken *before* any later edit, so after a green clean run plus one uncommitted change all four recorded fields still hold — HEAD does not move when a file is edited. Checking only the JSON skips the authoritative gate on changed code, which is the precise failure this paragraph exists to prevent. The fourth is not optional — uncommitted edits do not move HEAD, so without it the one path that skips the authoritative gate is reachable on a tree whose code has changed since the green run. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
 
 No file, a different sha, or any other status → **run it**. And read the file yourself rather than taking the `runner`'s word for the outcome: the agent's prose is the failure excerpt, this is the verdict.
 
 ### 2. Review (Claude's judgment)
 Default: **self-review** — reread the diff (`git diff {integration-branch}...HEAD`) adopting a reviewer's perspective: correctness, security basics, conventions, test quality. Fix what you find.
 
-Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes). Use sparingly — most changes don't need it.
+Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius, **or a calculation, rate, protocol or format whose right answer exists outside the code** — a wrong constant there is invisible to every other check and is exactly what a fresh reader with the spec catches): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes). Use sparingly — most changes don't need it.
 
 **Hand the reviewer the spec, not just the diff.** Its whole added value over your own read is an independent check that the code produces what the *criteria* say; given only a diff it can confirm the code is coherent, which a wrong implementation with matching tests always is.
 
-**Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, and that at least one criterion is anchored to something independent. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
+**Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, that at least one criterion is anchored to something independent, and — where the spec carries two anchors — **spot-check that they are mutually consistent**. Two published pairs cannot both hold under a wrong constant, so this is the one check that can catch a plausible-looking citation of a wrong value; confirming the spec merely *has* provenance cannot. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
 
 Same for **unsourced constants and seed data** the ticket introduced: if a magic number or a reference table arrived without a citation, say so in the report.
 
-### 3. Manual smoke test
+### 3. Criteria verification — always, no exceptions
 
-Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close.
+**This section is never skipped.** The smoke run in §4 has a skip rule; this table does not. It is the only mechanism in the workflow that catches an implementation whose own tests agree with it, so a ticket phrased as a refactor gets the table exactly like any other.
 
-**Every acceptance criterion must actually be met — this is the gate against a half-built ticket, and against a wrongly-built one.**
+Build a table with one row per criterion and **four columns**:
 
-Build a table with one row per criterion and **three columns: the criterion's literal expected value, the literal observed value, and where the observed value came from.** Both values are quoted verbatim. This is the single mechanism in the workflow that can catch an implementation whose own tests agree with it, so it has to produce an artifact someone can audit, not a judgment you report.
+| Criterion (quoted verbatim, + `spec.md:LINE`) | Literal expected value | Literal observed value | Where the observed value came from |
+|---|---|---|---|
+
+Both values are quoted verbatim. The first column exists so a reader can diff your expected value against the spec **without trusting you** — a table whose expected column was quietly copied from the code's output is otherwise indistinguishable from a correct one, and that forgery is the residual hole this column closes.
 
 | Outcome | What it takes |
 |---|---|
-| **Met** | The observed literal equals the expected literal. Evidence is either a run you performed, or an automated test **that asserts the criterion's own expected value** — quote the assertion. "Covered by a passing test" is *not* evidence on its own: a test written from the same wrong model as the code passes, and citing it certifies nothing. If the test asserts something other than the criterion's literal, treat the criterion as not test-covered and run it. |
-| **Not covered** | Implemented but nothing asserts the criterion's value → it needs a smoke step, below. |
+| **Met** | The observed literal equals the expected literal. The observed value comes from a run you performed, or from an automated test **that asserts the criterion's own expected value** — quote the assertion. "Covered by a passing test" is *not* evidence on its own: a test written from the same wrong model as the code passes, and citing it certifies nothing. If the test asserts something other than the criterion's literal, treat the criterion as not test-covered and run it. |
+| **Not covered** | Implemented but nothing asserts the criterion's value → it needs a smoke step in §4. |
 | **UNMET → verify FAILS** | Not implemented, stubbed, "deferred", silently narrowed, **or the observed literal differs from the expected one**. This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it. |
 | **Undemonstrable** | Genuinely impossible to demonstrate *because of the environment* (needs hardware, a third-party sandbox you cannot reach) → note it explicitly with why, and pass. **Not** applicable when it is undemonstrable because the criterion never said what to compare against — that is a spec defect: send it back to `/plan`. |
 
-**Never derive an expected value from the code, the tests, or a run.** Take it from the criterion as written. The moment you read the implementation to decide what the answer should be, this table certifies that the code agrees with itself, which it always does. If a criterion's expected value is missing or unusable, that is a finding about the spec, not something to fill in from the output.
+**The expected column comes from the spec. Full stop.** Never from the code, the tests, or a run — not even to "check what format it prints in". The moment you read the implementation to decide what the answer should be, this table certifies that the code agrees with itself, which it always does. Tests and runs supply the **observed** column only. If a criterion's expected value is missing or unusable, that is a finding about the spec, not a gap to fill from the output.
+
+**Store the table in the spec, under `## Criteria verification`.** A judgment reported in chat evaporates at the end of the turn; the point of a table is that someone can audit it later. Record the first pass, including any row that failed and what you did about it — a spec showing "row 2 failed, constant corrected, re-run green" is worth far more than one asserting everything passed.
+
+### 4. Manual smoke test
+
+Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close. **This skip applies to the smoke steps only — never to §3's table.**
 
 **Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Breadth is the automated tests' job; don't re-test everything here.
 
@@ -72,11 +88,12 @@ Hand the agent only the resolved, unambiguous steps.
 
 **Store the smoke steps in the spec** (a "Smoke steps" section) so they're re-runnable later. The stored copy is for reuse; the agent still runs blackbox.
 
-### 4. Report
+### 5. Report
 ```
 Verify ✓  {id}
 Gate: green (full)   Review: {self | reviewer agent | consult}   Smoke: {N steps, all pass | M failed→fixed | n/a}
-Criteria: {ALL met and demonstrated | FAIL — unmet: <list> → back to /implement}
+Criteria: {N/N met — table in <spec>#criteria-verification | FAIL — unmet: <list> → back to /implement}
+          {any row that failed on the first pass, and what fixed it}
 {bugs found → tests added: …}
 ```
 If something can't be made green/clean and needs a human, write `## Blocked` and stop.

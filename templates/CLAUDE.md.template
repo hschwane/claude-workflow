@@ -78,7 +78,7 @@ The ticket's goal and acceptance criteria are the contract. **Never defer, stub,
 
 ## Merging and release authority
 
-Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only`, no re-run; otherwise resolve conflicts, re-run `ci.sh full`, then merge. Merge commits carry `[skip ci]` unless `ci-on-claude: yes`. Use `/pr` only for external review or where the repo requires it.
+Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only`, no re-run (a recorded result also stands when `git diff --name-only <recorded sha>..HEAD` touches nothing outside `docs/specs/`); otherwise resolve conflicts, re-run `ci.sh full`, then merge. Merge commits carry `[skip ci]` unless `ci-on-claude: yes`. Use `/pr` only for external review or where the repo requires it.
 
 The release branch is whatever **`trunk-branch`** says — `main` for a project this workflow created, `master` for many existing repos it was added to. Read the setting; never assume the name.
 

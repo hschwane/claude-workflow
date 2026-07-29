@@ -51,7 +51,7 @@ write_result() {
   [ -n "$(git status --porcelain 2>/dev/null)" ] && dirty=true
   printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"failed":%d,"sha":"%s","dirty":%s}\n' \
     "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$FAILED" \
-    "$(git rev-parse HEAD 2>/dev/null || echo unknown)" "$dirty" \
+    "$(git rev-parse --verify -q HEAD || echo unknown)" "$dirty" \
     > .claude/memory/last-gate.json 2>/dev/null || true
 }
 

@@ -250,7 +250,7 @@ From `{PLUGIN_SOURCE_DIR}/templates/`. Replace `{{PROJECT_NAME}}` → PROJECT_NA
 | `{{REPO_URL}}` | `https://github.com/{GITHUB_OWNER}/{project}` when a repo is being created. With `GITHUB_REPO: no` there is no URL: delete the clone block and write "This project has no remote yet — work in place." Never guess an org from the plugin's own repo, and never emit an absolute path from the scaffolding machine — both send the first contributor somewhere that does not exist for them |
 | `docs/user/README.md` | a real stub for this project — replace every token with prose, do not ship `{{…}}` to end users |
 
-**The sweep runs at the end, not here.** After Step I — once every file is written — grep the target tree for `{{` and fix every hit outside this exempt list:
+**The sweep runs at the end, not here.** After Step I — once every file is written — grep the target tree for the **bare `{{`** and fix every hit — never `{{[A-Z_]*}}`, which silently misses `{{E2E_TESTS}}` because of the digit, and a surviving `check {{E2E_TESTS}}` aborts the gate with "command not found" outside this exempt list:
 
 | Exempt | Why |
 |---|---|

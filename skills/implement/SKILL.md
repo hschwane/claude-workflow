@@ -43,6 +43,8 @@ For each subtask:
 
 **b) Write its tests** — in the main session, scoped to *this* subtask's acceptance criteria. Test the **important behaviors**, not coverage for its own sake (the `testing-scope` setting in `CLAUDE.md` sets the depth; `docs/dev/code-style.md` describes each level). Tests assert behavior, not implementation details.
 
+**Where a subtask implements a criterion with a literal expected value, at least one test must assert that literal, copied from the spec.** Never obtain an expected value by running the code and writing down what it printed: such a test passes against any implementation, including a wrong one, and it makes `/verify`'s criteria table agree with itself. "Scoped to this subtask's acceptance criteria" means the criteria supply the expected values — not merely the inputs.
+
 **c) Gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + unit tests). It digests output so raw logs stay out of this context. Read the verdict from `.claude/memory/last-gate.json` rather than the agent's prose. Fix anything red before committing — **never commit on a red gate.**
 
 **Run `scripts/ci.sh full` here instead of `fast` if this subtask adds or changes integration or E2E tests — *or changes behaviour those tests already assert*: a CLI's output or which stream it writes to, an HTTP contract, a serialized format, an exit code.** When in doubt, run `full`; it costs one build. `fast` excludes exactly those stages, so the subtask that adds them would be committed green having never executed one of them — and the next `full` run, possibly days later, is where you find out.
@@ -68,7 +70,9 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 ### 4. Documentation (minimal, per policy)
 
 Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
-Do this **before** running `/verify`, not after. Documentation commits move HEAD, so a `/verify` that ran first leaves `last-gate.json` pointing at a sha that is no longer HEAD — and the Merge policy's "the full gate already passed on this exact HEAD → fast-forward, no re-run" can then never fire. Worse, a doc commit can itself break the format check.
+Do this **before** running `/verify`, not after. Documentation commits move HEAD, so a `/verify` that ran first leaves `last-gate.json` pointing at a sha that is no longer HEAD, and a doc commit can itself break the format check.
+
+Step 5's spec-completion commit necessarily lands *after* `/verify`, so HEAD moves once more regardless. That is fine and does not invalidate the gate: a recorded result still applies when `git diff --name-only <recorded sha>..HEAD` is entirely under `docs/specs/`. Say so when you take the fast-forward, so the claim is checkable.
 
 - **`CHANGELOG.md`:** add a line under `## [Unreleased]` naming the ticket. `/release` builds the next section from the commit log, but between releases the changelog is the only place a reader sees what has landed since the tag — leave it empty and the file is behind the shipped truth, quietly, until someone cuts a release.
 - **`README.md`:** if the change altered how the tool is invoked — a new command, a changed flag, a different install step — update the usage example now. `/release` re-checks it, but leaving it stale means every branch and every PR in between documents the wrong thing.
