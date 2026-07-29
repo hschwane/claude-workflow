@@ -95,7 +95,14 @@ run() { ( cd "$T" && bash "$1.sh" "$2" >/dev/null 2>&1 ); echo $?; }
 [ "$(run empty full)"    != 0 ] || fail "a gate with no checks must not report a pass"
 [ "$FAILED" -eq "$BEFORE" ] && ok "gate refuses to report an unearned pass (5 cases)"
 
-# --- 5. templates carry no stale paths removed in 3.0 ------------------------------------
+# --- 5. every workflow setting marks exactly one default -----------------------------------
+# /workflow-update reads that marker when a release adds a setting: the template ships a
+# {{TOKEN}}, so an unmarked row leaves the update with nothing to write and the run stalls.
+BEFORE=$FAILED
+echo "workflow settings defaults"
+python3 scripts/_check_settings.py || FAILED=$((FAILED + 1))
+
+# --- 6. templates carry no stale paths removed in 3.0 ------------------------------------
 BEFORE=$FAILED
 echo "stale paths"
 for p in "docs/workflow/" "\.claude/preferences/" "\.claude/project-notes/" "docs/dev/style-guide" "docs/dev/adr/" "memory/settings\.md"; do

@@ -62,7 +62,8 @@ Ask (in chat — plain message, wait for the reply):
 **Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can and ask for the rest rather than guessing:
 - from the step 1 analysis: `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`)
 - fixed or conditional: `ci-on-claude: no`; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
-- from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION` Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
+- from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION`
+- mechanically, without asking: `PROJECT_NAME` (the directory or the manifest), `LANGUAGE`, `TODAY`, `PLUGIN_SOURCE_DIR`, `TARGET_DIR`. `PROJECT_DESCRIPTION` needs judgment — draft it from the README and confirm it, don't invent one silently Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
 
 ### 3. Install Workflow Infrastructure
 
@@ -122,6 +123,7 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 
 - **No command exists for a stage** (common: no `typecheck` script). Add one to the project's manifest rather than inlining a bare binary, and say you did. If the stage genuinely does not apply, delete its line — deleting them all still parses, and the script's own check counter then reports an empty gate honestly.
 - **An existing command fails.** That is a pre-existing break which the gate has just made load-bearing. Show the failure, propose the smallest fix, and get agreement before editing `package.json` or dependencies. Do not quietly work around it.
+- **The healthcheck cannot assert a version this project does not expose.** `release.sh` requires the healthcheck to prove the *new* version is live, and many existing projects report no version at runtime. Don't weaken it to a bare liveness check: write the asserting form, add a blocking backlog ticket for version visibility, and record it in `tech-debt.md`. `/release` will fail until that ships — deliberately, and the user should hear that in the step 6 report rather than discover it at their first release.
 - **The tool is installed but its config is missing** (an `eslint` dependency and a `lint` script but no `eslint.config.js` — common on a repo that drifted). **Do not copy `templates/configs/eslint.config.js`.** It is written for a fresh install: it pulls in `typescript-eslint` and `@eslint/js@10`, which ERESOLVE-conflicts with an existing `eslint@9`, and its type-checked rule sets then fail on any test tree the project's `tsconfig.json` does not include. Author a minimal config *for this project* instead — pinned to the major it already has, and non-type-checked where the test files sit outside the TypeScript project. The plugin's configs are for projects the plugin created.
 - **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
 
@@ -139,7 +141,7 @@ If `.github/workflows/` already has CI, **do not leave it alone.** The `CLAUDE.m
 
 Diff its steps against `ci.sh`, show the user the difference, and offer to replace the check steps with `- run: bash scripts/ci.sh full`, keeping the project's own triggers, matrix and any deploy/publish jobs (`templates/github/ci-{lang}.yml` is the shape to aim at). If the user declines, record the divergence in `.claude/memory/tech-debt.md` and say so in the report.
 
-If there is no CI at all, offer `templates/github/ci-{language}.yml`.
+If there is no CI at all, offer `templates/github/ci-{language}.yml` — **substituting `{{TRUNK_BRANCH}}`**. Its trigger list is `[{{TRUNK_BRANCH}}, develop]`; shipping it unsubstituted into a `master` repo gives a workflow that never fires on a trunk push and says nothing about it.
 
 #### 3e. Guidelines and the baseline gap check
 
@@ -208,6 +210,8 @@ Installed:
 
 Gate: ci.sh fast exit {0} — {N} check(s)   ·   clean clone: exit {0} — {N} check(s)
 Existing CLAUDE.md content moved to: {file → what went there, per item}
+Inbound references repaired: {file:line → new target, or none}
+Manifest/dependency changes: {what you added to package.json et al, and why — or none}
 CI reconciliation: {workflow now calls ci.sh | divergence recorded in tech-debt.md}
 Testing scope: {as you answered | narrowed to {X} because {reason}}
 Guidelines installed: {list}

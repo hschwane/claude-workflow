@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 # Workflow Settings
 
+**Every row marks exactly one value `(default)` in bold.** `/workflow-update` reads that when a release adds a setting — the template ships a `{{TOKEN}}`, not a value, so an unmarked row means the update has nothing to write and the whole run stalls on an always-loaded file full of tokens. If you add a row here, mark its default.
+
 The knobs that change how the workflow behaves in this project (the table below is the count that matters — don't hard-code a number in prose that goes stale the first time one is added). The **values** live in the `workflow-settings` block of the root `CLAUDE.md`, so they are always in context. The **meanings and allowed values** live here, so they cost nothing until someone changes one.
 
 ## Usage
@@ -20,14 +22,14 @@ The knobs that change how the workflow behaves in this project (the table below 
 
 | Key | Values | What it changes |
 |---|---|---|
-| `testing-scope` | `unit` · `unit+integration` · `unit+integration+e2e` | How deep `/plan` specs tests and `/implement` writes them. A ticket may narrow within it, never beyond it. `code-style.md` describes what each level covers |
-| `trunk-branch` | the branch name — `main` (default), `master`, or whatever this repo uses | The release branch: what `/release` merges into and tags, and what `/ship` and `/commit` treat as the integration branch under `main-only`. Onboarding an existing repo sets it from `git branch --show-current`; never assume `main` |
-| `branching` | `main-only` · `git-flow` | `main-only`: features merge into `main`, `/release` tags there. `git-flow`: features merge into `develop`, `/release` gates there, merges `develop` → the trunk branch and tags, so the trunk's tip is always the latest release |
-| `version-source` | a path — `package.json` · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` · `VERSION` — or `none` | Where `/release` reads and writes the version number. `none` for a repo with nothing to bump (a scripts or docs repo): `/release` then asks for the version instead |
-| `deploy` | `railway` · `vercel` · `aws` · `self-hosted` · `manual` · `none` | What `release.sh` deploys to, and which guideline applies. Details in `docs/dev/deploy.md` |
-| `github` | `yes` · `no` | Whether GitHub features are used at all — issues, PRs, Actions. `no` means a local-only repo |
-| `ci-on-claude` | `no` · `yes` | `no` (default): Claude's commits carry `[skip ci]`, because the identical gate just ran locally. `yes`: CI runs on them too — worth it for a cross-platform library, where the matrix tests something a local run cannot |
-| `release-runner` | `local` · `ci` | `local` (default): `/release` runs `release.sh` here. `ci`: it dispatches the release workflow instead, for a project that can only publish from Actions |
+| `testing-scope` | `unit` · **`unit+integration`** (default) · `unit+integration+e2e` | How deep `/plan` specs tests and `/implement` writes them. A ticket may narrow within it, never beyond it. `code-style.md` describes what each level covers |
+| `trunk-branch` | the branch name — **`main`** (default) · `master` · whatever this repo uses | The release branch: what `/release` merges into and tags, and what `/ship` and `/commit` treat as the integration branch under `main-only`. Onboarding an existing repo sets it from `git branch --show-current`; never assume `main` |
+| `branching` | **`main-only`** (default) · `git-flow` | `main-only`: features merge into `main`, `/release` tags there. `git-flow`: features merge into `develop`, `/release` gates there, merges `develop` → the trunk branch and tags, so the trunk's tip is always the latest release |
+| `version-source` | a path — **`package.json`** (default) — or whichever manifest this project actually has · `pyproject.toml` · `Cargo.toml` · `CMakeLists.txt` · `VERSION` — or `none` | Where `/release` reads and writes the version number. `none` for a repo with nothing to bump (a scripts or docs repo): `/release` then asks for the version instead |
+| `deploy` | `railway` · `vercel` · `aws` · `self-hosted` · `manual` · **`none`** (default) | What `release.sh` deploys to, and which guideline applies. Details in `docs/dev/deploy.md` |
+| `github` | **`yes`** (default) · `no` | Whether GitHub features are used at all — issues, PRs, Actions. `no` means a local-only repo |
+| `ci-on-claude` | **`no`** (default) · `yes` | `no` (default): Claude's commits carry `[skip ci]`, because the identical gate just ran locally. `yes`: CI runs on them too — worth it for a cross-platform library, where the matrix tests something a local run cannot |
+| `release-runner` | **`local`** (default) · `ci` | `local` (default): `/release` runs `release.sh` here. `ci`: it dispatches the release workflow instead, for a project that can only publish from Actions |
 
 ## Instructions
 

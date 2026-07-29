@@ -100,7 +100,7 @@ Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/g
 
 (The root CLAUDE.md points at `INDEX.md`; the index itself is not auto-loaded.)
 
-Note: `docs/VISION.md` and `docs/dev/architecture.md` were already written by the main session — do not overwrite them, nor `docs/dev/deploy.md` if it exists.
+Note (**init only**): `docs/VISION.md` and `docs/dev/architecture.md` were already written by the main session — do not overwrite them, nor `docs/dev/deploy.md` if it exists. **In onboard nothing has written them and you create all three** — the Onboard-mode section above is authoritative over this note.
 
 ## Step B: Language-Specific Configs
 
@@ -198,7 +198,7 @@ The TypeScript scripts already exist in `package.json.template`, and `test` ther
 **`release.sh`: `:` is only ever acceptable for the deploy step** (a platform that auto-deploys on merge genuinely has nothing to run). The **healthcheck must be a real command** — `docs/dev/deploy.md` already carries the URL by the time you write this. If it is genuinely unknown, emit `exit 1` with a TODO comment rather than `:`; a release that reports success having verified nothing is worse than one that stops.
 
 **GitHub Actions — skip this whole block when `GITHUB_REPO` is `no`.** A local-only project has no use for workflows, a dependabot config or issue templates, and `delivery.json` already says the issue templates are created only when GitHub integration is on. (Thin wrappers around the scripts above — run on human commits + dispatch:)
-- `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`
+- `{PLUGIN_SOURCE_DIR}/templates/github/ci-{CI_LANGUAGE_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/ci.yml`, substituting `{{TRUNK_BRANCH}}` — a workflow triggering on `main` in a repo whose trunk is `master` never fires on a trunk push, and nothing reports that it didn't
 - If RELEASE_CI_TEMPLATE ≠ `none`: `{PLUGIN_SOURCE_DIR}/templates/github/{RELEASE_CI_TEMPLATE}.yml` → `{TARGET_DIR}/.github/workflows/release.yml`. The release workflow is **`workflow_dispatch`-only** for both `local` and `ci` release-runner — `/release` triggers it explicitly in `ci` mode. Never add a tag trigger: the local `/release` always pushes the version tag, so a tag-triggered workflow would double-publish.
 - Do **not** mark the CI workflow a required status check — Claude's `[skip ci]` commits would leave it Pending forever and block merges.
 - `{PLUGIN_SOURCE_DIR}/templates/github/dependabot.yml` → `{TARGET_DIR}/.github/dependabot.yml`, then uncomment the package ecosystem matching CI_LANGUAGE_TEMPLATE (typescript → npm, python → pip, rust → cargo; cpp has no ecosystem — leave only github-actions active)
@@ -261,7 +261,7 @@ Everything else — `CLAUDE.md`, `src/CLAUDE.md`, the test directory's `CLAUDE.m
 - `src-claude.md.template` → `{TARGET_DIR}/src/CLAUDE.md`
 - `tests-claude.md.template` → `{TARGET_DIR}/tests/CLAUDE.md` — **init only.** In onboard mode the project's test directory has another name and another layout; `/project-onboard` writes that file itself.
 
-Do NOT overwrite `docs/dev/architecture.md`, `docs/VISION.md` or `docs/dev/deploy.md` — these were written by the main session.
+Do NOT overwrite `docs/dev/architecture.md`, `docs/VISION.md` or `docs/dev/deploy.md` where they exist. **In init** the main session wrote them; **in onboard** you create all three (Onboard-mode section, which is authoritative over this note).
 
 ## Step E: Root CLAUDE.md
 
