@@ -48,6 +48,7 @@ print(f"  ✓ {len(d['entries'])} entries, every source resolves, no duplicate p
 PY
 
 # --- 3. skills and agents have the frontmatter the harness needs --------------------------
+BEFORE=$FAILED
 echo "skill + agent frontmatter"
 for f in skills/*/SKILL.md; do
   head -12 "$f" | grep -q '^name:'        || fail "no name: in $f"
@@ -60,6 +61,8 @@ for f in agents/*.md; do
   head -12 "$f" | grep -q '^name:'        || fail "no name: in $f"
   head -12 "$f" | grep -q '^description:' || fail "no description: in $f"
 done
+# Every other section prints a verdict; without this one a passing run reads as a skipped check.
+[ "$FAILED" -eq "$BEFORE" ] && ok "$(ls -d skills/*/ | wc -l | tr -d ' ') skills and $(ls agents/*.md | wc -l | tr -d ' ') agents carry name + description"
 
 # --- 4. the gate template cannot report a pass it did not earn ---------------------------
 # The defect class this repo exists to prevent, asserted rather than trusted.

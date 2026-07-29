@@ -234,7 +234,7 @@ git add -A && { git diff --cached --quiet || git commit --amend --no-edit; }
 git clone . "$CLONE"
 ( cd "$CLONE" && npm ci && ./scripts/ci.sh full )
 echo "clean-clone gate exit: $?"
-rm -rf "$CLONE"
+# Do NOT delete $CLONE yet — the documented-commands check below runs in it.
 ```
 
 The clone is the point: anything gitignored, untracked or generated is absent there, which is precisely what GitHub Actions sees on the first push. A local pass proves nothing about it — and the classic failure is a generated module (`src/version.ts`) that the local run has and the clone does not, which is why `ci.sh` regenerates it in its `{{GENERATE_SOURCES}}` stage before anything else.
@@ -243,7 +243,9 @@ The clone is the point: anything gitignored, untracked or generated is absent th
 
 **A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run the whole snippet (amend included) until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
-**Also run every command the docs name, not only `ci.sh`** — in that same clone, `npm run dev` (or the language's equivalent), `lint`, `typecheck`, `test`, and whatever `docs/dev/setup.md` and `CONTRIBUTING.md` print. A green gate proves only the gate: `ci.sh` regenerates gitignored sources in its `prepare` stage, so a project whose entry point imports a generated module passes the gate and fails every other command on a first clone. That is a contributor's first five minutes, and nothing else in `/project-init` looks at it.
+**Also run every command the docs name, not only `ci.sh`** — **in that same clone**, which is why the snippet above does not delete it. `npm run dev` (or the language's equivalent), `lint`, `typecheck`, `test`, and whatever `docs/dev/setup.md` and `CONTRIBUTING.md` print. A green gate proves only the gate: `ci.sh` regenerates gitignored sources in its `prepare` stage, so a project whose entry point imports a generated module passes the gate and fails every other command on a first clone. That is a contributor's first five minutes, and nothing else in `/project-init` looks at it.
+
+Then, and only then, `rm -rf "$CLONE"`.
 
 Report the exit code in step 9.
 

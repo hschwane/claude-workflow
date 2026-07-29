@@ -11,6 +11,7 @@ SCAFF = Path("agents/project-scaffolder.md").read_text()
 ONBOARD = Path("skills/project-onboard/SKILL.md").read_text()
 UPDATE = Path("skills/workflow-update/SKILL.md").read_text()
 PKG = Path("templates/configs/package.json.template").read_text()
+INIT = Path("skills/project-init/SKILL.md").read_text()
 CI = Path("templates/scripts/ci.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 
@@ -112,6 +113,18 @@ CASES = [
     # user — treating it as a defect hard-stops the update on most projects' default state.
     ("the block-comment check knows contributing's comment is a placeholder",
      "Three blocks ship one" in UPDATE and "placeholder addressed to the user" in UPDATE),
+
+    # 5c's snippet used to `rm -rf "$CLONE"` before the paragraph that reuses that clone to
+    # run every documented command. A literal reader silently skipped the one check that
+    # covers a contributor's first five minutes — and the skill says nothing else does.
+    ("5c keeps the clone for the documented-commands check",
+     "Do NOT delete $CLONE yet" in INIT
+     and INIT.index("Do NOT delete $CLONE yet") < INIT.index('Then, and only then, `rm -rf "$CLONE"`')),
+
+    # RELEASE_TYPE: docker is offered, no template ships a Dockerfile, and nothing in
+    # /project-init runs release.sh — so a filled `docker build` step ships unbuildable.
+    ("the scaffolder is told docker needs a Dockerfile it must write",
+     "needs a `Dockerfile`, and no template ships one" in SCAFF),
 
     # The two marker blocks whose resolution is CONDITIONAL on a setting must be named
     # by an owner. `identity`/`contributing` are prose-filled and need no id mention;
