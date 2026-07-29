@@ -190,6 +190,7 @@ MONOREPO: {No | Yes}
 RELEASE_TYPE: {npm | pypi | github | docker | internal}
 DEPLOY: {railway | none | manual | vercel | aws | other | self-hosted}
 BRANCHING_MODEL: {main-only | git-flow}
+TRUNK_BRANCH: main
 GITHUB_REPO: {yes-public | yes-private | no}
 COPYRIGHT_HOLDER: {from question 4}
 GITHUB_OWNER: {the owner the repo will live under, or empty when GITHUB_REPO is no}
@@ -259,22 +260,27 @@ The scaffolder leaves `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}` and `{{OPERATIONS}
 - `{{USAGE_EXAMPLE}}` → the one command or snippet that shows it working end to end.
 - `{{OPERATIONS}}` → for anything deployed: required environment variables, where it runs, the health endpoint. Delete the block entirely for a library or a local-only tool.
 
-**No `{{…}}` may survive this step.** Grep `README.md` before moving on. Leaving them is not neutral: `README.md` is the project's entry point, and `/release` checks it before every bump — so the first release opens with a finding this step should have closed. Nothing later in `/project-init` touches these three tokens.
+**No `{{…}}` other than `{{GITHUB_REPO}}` may survive this step.** Grep `README.md` before moving on. The badge's `{{GITHUB_REPO}}` is step 8's to fill, once the repo exists — a literal reading of an absolute ban here leaves you either guessing an `owner/repo` that does not exist yet or deleting the badge. Leaving them is not neutral: `README.md` is the project's entry point, and `/release` checks it before every bump — so the first release opens with a finding this step should have closed. Nothing later in `/project-init` touches these three tokens.
 
 Commit with the step 5c fixes.
 
-### 5e. Sync `main` — last, after everything else
+### 5e. Sync `main` — after the gate is green
 
 Under git-flow the scaffolder left HEAD on `develop`, so every commit and amend in 5c and 5d landed on `develop` alone. `main` still points at whatever the scaffolder first committed — with the same subject line, so nothing looks wrong. But `main` is what `/release` merges into and tags, and what a deploy target watches, so an unsynced `main` means the project's release branch carries a tree the clean-clone gate never passed. **Run this only now, once `develop` is green and 5d is committed:**
 
 ```bash
 [ "$(git rev-parse --abbrev-ref HEAD)" = develop ] && git branch -f main develop
-git log --oneline -1 main develop     # same sha, or you are not done
+git rev-parse main develop      # two lines, and they must be identical
+[ "$(git rev-parse main)" = "$(git rev-parse develop)" ] || { echo "✗ main is NOT synced"; exit 1; }
 ```
 
-**Ordering is the whole point of this being its own step.** Syncing `main` before the 5c fix loop finishes — the obvious place, right after the amend — pushes a red tree to the release branch, and nothing downstream re-checks it: `/release` merges `develop` into a `main` it assumes was fine. The one cheap proof is the two shas matching, so print them.
+**Use `git rev-parse`, not `git log -1 main develop`.** The latter is a single revision walk over both refs, so it prints *one* line — the newest commit reachable from either — and prints exactly the same happy line whether or not the sync happened. It looks like a comparison and cannot fail. The `[ … ]` test is the actual check.
 
-Under `main-only` there is nothing to do here: HEAD already *is* the trunk.
+**Ordering is the whole point of this being its own step.** Syncing `main` before the 5c fix loop finishes — the obvious place, right after the amend — pushes a red tree to the release branch, and nothing downstream re-checks it: `/release` merges `develop` into a `main` it assumes was fine.
+
+**This is not the last sync, though.** Steps 7 and 8 commit again on `develop` — the backlog, and the badge plus issue write-backs — so `main` falls behind by two commits before `/project-init` ends. Its *tree* is still gate-verified, so nothing is unsafe, but the release branch ends up with no backlog, a stale `.gitkeep`, and an unfilled `{{GITHUB_REPO}}` in its README until the first `/release` merge heals it. **Repeat this block at the end of step 8, before the pushes.**
+
+Under `main-only` there is nothing to do here or in step 8: HEAD already *is* the trunk.
 
 ### 6. Workflow settings review
 
@@ -382,12 +388,16 @@ Runs whether or not a GitHub repo was created — a local-only project still nee
 
 **Finish clean, whichever path ran.** `git status --short` must be empty — this is the only such check that runs for a `github: no` project, since step 8 is skipped entirely there. Anything left over is something an earlier step created and did not stage.
 
-**Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). With a remote, push **both** branches:
+**Git Flow:** the scaffolder already created `develop` and left HEAD there — do not create it again (`git checkout -b develop` fails with "a branch named 'develop' already exists"). **Re-sync `main` first, then push both branches:**
 ```
+# Steps 7 and 8 committed on develop after 5e ran, so main is behind again.
+git branch -f main develop
+[ "$(git rev-parse main)" = "$(git rev-parse develop)" ] || { echo "✗ main is NOT synced"; exit 1; }
 git push -u origin main
 git push -u origin develop
 gh repo edit --default-branch develop
 ```
+Skipping the re-sync pushes a `main` with no backlog and an unfilled `{{GITHUB_REPO}}` in its README — the state 5e warned about, now published.
 Pushing only the current branch leaves the remote with no `main` — and `main` is the branch `/release` merges into and tags, and the one a deploy target watches. The first release then fails with "The current branch main has no upstream branch".
 **main-only:** nothing to do; the scaffolder already left HEAD on `main`.
 

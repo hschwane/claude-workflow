@@ -10,6 +10,7 @@ from pathlib import Path
 SCAFF = Path("agents/project-scaffolder.md").read_text()
 ONBOARD = Path("skills/project-onboard/SKILL.md").read_text()
 UPDATE = Path("skills/workflow-update/SKILL.md").read_text()
+PKG = Path("templates/configs/package.json.template").read_text()
 CI = Path("templates/scripts/ci.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 
@@ -67,6 +68,25 @@ CASES = [
      "`git branch --show-current` is the wrong source" in UPDATE),
     ("the update knows branch existence is not trunk-ness",
      "nowhere near sufficient" in UPDATE and "vestigial `main`" in UPDATE),
+
+    # package.json declares a `prepare` lifecycle script, so `npm install` executes
+    # scripts/generate-version.js. Copy the script AFTER installing and npm exits 1 with
+    # MODULE_NOT_FOUND before the lockfile check is ever reached. Order is load-bearing.
+    ("the scaffolder copies generate-version before installing",
+     '"prepare": "node scripts/generate-version.js"' in PKG
+     and SCAFF.index("generate-version.js` → `scripts/generate-version.js")
+         < SCAFF.index("npm install && test -f package-lock.json")),
+
+    # The web build reads web/tsconfig.json, the typecheck reads the root one. DOM libs in
+    # the root only leaves typecheck green and `tsc -p web/tsconfig.json` failing TS2304 —
+    # and green in both when the scaffolded entry point happens to touch no DOM.
+    ("the web build config is told it needs DOM libs too",
+     "it needs the DOM libs *as well*" in SCAFF),
+
+    # init must hand TRUNK_BRANCH over, or the scaffolder has to guess the value it
+    # substitutes into the CI trigger — and the unsubstituted form is still valid YAML.
+    ("init passes TRUNK_BRANCH to the scaffolder",
+     "TRUNK_BRANCH" in Path("skills/project-init/SKILL.md").read_text()),
 
     # The two marker blocks whose resolution is CONDITIONAL on a setting must be named
     # by an owner. `identity`/`contributing` are prose-filled and need no id mention;
