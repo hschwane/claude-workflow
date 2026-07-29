@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Generates src/version.ts with the current version and git commit hash.
-// Run as part of the build step.
+// Runs from three places, which is why it tolerates a hostile environment: the `build`
+// script, scripts/ci.sh's prepare stage, and npm's `prepare` lifecycle — the last of which
+// fires on `npm ci`, including inside a Docker layer that has copied only package.json and
+// the lockfile. So neither a missing .git nor a missing src/ may throw: a failure here
+// aborts `npm ci` itself, breaking install for a reason nobody would look for in this file.
 import { execSync } from "child_process";
-import { readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const version = pkg.version;
@@ -21,5 +25,6 @@ export const VERSION = "${version}";
 export const GIT_COMMIT = "${gitCommit}";
 `;
 
+mkdirSync("src", { recursive: true });
 writeFileSync("src/version.ts", content);
 console.log(`Generated src/version.ts — v${version} (${gitCommit})`);
