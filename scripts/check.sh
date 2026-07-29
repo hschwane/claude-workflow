@@ -7,26 +7,29 @@
 #
 # Mechanical checks only: the things a human review reliably misses and a script never does.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 FAILED=0
+BEFORE=0
 fail() { echo "  ✗ $*" >&2; FAILED=$((FAILED + 1)); }
 ok()   { echo "  ✓ $*"; }
 
 echo "▶ claude-workflow self-check"
 
 # --- 1. every shell script parses, and is executable -------------------------------------
+BEFORE=$FAILED
 echo "shell syntax + modes"
 while IFS= read -r f; do
   bash -n "$f" 2>/dev/null || fail "bash -n: $f"
   [ -x "$f" ] || fail "not executable: $f"
 done < <(git ls-files '*.sh')
-# shellcheck where it is available and the file is real shell (templates hold {{TOKENS}})
+# Run shellcheck where available, on the files that are real shell (templates hold {{TOKENS}}).
+# NB: a comment whose first word is "shellcheck" is parsed as a directive and errors out.
 if command -v shellcheck >/dev/null; then
   git ls-files '*.sh' | grep -v '^templates/scripts/' \
     | xargs shellcheck -S warning >/dev/null 2>&1 || fail "shellcheck found problems (run it for detail)"
 fi
-[ "$FAILED" -eq 0 ] && ok "$(git ls-files '*.sh' | wc -l | tr -d ' ') scripts parse and are executable"
+[ "$FAILED" -eq "$BEFORE" ] && ok "$(git ls-files '*.sh' | wc -l | tr -d ' ') scripts parse and are executable"
 
 # --- 2. delivery.json is valid, and every `source` it names exists ------------------------
 echo "delivery manifest"
@@ -60,6 +63,7 @@ done
 
 # --- 4. the gate template cannot report a pass it did not earn ---------------------------
 # The defect class this repo exists to prevent, asserted rather than trusted.
+BEFORE=$FAILED
 echo "ci.sh integrity"
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 python3 - "$T" <<'PY'
@@ -89,15 +93,16 @@ run() { ( cd "$T" && bash "$1.sh" "$2" >/dev/null 2>&1 ); echo $?; }
 [ "$(run soft fast)"     != 0 ] || fail "'|| true' on a stage must NOT produce a green gate"
 [ "$(run degraded full)" != 0 ] || fail "'full' with no full-only stages must not report a pass"
 [ "$(run empty full)"    != 0 ] || fail "a gate with no checks must not report a pass"
-[ "$FAILED" -eq 0 ] && ok "gate refuses to report an unearned pass (5 cases)"
+[ "$FAILED" -eq "$BEFORE" ] && ok "gate refuses to report an unearned pass (5 cases)"
 
 # --- 5. templates carry no stale paths removed in 3.0 ------------------------------------
+BEFORE=$FAILED
 echo "stale paths"
 for p in "docs/workflow/" "\.claude/preferences/" "\.claude/project-notes/" "docs/dev/style-guide" "docs/dev/adr/" "memory/settings\.md"; do
   hits=$(git ls-files templates agents | xargs grep -l "$p" 2>/dev/null || true)
   [ -z "$hits" ] || fail "removed path '$p' still referenced in: $hits"
 done
-[ "$FAILED" -eq 0 ] && ok "no references to paths removed in 3.0"
+[ "$FAILED" -eq "$BEFORE" ] && ok "no references to paths removed in 3.0"
 
 echo
 if [ "$FAILED" -gt 0 ]; then
