@@ -97,7 +97,8 @@
       "class": "plugin",
       "markerSyntax": "html",
       "blocks": [
-        "identity"
+        "identity",
+        "ci-model"
       ],
       "keyMerge": [
         "workflow-settings"
@@ -110,7 +111,8 @@
       "class": "plugin",
       "markerSyntax": "html",
       "blocks": [
-        "contributing"
+        "contributing",
+        "ci-note"
       ],
       "note": "Plugin-owned; the marked project blocks survive replacement.",
       "source": "templates/CONTRIBUTING.md.template"

@@ -11,6 +11,8 @@
 # project-init / project-onboard fill in the real steps for this project's release type.
 set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
+# Fails open: with `dirname` off PATH, `cd "/.."` succeeds and this would release from /.
+[ -f scripts/release.sh ] || { echo "✗ release.sh: not in the repo root (cwd=$PWD)." >&2; exit 1; }
 VERSION="${1:?usage: release.sh <version>}"
 
 echo "▶ release.sh $VERSION"

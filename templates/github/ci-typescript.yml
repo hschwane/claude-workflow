@@ -4,7 +4,7 @@
 name: CI
 on:
   push:
-    branches: [{{TRUNK_BRANCH}}]   # add `develop` under branching: git-flow
+    branches: {{CI_BRANCHES}}
     paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
   pull_request:
     paths-ignore: ["docs/**", "**/*.md", ".claude/**"]

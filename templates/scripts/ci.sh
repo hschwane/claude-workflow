@@ -13,6 +13,10 @@ set -uo pipefail
 # Run from the repo root whatever the caller's cwd is — CONTRIBUTING tells humans to run
 # `scripts/ci.sh fast`, and a session with two source roots is often cd'd elsewhere.
 cd "$(dirname "$0")/.." || exit 1
+# That cd fails OPEN, so assert where we landed. With `dirname` off PATH the expansion is
+# empty, `cd "/.."` succeeds, and every check then runs against the filesystem root — green
+# or red for reasons that have nothing to do with this project.
+[ -f scripts/ci.sh ] || { echo "✗ ci.sh: not in the repo root (cwd=$PWD) — cannot run the gate." >&2; exit 1; }
 MODE="${1:-full}"
 
 echo "▶ ci.sh ($MODE)"
@@ -119,7 +123,9 @@ if [ "$MODE" = "full" ]; then
   check {{INTEGRATION_TESTS}}
   # e.g. check npx playwright test | check uv run pytest tests/e2e   (delete if no E2E framework)
   check {{E2E_TESTS}}
-  : # keeps this block valid if every stage above was deleted — not a check
+  : # keeps this block valid if every stage above was deleted — not a check. Once real stages
+    # are filled in, this line does nothing; leave it anyway, so deleting a stage later never
+    # produces an empty `if` body. Do not "clean it up" and do not turn it into a `check`.
 fi
 
 if [ "$CHECKS" -eq 0 ] && [ "${CI_ALLOW_EMPTY:-0}" != "1" ]; then

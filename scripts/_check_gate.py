@@ -38,9 +38,32 @@ def rel(publish="echo ok", health="echo ok", empty=False):
     return re.sub(r"^\s*step \{\{[A-Z_]+\}\}\s*\n", "", s, flags=re.M)
 
 
-def run(script, *args):
+def run(script, *args, name="ci.sh"):
+    """Run a filled script from a faithful layout: <tmp>/scripts/<name>, invoked from <tmp>.
+
+    The layout is not incidental. Both scripts open with `cd "$(dirname "$0")/.."` and then
+    assert they landed in a repo root, so a script dropped at the temp-dir root would cd
+    ABOVE the sandbox and every case here would fail for that reason instead of the one it
+    tests. Getting this right is also what makes the cwd-independence guarantee testable.
+    """
     with tempfile.TemporaryDirectory() as d:
-        p = Path(d) / "s.sh"
+        (Path(d) / "scripts").mkdir()
+        p = Path(d) / "scripts" / name
+        p.write_text(script)
+        return subprocess.run(["bash", str(p), *args], capture_output=True, cwd=d).returncode
+
+
+def run_at_root(script, *args, name="ci.sh"):
+    """Run the script from a layout where the parent dir is NOT a repo root.
+
+    Dropping it at <tmp>/nested/<name> makes `cd "$(dirname "$0")/.."` land in <tmp>, which we
+    own and know is empty — the same end state as a missing `dirname`, without stripping PATH.
+    Landing in a directory we do not control (/tmp) would make this pass or fail on whatever
+    happens to be lying there. The gate must refuse rather than check an unrelated tree.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "nested").mkdir()
+        p = Path(d) / "nested" / name
         p.write_text(script)
         return subprocess.run(["bash", str(p), *args], capture_output=True, cwd=d).returncode
 
@@ -53,10 +76,14 @@ CASES = [
     ("'|| true' cannot green a failed prepare",   run(ci(prepare='sh -c "exit 1" || true'), "fast") != 0),
     ("'full' with no full-only stages fails",     run(ci(full=False), "full") != 0),
     ("a gate with no checks fails",               run(ci(full=False, empty=True), "full") != 0),
-    ("a filled release passes",                   run(rel(), "1.0.0") == 0),
-    ("a failing release step fails",              run(rel(publish='sh -c "exit 1"'), "1.0.0") != 0),
-    ("'|| true' cannot green a failed step",      run(rel(publish='sh -c "exit 1" || true'), "1.0.0") != 0),
-    ("a release with no steps fails",             run(rel(empty=True), "1.0.0") != 0),
+    ("a filled release passes",                   run(rel(), "1.0.0", name="release.sh") == 0),
+    ("a failing release step fails",              run(rel(publish='sh -c "exit 1"'), "1.0.0", name="release.sh") != 0),
+    ("'|| true' cannot green a failed step",      run(rel(publish='sh -c "exit 1" || true'), "1.0.0", name="release.sh") != 0),
+    ("a release with no steps fails",             run(rel(empty=True), "1.0.0", name="release.sh") != 0),
+    # `cd "$(dirname "$0")/.."` fails OPEN — with dirname off PATH the expansion is empty and
+    # `cd "/.."` succeeds, running the gate against the filesystem root. Both scripts assert
+    # where they landed; run one from a layout with no repo root above it to prove it stops.
+    ("the gate refuses to run outside a repo root",  run_at_root(ci(), "fast") != 0),
 ]
 
 bad = [name for name, passed in CASES if not passed]

@@ -228,12 +228,8 @@ test -f package-lock.json         # or: uv.lock · Cargo.lock — whichever this
 # 2. Fold it into the scaffolder's initial commit, keeping that commit's message.
 #    `--amend -m` would REPLACE the message; `--no-edit` alone keeps it.
 git add -A && { git diff --cached --quiet || git commit --amend --no-edit; }
-# Under git-flow the scaffolder left HEAD on `develop`, so that amend rewrote develop only —
-# `main` still points at the pre-amend commit, with the same subject line, so nothing looks
-# wrong. `main` is what /release merges into and tags, and what a deploy target watches.
-[ "$(git rev-parse --abbrev-ref HEAD)" = develop ] && git branch -f main develop
-
-# 3. The clone is the point.
+# 3. The clone is the point. Clone the branch you are ON — under git-flow that is `develop`,
+#    and `main` is not synced until step 5e, deliberately.
 git clone . "$CLONE"
 ( cd "$CLONE" && npm ci && ./scripts/ci.sh full )
 echo "clean-clone gate exit: $?"
@@ -244,7 +240,9 @@ The clone is the point: anything gitignored, untracked or generated is absent th
 
 **Also check what the tokens claim.** Confirm `docs/dev/setup.md`'s clone URL is real for *this* project (a local-only project must not be given a GitHub URL), and that `.env.example` lists the **runtime** variables `docs/dev/architecture.md` and `docs/dev/setup.md` declare — not deploy-machine credentials like `RAILWAY_TOKEN`, which belong in the platform's secret store and must never reach a file `setup.md` tells people to `cp` to `.env`. Nothing else verifies the token fills.
 
-**A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
+**A non-zero exit stops `/project-init` here.** Fix the cause — a missing lockfile, an uncommitted source file, a bare tool name that resolves locally but not in CI, a stage still holding a placeholder — and re-run the whole snippet (amend included) until it is green. Do not continue to step 6 with a red gate and a note in the report; the whole workflow downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
+
+**Also run every command the docs name, not only `ci.sh`** — in that same clone, `npm run dev` (or the language's equivalent), `lint`, `typecheck`, `test`, and whatever `docs/dev/setup.md` and `CONTRIBUTING.md` print. A green gate proves only the gate: `ci.sh` regenerates gitignored sources in its `prepare` stage, so a project whose entry point imports a generated module passes the gate and fails every other command on a first clone. That is a contributor's first five minutes, and nothing else in `/project-init` looks at it.
 
 Report the exit code in step 9.
 
@@ -264,6 +262,19 @@ The scaffolder leaves `{{INSTALLATION}}`, `{{USAGE_EXAMPLE}}` and `{{OPERATIONS}
 **No `{{…}}` may survive this step.** Grep `README.md` before moving on. Leaving them is not neutral: `README.md` is the project's entry point, and `/release` checks it before every bump — so the first release opens with a finding this step should have closed. Nothing later in `/project-init` touches these three tokens.
 
 Commit with the step 5c fixes.
+
+### 5e. Sync `main` — last, after everything else
+
+Under git-flow the scaffolder left HEAD on `develop`, so every commit and amend in 5c and 5d landed on `develop` alone. `main` still points at whatever the scaffolder first committed — with the same subject line, so nothing looks wrong. But `main` is what `/release` merges into and tags, and what a deploy target watches, so an unsynced `main` means the project's release branch carries a tree the clean-clone gate never passed. **Run this only now, once `develop` is green and 5d is committed:**
+
+```bash
+[ "$(git rev-parse --abbrev-ref HEAD)" = develop ] && git branch -f main develop
+git log --oneline -1 main develop     # same sha, or you are not done
+```
+
+**Ordering is the whole point of this being its own step.** Syncing `main` before the 5c fix loop finishes — the obvious place, right after the amend — pushes a red tree to the release branch, and nothing downstream re-checks it: `/release` merges `develop` into a `main` it assumes was fine. The one cheap proof is the two shas matching, so print them.
+
+Under `main-only` there is nothing to do here: HEAD already *is* the trunk.
 
 ### 6. Workflow settings review
 
@@ -330,6 +341,8 @@ Body: write a one-sentence User Story based on the item's purpose. Leave Accepta
 IDs are sequential across all milestones (FEAT-001, FEAT-002, …) — later `/draft` calls continue from the highest existing ID.
 
 Do **not** create GitHub issues here — on a new project the remote does not exist yet and the labels have not been created; both happen in step 8, which mirrors the backlog once it can.
+
+**Delete `docs/specs/backlog/.gitkeep` if it is there.** The scaffolder writes one so a fresh clone has the directory; real specs now hold it open, so the placeholder is dead weight sitting beside thirty tickets. Nothing else in this skill removes it.
 
 After all milestones: **commit the backlog** — `git add -A && git commit -m "docs(specs): initial backlog  [skip ci]"`. Use `-A`, not `docs/specs/`: step 1.5 explicitly invites a late guideline install once the architecture and deploy target are settled, and a narrow `git add` leaves those files behind. Nothing else in this skill commits it, and leaving `/project-init` with 30 untracked spec files means the next session's SessionStart hook sees no work at all.
 
@@ -405,6 +418,8 @@ Release readiness: {release.sh runs | blocked on {ticket} until the app exposes 
 Verification (step 5c):
   Lockfile: {present}
   Clean-clone `ci.sh full`: {exit 0 — N check(s) | FAILED — this is a blocker, not a note}
+  Documented commands in the clone: {dev, lint, typecheck, test all exit 0 | <which failed>}
+  main == develop: {sha | n/a, main-only}
 
   {GitHub repo: https://github.com/.../...}
 
