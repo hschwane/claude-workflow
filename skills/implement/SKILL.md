@@ -26,7 +26,7 @@ Read the spec. Confirm it's ready to build: clear goal, **observable acceptance 
 If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
 ```
 git checkout {develop|trunk-branch}
-[ -n "$(git remote)" ] && git pull          # a local-only repo has no upstream; skip, don't fail
+[ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"
 git checkout -b {feature|fix}/{lowercase-id}-{kebab-title}    # prefix follows the ticket type
 ```
 Set the spec frontmatter `status: in-progress`. **The file stays in `docs/specs/ready/`** — there is no `in-progress/` directory; only the status changes. (Step 5 does `git mv` it, to `completed/`.) If `github_issue` is set and `github` setting in `CLAUDE.md` is not `no`: move its labels to `in-progress` and drop a one-line "started on {branch}" comment.
@@ -43,16 +43,16 @@ For each subtask:
 
 **b) Write its tests** — in the main session, scoped to *this* subtask's acceptance criteria. Test the **important behaviors**, not coverage for its own sake (the `testing-scope` setting in `CLAUDE.md` sets the depth; `docs/dev/code-style.md` describes each level). Tests assert behavior, not implementation details.
 
-**c) Fast gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + the new & adjacent unit tests). It digests output so raw logs stay out of this context. Fix anything red before committing — **never commit on a red gate.**
+**c) Gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + unit tests). It digests output so raw logs stay out of this context. Read the verdict from `.claude/memory/last-gate.json` rather than the agent's prose. Fix anything red before committing — **never commit on a red gate.**
+
+**If this subtask adds or changes integration or E2E tests, run `scripts/ci.sh full` here instead of `fast`.** `fast` excludes exactly those stages, so the subtask that adds them would be committed green having never executed one of them — and the next `full` run, possibly days later, is where you find out.
 
 **d) Commit** (green only) and push:
 ```
-git add -A
+git add -A                                  # after checking `git status` — a build or an experiment leaves debris in exactly the directories this subtask touched
 git commit -m "{feat|fix}({scope}): {subtask description}  [skip ci]"
-[ -n "$(git remote)" ] && git push -u origin {branch}   # skip silently when github: no
+[ -n "$(git remote)" ] && git push -u origin {branch} || echo "no remote — commit is local only"
 ```
-**If this subtask adds or changes integration or E2E tests, run `ci.sh full` for it instead** — `fast` excludes exactly those, so the subtask that adds them would be committed green having never executed one of them, and the next `full` run is where you find out.
-
 Append `[skip ci]` **unless** the project's `ci-on-claude` decision is `yes` (libraries) — then omit it so CI runs on the push. (When GitHub integration is off, the marker is harmless.) Pushing per subtask is a cheap backup; the gate already ran locally.
 
 **e) Tick the box** — `- [ ] #N` → `- [x] #N` in the spec. The spec's checkboxes + git log ARE the progress record; `/resume` reconstructs from them. Don't maintain a separate checkpoint.

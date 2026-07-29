@@ -24,7 +24,7 @@ If nothing is staged: run `git add -A` after confirming with the user that they 
 
 Run:
 ```bash
-git status --porcelain | sed 's/^...//' | grep -v "^docs/specs/" | head -1
+git status --porcelain | sed 's/^...//; s/.* -> //' | grep -v "^docs/specs/" | head -1
 ```
 
 If this outputs **nothing** — every changed file is under `docs/specs/` — take the spec-only fast path:
@@ -35,7 +35,11 @@ If this outputs **nothing** — every changed file is under `docs/specs/` — ta
 
 **Only use this path if you are 100% certain every changed file is under `docs/specs/`.** If there is any doubt, run the full quality gates.
 
-Use `git status --porcelain`, not `git diff` — **neither `git diff` form lists untracked files.** A commit made of a brand-new source file plus a spec edit prints nothing under `git diff`, so the check says "spec-only" and the gate is skipped on code that has never been compiled. This is the one path in the workflow that deliberately bypasses the gate; it must not be reachable by new code.
+Two things this command has to survive, both verified:
+- **untracked files** — neither `git diff` form lists them, so a brand-new source file plus a spec edit reads as "spec-only" and the gate is skipped on code that has never been compiled;
+- **renames out of the directory** — `git mv docs/specs/junk.md src/junk.ts` reports as `R docs/specs/junk.md -> src/junk.ts`, whose *first* path is under `docs/specs/`. Without the `s/.* -> //` the line is filtered out and a `.ts` file lands in `src/` with no lint, no typecheck and no tests.
+
+Use `git status --porcelain`, not `git diff`. A commit made of a brand-new source file plus a spec edit prints nothing under `git diff`, so the check says "spec-only" and the gate is skipped on code that has never been compiled. This is the one path in the workflow that deliberately bypasses the gate; it must not be reachable by new code.
 
 ### 2. Quality Gate — the canonical entrypoint
 Run the project's **canonical fast gate** via the `runner` agent: `scripts/ci.sh fast` (format + lint + typecheck/compile + affected unit tests). This is the *same* command CI would run, so "passes locally" means "would pass in CI" — no drift. The runner digests output.

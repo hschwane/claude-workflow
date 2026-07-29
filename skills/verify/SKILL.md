@@ -30,6 +30,8 @@ Default: **self-review** — reread the diff (`git diff {integration-branch}...H
 
 Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes) on the diff. Use sparingly — most changes don't need it.
 
+**Prefer a step whose expected result is fixed.** A step can be perfectly observable and still non-deterministic — "the answer is in the future", "the list is sorted by recency" — and pass against a broken build because of when the clock happened to be, or which row happened to sort first. Pin the inputs (an explicit timestamp, a seeded fixture) so the expected result is the same every run. A step that only detects the bug half the time is worse than none: it reports a pass you will trust.
+
 **Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, and that at least one criterion is anchored to something independent. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
 
 Same for **unsourced constants and seed data** the ticket introduced: if a magic number or a reference table arrived without a citation, say so in the report.
