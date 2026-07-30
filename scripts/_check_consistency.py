@@ -176,7 +176,7 @@ CASES = [
     ("the ticket-first rule is in the always-loaded file",
      "## No implementation without a ticket" in PCLAUDE
      and "`/draft`" in PCLAUDE
-     and "The exception must be explicit" in PCLAUDE),
+     and "The only exception is the user explicitly asking" in PCLAUDE),
 ]
 
 bad = [name for name, ok in CASES if not ok]

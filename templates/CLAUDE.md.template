@@ -74,13 +74,11 @@ Several tasks in one message: work through them in order. In unsupervised mode a
 
 ## No implementation without a ticket
 
-**Every change to this project's behaviour goes through `/draft` → `/plan` → `/implement` → `/verify`.** There is exactly one exception and it is the user saying so.
+**Every change to behaviour goes through `/draft` → `/plan` → `/implement` → `/verify`.** A request in prose — "add X", "the button is broken" — is a ticket waiting to be written, not permission to edit: run `/draft` (or `/plan`, if it is already specifiable) and say so. Code written from a chat message has no acceptance criteria, so `/verify` has nothing to check it against.
 
-**A request in prose is not permission to start editing.** "Add X", "the button is broken", "make it do Y" is a ticket waiting to be written. Run `/draft` — or `/plan`, if it is already clear enough to spec — and say that is what you are doing. Code written straight from a chat message has no spec, so no acceptance criteria, so nothing for `/verify` to check it against: unverifiable by construction, which is the whole reason for this rule.
+**The only exception is the user explicitly asking** — "just fix it, no ticket". Not urgency, not a one-line change, not your own sense that a ticket is overkill here; if you think that, ask. Say out loud when you take the override. Unsupervised mode cannot grant it — draft instead.
 
-**The exception must be explicit** — "just fix it, no ticket", "skip the workflow". Urgency is not it, nor a one-line change, nor obviousness, nor your own sense that a ticket is overkill here: if you think so, **say so and ask**. Taking the override, say plainly that you are working outside the workflow. In unsupervised mode nobody can grant it — draft the ticket and carry on.
-
-**Not exceptions, because they are already inside a ticket:** fixing what the current ticket's gate, review or smoke test turned up, and the commits skills make for themselves (a `/release` bump, a spec update, a memory entry). **Not implementation at all:** reading, exploring, answering, running the gate, `/consult`.
+**Still inside the ticket:** fixing what its own gate, review or smoke test turned up. **Not implementation:** reading, exploring, answering, running the gate.
 
 ## Scope — build the whole ticket
 
