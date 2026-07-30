@@ -88,7 +88,7 @@ Carry what you read into:
 
 Guidelines stay **recommendations** — judge each against this project's real scale and say so when you reject one (see the guidelines `README.md`). What you must not do is silently skip them.
 
-After scaffolding, the matching files are installed into the project's `.claude/guidelines/` with their INDEX rows (the scaffolder does this via `LIBRARY_GUIDELINES`; **copy matching global ones too**, since `~/.claude/` is ephemeral in cloud sessions).
+**Reading is all this step decides.** The scaffolder installs the *entire* library into `.claude/guidelines/` regardless of what matched here — matching governs what shapes the design, not what lands on disk. The one thing to pass on is any **user-global** guideline from `~/.claude/guidelines/` that matched: those are not in the library, and `~/.claude/` is ephemeral in cloud sessions, so hand their absolute paths to the scaffolder as `GLOBAL_GUIDELINES` or they are lost.
 
 ### 2. Product Vision Workshop
 Tell the user: "Let me help you define the product vision — this guides planning and implementation. Answer these questions as briefly or thoroughly as you like."
@@ -150,7 +150,7 @@ Ask (in chat — plain message, wait for the reply) — **pre-select values infe
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 
-   Railway is the preferred deploy target. When chosen, the scaffolder installs the Railway deployment **guideline** (`.claude/guidelines/railway.md`) and `railway.json` — that guideline holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — just set `deploy: railway` in the `workflow-settings` block and fill `docs/dev/deploy.md`.
+   Railway is the preferred deploy target. When chosen, the scaffolder writes `railway.json`; the Railway **guideline** (`.claude/guidelines/railway.md`) is present in every project regardless — that guideline holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — just set `deploy: railway` in the `workflow-settings` block and fill `docs/dev/deploy.md`.
 3. **Branching model**: main-only (simpler — features merge into `main`, releases tagged on `main`) / Git Flow (features merge into `develop`; `/release` merges `develop` → `main`, so `main`'s tip always equals the latest release). The release branch is `main` either way — git-flow adds `develop`, it does not rename `main`.
 
 **Then set two CI/release decisions — recommend by project type, confirm (don't belabor):**
@@ -172,7 +172,7 @@ Then determine:
 - `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`. **`release-runner: ci` requires a template other than `none`** — `/release` in `ci` mode dispatches `release.yml`, which would not exist. For a `docker` or `internal` release type, keep `release-runner: local`.
 - `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
 - `TARGET_DIR`: the absolute path to the new project directory.
-- `LIBRARY_GUIDELINES`: the comma-separated list of library guidelines matched in **step 1.5**, now that the deploy target and architecture are settled — re-check `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md` for anything the later decisions newly match. Typical matches: `app-baseline` for any project bigger than a small script/tool; `railway` if DEPLOY=railway; `plots-graphs` if the app renders charts/graphs/data-viz; `maps` if it shows an interactive map; `web-app-pwa` if it's a web app / PWA; `ui-frontend` if it has a UI to design; `changelog` if it should ship an in-app changelog; `ai-integration` if it integrates AI features; `telegram-bots` if it's a Telegram bot; `service-architecture` if it's a non-trivial backend/service with real business logic (Web API, bot, daemon — not a thin CLI/library); `logging` for anything beyond a small script; `background-jobs` if it has scheduled/periodic/background work or must handle graceful shutdown (plus any others added to LIBRARY.md later). Empty only for a genuinely tiny script. The scaffolder installs each (file + INDEX row) so `/plan` picks them up.
+- `GLOBAL_GUIDELINES`: absolute paths of any **user-global** guidelines (`~/.claude/guidelines/`) that matched in step 1.5, comma-separated; empty is normal. The plugin's own library needs no list — the scaffolder installs all of it unconditionally, so there is nothing to compute here and nothing to get wrong. Global ones are the exception because they live outside the plugin and `~/.claude/` does not survive a cloud session.
 
 Invoke the `project-scaffolder` agent with this prompt (fill in every `{…}` placeholder):
 
@@ -197,7 +197,7 @@ GITHUB_OWNER: {the owner the repo will live under, or empty when GITHUB_REPO is 
 MODE: init
 PLUGIN_SOURCE_DIR: {absolute path determined above}
 TARGET_DIR: {absolute path to the new project directory}
-LIBRARY_GUIDELINES: {comma list computed from LIBRARY.md, or empty}
+GLOBAL_GUIDELINES: {absolute paths of matched ~/.claude/guidelines/ files, or empty}
 GITIGNORE_TEMPLATE: {typescript | python | rust | cpp}
 CI_LANGUAGE_TEMPLATE: {typescript | python | rust | cpp}
 RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}

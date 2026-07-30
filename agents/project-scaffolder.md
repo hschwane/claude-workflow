@@ -32,7 +32,7 @@ The `[PROJECT DECISIONS]` block contains:
 | `TARGET_DIR` | Absolute path to the new project directory |
 | `GITHUB_OWNER` | the owner the repo will live under, when `GITHUB_REPO` is not `no`. `{{REPO_URL}}` in `docs/dev/setup.md` is `https://github.com/{GITHUB_OWNER}/{project}` — without it you cannot build a clone URL, and you must not guess one |
 | `COPYRIGHT_HOLDER` | name for the `LICENSE` file's copyright line |
-| `LIBRARY_GUIDELINES` | comma list of guidelines to install. A bare name resolves against `{PLUGIN_SOURCE_DIR}/templates/guidelines/`; an **absolute path** is used as-is, which is how a user-global guideline from `~/.claude/guidelines/` gets installed |
+| `GLOBAL_GUIDELINES` | optional comma list of **absolute paths** to user-global guidelines from `~/.claude/guidelines/`, copied in addition to the library. The library itself is never listed here — all of it is installed unconditionally |
 | `GITIGNORE_TEMPLATE` | typescript / python / rust / cpp |
 | `CI_LANGUAGE_TEMPLATE` | typescript / python / rust / cpp |
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
@@ -99,7 +99,7 @@ Create all required directories (use `mkdir -p`) — **the fixed list below plus
 
 **Only when `GITHUB_REPO` is not `no`**, also create `{TARGET_DIR}/.github/workflows/` and `{TARGET_DIR}/.github/ISSUE_TEMPLATE/`. Creating them regardless is not harmless: the `.gitkeep` sweep in Step B then makes the empty directories permanent, so a local-only project ships a `.github/` it never asked for, against what `delivery.json` says and what `/workflow-update` will expect.
 
-Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/README.md` → `README.md` and `templates/guidelines/INDEX.md.template` → `INDEX.md` (the trigger table — rows come from Step C's library install).
+Into `.claude/guidelines/` (plugin-owned): copy `{PLUGIN_SOURCE_DIR}/templates/guidelines/README.md` → `README.md` and `templates/guidelines/INDEX.md.template` → `INDEX.md` **verbatim** — it already carries a row for every guideline in the library, because every project gets the whole library. Do not generate, filter or append rows.
 
 (The root CLAUDE.md points at `INDEX.md`; the index itself is not auto-loaded.)
 
@@ -230,19 +230,19 @@ The TypeScript scripts already exist in `package.json.template`, and `test` ther
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-feature.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/feature.md`
 - `{PLUGIN_SOURCE_DIR}/templates/github/issue-bug.md` → `{TARGET_DIR}/.github/ISSUE_TEMPLATE/bug.md`
 
-**If any installed guideline references a UI template** (today: `changelog.md`): copy `{PLUGIN_SOURCE_DIR}/templates/ui/changelog-template.html` → `{TARGET_DIR}/.claude/ui/changelog-template.html`, so the guideline's reference resolves inside the project.
+**Guidelines that reference a UI template** (today: `changelog.md`, which is always installed): copy `{PLUGIN_SOURCE_DIR}/templates/ui/changelog-template.html` → `{TARGET_DIR}/.claude/ui/changelog-template.html`, so the guideline's reference resolves inside the project.
 
-**If `DEPLOY` is `railway`:** install `railway.md` into `.claude/guidelines/` with its INDEX row whether or not it appears in `LIBRARY_GUIDELINES` — the deploy target is the trigger, and `/project-init` step 5 promises it. Then copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
+**If `DEPLOY` is `railway`:** copy `{PLUGIN_SOURCE_DIR}/templates/configs/railway.json` → `{TARGET_DIR}/railway.json` (repo root) — config-as-code pinning **watch paths** so Railway only redeploys on real app changes (the workflow commits docs/spec constantly; without this every such commit would rebuild). Watches everything except `docs/`, `tests/`, `.claude/`, `.github/`, and markdown.
 
-**Library guidelines — install the ones listed in `LIBRARY_GUIDELINES`:**
-`LIBRARY_GUIDELINES` is a comma-separated list of guideline filenames `/project-init` chose for this project's type/tech/deploy (e.g. `railway, maps, plots-graphs, telegram-bots, web-app-pwa`; may be empty). For each `<name>`:
-- Copy the source (`{PLUGIN_SOURCE_DIR}/templates/guidelines/<name>.md`, or the absolute path if one was given) → `{TARGET_DIR}/.claude/guidelines/<basename>`.
-- Append its row to `{TARGET_DIR}/.claude/guidelines/INDEX.md`, taking the trigger (left cell) from the table in `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md`:
-  `| <trigger row> | .claude/guidelines/<name>.md |`
+**Library guidelines — copy every `.md` in `{PLUGIN_SOURCE_DIR}/templates/guidelines/` into `{TARGET_DIR}/.claude/guidelines/`**, except `LIBRARY.md` and `INDEX.md.template`, which are plugin-side and never delivered. That is the whole step: no list, no matching, no INDEX rows to append — Step A already copied the complete index.
+
+**Do not filter.** A guideline whose subject this project has not touched yet is the point: nothing here is auto-loaded, `INDEX.md` is read only at plan/implement time, and the day the project grows a chart or a background job `/plan` finds the guideline already present. Installing a subset only means waiting for a later update to notice.
+
+Then, if `GLOBAL_GUIDELINES` is non-empty, copy each absolute path in it → `{TARGET_DIR}/.claude/guidelines/<basename>` and **append** a row for it to `INDEX.md`, taking the trigger text from the user-global `~/.claude/guidelines/INDEX.md`. These are the user's own guidelines, not the library's, so they are the one case that does add a row.
+
+Verify before moving on: the number of `.md` files in `.claude/guidelines/` (excluding `README.md` and `INDEX.md`) equals the number in the plugin's library, plus any globals. A short directory means a filter crept in.
 
 `.claude/guidelines/` is **plugin-owned** — `/workflow-update` replaces these files, so nothing project-specific goes in them. A project's own standing rules go to `.claude/memory/decisions.md` (a rule, dated and reasoned) or `gotchas.md` (a non-obvious fact).
-
-These carry the maintainer's standing "how I like X done" rules (Railway details + interface-for-portability, map caching/clustering/tooltips, chart UX, Telegram-bot structure, PWA version+update). `/plan` picks the matching one up when a ticket touches that area. If the list is empty, skip.
 
 ## Step D: Docs Templates
 

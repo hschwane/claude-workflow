@@ -197,7 +197,7 @@ templates/
 ├── src-claude.md.template, tests-claude.md.template, LICENSE-MIT.template
 ├── dev/                      ← developer doc templates: code-style (the engineering standards,
 │                               plugin-owned), setup, deploy, architecture, user-readme
-├── guidelines/               ← standing per-technology guidelines + LIBRARY.md (install-when index)
+├── guidelines/               ← standing per-technology guidelines (all installed in every project) + LIBRARY.md
 ├── ui/                       ← reusable UI templates a guideline references
 ├── configs/                  ← tsconfig, eslint, prettier, pyproject, CMakeLists, etc.
 ├── github/                   ← CI/release/dependabot workflow templates

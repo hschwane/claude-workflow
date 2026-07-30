@@ -1,16 +1,22 @@
-# Workflow guidelines index (plugin-owned — regenerated on update)
+# Workflow guidelines index (plugin-owned — replaced on update)
 
-Trigger → file map for `.claude/guidelines/`. Skills read THIS file (not the guideline bodies) at plan / implement / scaffold time; a body is read only when its trigger matches.
+Trigger → file map for `.claude/guidelines/`. Skills read THIS file (not the guideline bodies) at plan / implement / scaffold time; a body is read only when its trigger matches the task in front of you.
 
-Rows are generated from the workflow's guideline library and **rewritten on every `/workflow-update`** — don't hand-edit. Project-specific triggers go in `.claude/memory/decisions.md`.
+The whole library is installed in every project, so this table is the same everywhere and is **copied verbatim, never generated**. A row whose subject this project has never touched is inert, not a mistake — it is there so that the day the project *does* grow a background job or a chart, `/plan` finds the guideline without anyone having to install it first.
 
-<!-- Rows are appended below by /project-init, /project-onboard and /workflow-update — one per
-     installed guideline, e.g.:
-     Railway deploy, railway.json, deployment/hosting -> guidelines/<name>.md
-     (shown without table pipes and without a full path on purpose: a real-looking row
-     inside this comment greps as an installed guideline that is not there.)
-     Take the trigger text verbatim from the third column of the library's LIBRARY.md.
-     Append to the end of this file so the table stays contiguous. -->
+Replaced wholesale on every `/workflow-update` — don't hand-edit. Project-specific triggers, and any deliberate deviation from a guideline, go in `.claude/memory/decisions.md`, which updates never touch.
 
 | When the task involves… | Read |
 |---|---|
+| New app project, baseline requirements, logging/changelog/update mechanism, QA smoke-testing | `.claude/guidelines/app-baseline.md` |
+| Logging, structured logs, observability, PII redaction | `.claude/guidelines/logging.md` |
+| Backend/service architecture, layered app, use cases, repository pattern, external API client | `.claude/guidelines/service-architecture.md` |
+| Scheduled tasks, cron, retries, background jobs, timers, graceful shutdown | `.claude/guidelines/background-jobs.md` |
+| Web app / PWA, service worker, app version + update | `.claude/guidelines/web-app-pwa.md` |
+| UI design, mockup, design system, icons, responsive layout, tooltips | `.claude/guidelines/ui-frontend.md` |
+| Charts, graphs, plots, data viz, dashboards | `.claude/guidelines/plots-graphs.md` |
+| Maps, tiles, markers/pins, clustering, offline maps, map tooltips | `.claude/guidelines/maps.md` |
+| Changelog, release notes, in-app version history | `.claude/guidelines/changelog.md` |
+| AI integration, Claude Agent SDK, AI features, LLM, transcripts, token budget | `.claude/guidelines/ai-integration.md` |
+| Railway deploy, railway.json, deployment/hosting | `.claude/guidelines/railway.md` |
+| Telegram bot, commands, inline keyboards, webhooks/polling | `.claude/guidelines/telegram-bots.md` |

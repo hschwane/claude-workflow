@@ -12,6 +12,10 @@ ONBOARD = Path("skills/project-onboard/SKILL.md").read_text()
 UPDATE = Path("skills/workflow-update/SKILL.md").read_text()
 PKG = Path("templates/configs/package.json.template").read_text()
 INIT = Path("skills/project-init/SKILL.md").read_text()
+LIB = Path("templates/guidelines/LIBRARY.md").read_text()
+GIDX = Path("templates/guidelines/INDEX.md.template").read_text()
+GUIDELINES = sorted(f.name for f in Path("templates/guidelines").glob("*.md")
+                    if f.name not in ("LIBRARY.md", "INDEX.md.template", "README.md"))
 CI = Path("templates/scripts/ci.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 
@@ -137,6 +141,33 @@ CASES = [
     # back into filling and running the gate the skill owns.
     ("gate-filling instructions are scoped to init",
      "in init mode only" in SCAFF and "**Verify (init only):**" in SCAFF),
+
+    # Every guideline in the library must have a row in BOTH the library table and the
+    # shipped INDEX. INDEX.md.template is copied into projects verbatim now, so a guideline
+    # missing from it ships as a file nothing ever reads — silently, since nothing errors.
+    ("every guideline has a LIBRARY row", all(g in LIB for g in GUIDELINES)),
+    ("every guideline has an INDEX row", all(g in GIDX for g in GUIDELINES)),
+
+    # ...and no INDEX row may point at a file that does not exist, which would send /plan
+    # to read a missing path.
+    ("every INDEX row names a real guideline",
+     all(line.split("guidelines/")[1].split("`")[0] in GUIDELINES
+         for line in GIDX.splitlines()
+         if line.startswith("|") and "guidelines/" in line)),
+
+    # The install decision is gone: every project gets the whole library, and relevance is
+    # decided per task by the trigger table. Selective install meant a project that grew a
+    # chart or a background job waited for an update run to be offered the guideline.
+    ("the scaffolder installs the whole library",
+     "copy every `.md` in `{PLUGIN_SOURCE_DIR}/templates/guidelines/`" in SCAFF
+     and "Do not filter" in SCAFF),
+    ("no skill still passes a per-project guideline list",
+     not any("LIBRARY_GUIDELINES" in t for t in (SCAFF, INIT, ONBOARD, UPDATE))),
+    ("the update installs the library rather than offering it",
+     "Install the complete library, every time" in UPDATE and "no offer set" in UPDATE),
+    ("INDEX.md is copied, not regenerated",
+     "copied verbatim from `INDEX.md.template`" in UPDATE
+     and "Do not rebuild it row-by-row" in UPDATE),
 ]
 
 bad = [name for name, ok in CASES if not ok]

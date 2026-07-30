@@ -76,7 +76,7 @@ The mechanical install is the same one `/project-init` does, so **it is not dupl
 
 **First, install dependencies.** Onboard mode skips the manifest, so nothing else installs them — and `ci.sh` cannot run a single check without `node_modules`. Run the project's install (`npm install` / `uv sync` / `cargo fetch`) and, if its CI uses `npm ci`/`--locked` and no lockfile is committed, commit one.
 
-**Decide which guidelines match now**, before delegating — the scaffolder installs the list you pass it, so deciding afterwards means it installs nothing. Use the detection hints in 3e.
+**Guidelines need no decision before delegating** — the scaffolder installs the plugin's whole library unconditionally. The only thing to gather first is any **user-global** guideline (`~/.claude/guidelines/`) that fits this codebase: pass those absolute paths as `GLOBAL_GUIDELINES`, since they live outside the plugin and `~/.claude/` is ephemeral in cloud sessions. Matching the library against the codebase still happens, in 3e — but for *reading*, not for installing.
 
 Then invoke the `project-scaffolder` agent with `MODE: onboard` (read that agent's **Onboard mode** section: never overwrite anything that exists, skip what the project provides, do not create the init-only artifacts, install the rest). Pass the decisions block from its **Input Fields** table, filled from the step 1 analysis and the step 2 answers, plus:
 
@@ -148,14 +148,18 @@ If there is no CI at all, offer `templates/github/ci-{language}.yml` — **subst
 
 #### 3e. Guidelines and the baseline gap check
 
-**Which guidelines matched** was decided in 3a and installed by the scaffolder — this section is the detection reference it used, not a second install. Consult `templates/guidelines/LIBRARY.md` and, from the codebase analysis, work out which fit; offer them to the user, and pass the accepted list as `LIBRARY_GUIDELINES`. Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway`; a backend/service with domain/application/infrastructure layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit). Skip any the user declines.
+**The scaffolder installed the whole library in 3a** — there is nothing to select, offer or decline, and no INDEX row to add. What this section is for is working out which guidelines describe *this* codebase, so you can **read** them before drafting the baseline tickets below and so the report tells the user which ones are now live for their project.
+
+Detection hints: a map library (Leaflet/MapLibre/Mapbox) → `maps`; a charting library or hand-rolled SVG/canvas charts → `plots-graphs`; a Telegram lib (grammY/telegraf/python-telegram-bot) → `telegram-bots`; a web app with a PWA manifest / service worker → `web-app-pwa`; Railway → `railway`; a backend/service with domain/application/infrastructure layering or non-trivial business logic → `service-architecture`; a custom logging setup worth standardizing → `logging`; cron/scheduled jobs, retry logic, or a long-running process → `background-jobs`; any app bigger than a small script/tool → `app-baseline` (plus `changelog`, `ui-frontend` and `ai-integration` where they fit).
+
+A guideline that does **not** match is still installed and still costs nothing — say so if the user asks why `telegram-bots.md` is sitting in their C++ repo: `INDEX.md` is read only when a task's subject matches a trigger, so an unmatched row is never followed.
 
 **Check the developer-utility baseline and draft tickets for what's missing.** For anything bigger than a small script, check what `app-baseline.md` requires against what the project actually has — structured logging with adjustable levels, version visibility, an update mechanism, an in-app changelog, a way for Claude to smoke-test a live instance, and an access gate / API token auth where applicable. For each gap, create a backlog draft in `docs/specs/backlog/` (from `spec.md.template`; remove that directory's `.gitkeep` once a real spec lands in it) and tell the user it's there. These are debugging and development infrastructure, so they're worth doing before the next feature — say that, but don't block onboarding on them. A gap the user judges irrelevant gets dropped with a stated reason, not silently.
 
 #### 3f. Railway (if deployed there)
 
 If the project already deploys on Railway (a `railway.json`/`railway.toml` at the repo root, a Railway CI step, or the user confirms it):
-- **Install the Railway guideline** — `templates/guidelines/railway.md` → `.claude/guidelines/railway.md` plus its INDEX row: `| Railway deploy, railway.json, deployment/hosting | .claude/guidelines/railway.md |`.
+- **Read `.claude/guidelines/railway.md`** — already installed with the rest of the library; it holds the scale-to-zero, region, URL and portability rules the steps below assume.
 - **Watch paths** — so the workflow's constant docs/spec commits don't trigger redeploys:
   - No `railway.json`/`railway.toml`: offer `templates/configs/railway.json` at the repo root.
   - One exists without `build.watchPatterns`: offer to add the array, merging into the existing `build` object.

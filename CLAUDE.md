@@ -35,7 +35,7 @@ templates/                   ← files copied into projects by project-init / pr
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
   memory/                    ← decisions / gotchas / tech-debt templates (topic index in the head) + .gitignore
-  guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README + INDEX, LIBRARY.md (install-when index), and the library files (railway, maps, plots-graphs, web-app-pwa, telegram-bots, service-architecture, logging, background-jobs, app-baseline, changelog, ui-frontend, ai-integration) installed on match. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
+  guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README, INDEX.md.template (shipped verbatim, one row per guideline), LIBRARY.md (plugin-side catalogue), and the 12 library files. **Every project gets all of them** — relevance is per task, decided by the INDEX triggers, not per project at install time. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
   ui/                        ← reusable UI templates referenced by a guideline (changelog-template.html, self-contained, re-skin via CSS vars)
   scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
 ```

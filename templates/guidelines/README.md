@@ -23,4 +23,8 @@ A matching guideline is a strong default worth starting from — not a mandate t
 
 ## Which files are here
 
-Only the library guidelines that matched this project at init/onboard time, refreshed on every update. `/workflow-update` offers newly-matching ones as the project grows — it never force-installs a file you removed.
+**All of them.** The whole library is installed in every project and refreshed on every update. A guideline whose subject this project has never touched costs nothing: nothing here is auto-loaded, and `INDEX.md` is read only at plan/implement time.
+
+That is deliberate. Relevance is a property of the *task*, not of the project — and the trigger table already decides it. Filtering again at install time only meant a project that grew a chart or a background job later had to wait for an update run to notice and offer the guideline, which is exactly the case that kept being missed.
+
+So there is no "install this one" step, and removing a file here does not stick — the next update puts it back. If you don't want a guideline's advice in this project, record a dated decision in `.claude/memory/decisions.md` naming it. That is the mechanism, and it survives updates.
