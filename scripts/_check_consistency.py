@@ -176,7 +176,10 @@ CASES = [
     ("the ticket-first rule is in the always-loaded file",
      "## No implementation without a ticket" in PCLAUDE
      and "`/draft`" in PCLAUDE
-     and "The only exception is the user explicitly asking" in PCLAUDE),
+     and "The only exception is the user explicitly asking" in PCLAUDE
+     # A debug edit that happens to fix the bug is the tempting one to just keep —
+     # it has had no review, no tests and no /verify. The rule has to say so.
+     and "is not mergeable" in PCLAUDE),
 ]
 
 bad = [name for name, ok in CASES if not ok]

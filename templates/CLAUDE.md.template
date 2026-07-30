@@ -78,7 +78,9 @@ Several tasks in one message: work through them in order. In unsupervised mode a
 
 **The only exception is the user explicitly asking** — "just fix it, no ticket". Not urgency, not a one-line change, not your own sense that a ticket is overkill here; if you think that, ask. Say out loud when you take the override. Unsupervised mode cannot grant it — draft instead.
 
-**Still inside the ticket:** fixing what its own gate, review or smoke test turned up. **Not implementation:** reading, exploring, answering, running the gate.
+**A red gate needs no spec** — the ticket's own, or `/pr`'s or `/release`'s. Fixing what a gate caught is not new scope. **Not implementation at all:** reading, exploring, answering, running the gate.
+
+**Debug edits are throwaway, not work in progress.** Changing code to test a hypothesis needs no ticket — but that diff **is not mergeable**, however right it looks: no review, no tests, no `/verify`. Carry it into the ticket you raise, as reference for what the cause appears to be, and let the full pass re-derive the fix properly. If it seems too trivial to be worth a ticket, **ask** before applying it on the fly.
 
 ## Scope — build the whole ticket
 
