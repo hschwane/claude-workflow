@@ -14,6 +14,7 @@ PKG = Path("templates/configs/package.json.template").read_text()
 INIT = Path("skills/project-init/SKILL.md").read_text()
 LIB = Path("templates/guidelines/LIBRARY.md").read_text()
 GIDX = Path("templates/guidelines/INDEX.md.template").read_text()
+PCLAUDE = Path("templates/CLAUDE.md.template").read_text()
 GUIDELINES = sorted(f.name for f in Path("templates/guidelines").glob("*.md")
                     if f.name not in ("LIBRARY.md", "INDEX.md.template", "README.md"))
 CI = Path("templates/scripts/ci.sh").read_text()
@@ -168,6 +169,14 @@ CASES = [
     ("INDEX.md is copied, not regenerated",
      "copied verbatim from `INDEX.md.template`" in UPDATE
      and "Do not rebuild it row-by-row" in UPDATE),
+
+    # The workflow's central rule has to live in the ALWAYS-LOADED file, or it only
+    # applies when someone happens to read a skill. It names the route (/draft) and the
+    # one exception, because a prohibition with no alternative just gets worked around.
+    ("the ticket-first rule is in the always-loaded file",
+     "## No implementation without a ticket" in PCLAUDE
+     and "`/draft`" in PCLAUDE
+     and "The exception must be explicit" in PCLAUDE),
 ]
 
 bad = [name for name, ok in CASES if not ok]

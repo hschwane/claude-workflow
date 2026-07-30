@@ -72,6 +72,16 @@ Use them when they fit; don't ask first. Anything that reads many files or produ
 
 Several tasks in one message: work through them in order. In unsupervised mode apply the autonomous defaults and don't stop between them.
 
+## No implementation without a ticket
+
+**Every change to this project's behaviour goes through `/draft` → `/plan` → `/implement` → `/verify`.** There is exactly one exception and it is the user saying so.
+
+**A request in prose is not permission to start editing.** "Add X", "the button is broken", "make it do Y" is a ticket waiting to be written. Run `/draft` — or `/plan`, if it is already clear enough to spec — and say that is what you are doing. Code written straight from a chat message has no spec, so no acceptance criteria, so nothing for `/verify` to check it against: unverifiable by construction, which is the whole reason for this rule.
+
+**The exception must be explicit** — "just fix it, no ticket", "skip the workflow". Urgency is not it, nor a one-line change, nor obviousness, nor your own sense that a ticket is overkill here: if you think so, **say so and ask**. Taking the override, say plainly that you are working outside the workflow. In unsupervised mode nobody can grant it — draft the ticket and carry on.
+
+**Not exceptions, because they are already inside a ticket:** fixing what the current ticket's gate, review or smoke test turned up, and the commits skills make for themselves (a `/release` bump, a spec update, a memory entry). **Not implementation at all:** reading, exploring, answering, running the gate, `/consult`.
+
 ## Scope — build the whole ticket
 
 The ticket's goal and acceptance criteria are the contract. **Never defer, stub, or mark "out of scope for later" anything the ticket requires** — core functionality, the hard part, a criterion, or the error and edge handling those criteria imply. Difficulty or size is not a reason to cut scope; that *is* the work. Do it, `/consult` if stuck, or `## Blocked` if it truly needs a human. "Out of scope" is only for genuinely separable extras. If a ticket is too big, say so and split it with the user — never quietly ship the easy half.
