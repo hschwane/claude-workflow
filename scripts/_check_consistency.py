@@ -49,10 +49,15 @@ CASES = [
     # authoring comment, which shipped into projects and killed CI on the git-flow
     # integration branch. Neither failure raises an error — the YAML is valid and the
     # trigger just matches nothing.
-    ("CI templates tokenise the whole branch list",
-     all("branches: {{CI_BRANCHES}}" in Path(p).read_text()
+    # ...and BOTH triggers carry it. `push` gates the human who merged locally; `pull_request`
+    # gates the human before they merge. A substitution that stops at the first match leaves a
+    # live token in the PR trigger — and every writer of this file is told to fill both.
+    ("CI templates tokenise the whole branch list on both triggers",
+     all(Path(p).read_text().count("branches: {{CI_BRANCHES}}") == 2
          and "{{TRUNK_BRANCH}}" not in Path(p).read_text()
          for p in Path("templates/github").glob("ci-*.yml"))),
+    ("every writer of the CI workflow says to fill both occurrences",
+     all("twice" in t for t in (SCAFF, ONBOARD, UPDATE))),
 
     # Every consumer of that token must fill it, or the rename silently orphans one.
     ("every writer of the CI workflow fills CI_BRANCHES",

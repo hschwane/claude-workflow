@@ -7,6 +7,7 @@ on:
     branches: {{CI_BRANCHES}}
     paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
   pull_request:
+    branches: {{CI_BRANCHES}}   # the PR TARGET branch, not the source — gate before the human merges
     paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
   workflow_dispatch:        # manual backup — Claude can trigger when a local run can't
 concurrency:

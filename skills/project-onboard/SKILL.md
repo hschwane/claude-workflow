@@ -144,7 +144,7 @@ If `.github/workflows/` already has CI, **do not leave it alone.** The `CLAUDE.m
 
 Diff its steps against `ci.sh`, show the user the difference, and offer to replace the check steps with `- run: bash scripts/ci.sh full`, keeping the project's own triggers, matrix and any deploy/publish jobs (`templates/github/ci-{lang}.yml` is the shape to aim at). If the user declines, record the divergence in `.claude/memory/tech-debt.md` and say so in the report.
 
-If there is no CI at all, offer `templates/github/ci-{language}.yml` — **substituting `{{CI_BRANCHES}}` with the whole bracketed list**: `[master]` for a `main-only` repo whose trunk is `master`, `[master, develop]` under git-flow. Shipping it unsubstituted, or with `main` assumed, gives a workflow that never fires on a trunk push and says nothing about it — valid YAML, dead trigger.
+If there is no CI at all, offer `templates/github/ci-{language}.yml` — **substituting `{{CI_BRANCHES}}` with the whole bracketed list**: `[master]` for a `main-only` repo whose trunk is `master`, `[master, develop]` under git-flow. The token appears **twice** — on the `push` trigger and on `pull_request` — so fill both. Shipping it unsubstituted, or with `main` assumed, gives a workflow that never fires on a trunk push and says nothing about it — valid YAML, dead trigger.
 
 #### 3e. Guidelines and the baseline gap check
 
