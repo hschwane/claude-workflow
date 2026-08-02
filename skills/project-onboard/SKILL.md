@@ -137,8 +137,8 @@ Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong
 **Do not reach step 5 with a red gate.** If it cannot be made green, stop: write the reason into `.claude/memory/tech-debt.md` and report `Onboarding incomplete — gate red` instead of the step 6 success block. Everything downstream (`/commit`, `/verify`, `/ship`, `/release`) is built on this script passing.
 
 Fill `scripts/release.sh` the same way — only its deploy step may be a no-op. Then fill the two other project-facing scripts:
-- **`scripts/healthcheck.sh`** — a `version_probe` per environment, from whatever the project exposes. Delete the `reference)` branch unless this project has a reference environment.
-- **`scripts/dev.sh`** — the project's existing dev-run command, plus whatever migration and seed steps a test instance needs. `{{DEV_INFO}}` must be enough to drive the app blind: the exact URL or command and any test credentials, because the smoke-tester gets nothing else.
+- **`scripts/healthcheck.sh`** — a `version_probe` against whatever carries the version once released: a health endpoint, a registry (`npm view`), or the built artifact's `--version`. Not only for deployed projects. Delete the `reference)` branch unless this project has a reference environment. Where the project publishes and deploys nothing, there is genuinely no probe — say so, and record the `HEALTH_ALLOW_EMPTY=1` requirement in `tech-debt.md` rather than inventing one.
+- **`scripts/dev.sh`** — the project's existing dev-run command plus any migration and seed steps a test instance needs. `{{DEV_INFO}}` must be enough to drive the thing blind: the exact URL or command and any test credentials, because the smoke-tester gets nothing else. Delete `{{DEV_RUN}}` for a library or CLI — there is nothing to keep running.
 
 `scripts/gate-status.sh` and `scripts/criteria-check.sh` are plugin logic with no tokens — nothing to fill.
 

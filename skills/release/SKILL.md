@@ -71,10 +71,10 @@ The tag is the version record; it triggers nothing (the release workflow is disp
 
 ### 10. Post-release verification
 
-**Wait, then verify, then fix.**
+**Wait, then verify, then fix.** This is not only for deployed apps — the subject is whatever now carries the version: a service's health endpoint, a registry (`npm view`), or the built artifact's own `--version`. Skip it only where the project publishes and deploys nothing at all, which is also the only case where `healthcheck.sh` has no probes.
 
-1. **Wait for the deploy to settle**, with a timeout. Where the platform deploys on push, the push returns immediately while the build runs for minutes — a check fired straight after it probes the *old* version and reports a release that has not happened.
-2. **`scripts/healthcheck.sh {version}`** against production. It refuses to confirm a version unless a probe actually compares against it: reaching the service proves it answers, not that the new build is live.
+1. **Wait for it to become visible**, with a timeout. A platform that deploys on push returns immediately while it builds for minutes, and a registry takes time to propagate — a check fired straight after the release probes the *old* version and reports a release that has not happened.
+2. **`scripts/healthcheck.sh {version}`**. It refuses to confirm a version unless a probe actually compares against it: reaching the thing proves it answers, not that the new build is what answered.
 3. **Unhealthy → fix it.** Roll back to protect users while you diagnose, then fix forward. A rollback is not the resolution, and a release left rolled back with no diagnosis is an unfinished job. The rollback procedure is in `docs/dev/deploy.md`.
 
 No artifact is recorded here, deliberately: liveness is a current fact, not a historical one. A record saying "the release steps executed" can be true while the service is down. Re-running the healthcheck answers the real question, which is why it is a script and not a note.

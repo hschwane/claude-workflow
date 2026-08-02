@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Canonical health entrypoint — "is it up, and is it serving the version I think?"
+# Canonical health entrypoint — "is the thing we just released the thing that is now live?"
 #
 #   ./scripts/healthcheck.sh                      → production, liveness only
 #   ./scripts/healthcheck.sh 1.4.0                → production, and assert 1.4.0 is live
 #   ./scripts/healthcheck.sh 1.4.0 --env reference
+#
+# NOT only for deployed apps. The subject is whatever carries the version once released:
+#   a service    → its /health endpoint
+#   a package    → `npm view <pkg> version`, `pip index versions <pkg>`
+#   a CLI/binary → the built artifact's own `--version`
+# A project with genuinely nothing versioned to probe — an internal tool that publishes and
+# deploys nowhere — sets HEALTH_ALLOW_EMPTY=1 and records why in tech-debt.md. That is the
+# only case with no probes, and it is rare.
 #
 # Called after a release (once the deploy settles), after a reference deploy, and standalone —
 # for a rollback decision, or any time someone asks "what is actually running right now?".

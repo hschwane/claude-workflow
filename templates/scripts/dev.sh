@@ -2,6 +2,7 @@
 # Canonical dev-environment entrypoint — brings up the environment Claude tests in.
 #
 #   ./scripts/dev.sh          → prepare (deps, migrations, test data) and start, in the foreground
+#                               (a library or CLI has nothing to start: it prepares and exits)
 #   ./scripts/dev.sh --info   → print how to reach it (URL, test credentials) and exit
 #
 # `--info` exists so the caller can hand its output to the smoke-tester verbatim as HOW_TO_RUN.
@@ -62,6 +63,10 @@ fi
 
 echo "── ready ──"
 printf '%s\n' "$DEV_INFO"
-# The last line RUNS the app and does not return; the caller backgrounds this script and stops
-# it when the test is done. e.g. exec npm run dev | exec uv run uvicorn app:app --reload
+# For a long-running app the last line RUNS it and does not return; the caller backgrounds this
+# script and stops it when the test is done.
+#   e.g. exec npm run dev | exec uv run uvicorn app:app --reload
+# A library or a CLI has nothing to keep running: DELETE the line. The script then prepares the
+# environment, prints DEV_INFO and exits 0 — which is the whole job there, and DEV_INFO should
+# say how to invoke the thing (the command, or the import to try in a REPL).
 {{DEV_RUN}}

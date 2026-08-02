@@ -30,6 +30,8 @@ SPEC = Path("templates/spec.md.template").read_text()
 SETTINGS = Path("skills/workflow-settings/SKILL.md").read_text()
 DELIVERY = json.loads(Path(".claude-plugin/delivery.json").read_text())
 GATEST = Path("templates/scripts/gate-status.sh").read_text()
+HEALTHSH = Path("templates/scripts/healthcheck.sh").read_text()
+DEVSH = Path("templates/scripts/dev.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 
 CASES = [
@@ -272,6 +274,26 @@ CASES = [
     ("every mixed manifest entry is named in the update's merge list",
      not [e["path"] for e in DELIVERY["entries"]
           if e["class"] == "mixed" and f'`{e["path"]}`' not in UPDATE]),
+
+    # The new scripts were written for a deployed web app, and the workflow also supports
+    # libraries, CLIs and internal tools. healthcheck.sh HARD-FAILS with no probes, so a
+    # library whose only guidance was "the endpoint from deploy.md" could not release at all.
+    ("healthcheck guidance covers projects that deploy nothing",
+     all("npm view" in doc for doc in (SCAFF, ONBOARD, HEALTHSH))
+     and "HEALTH_ALLOW_EMPTY" in SCAFF and "HEALTH_ALLOW_EMPTY" in ONBOARD),
+    ("dev.sh guidance covers projects with nothing to keep running",
+     all("library or" in doc for doc in (SCAFF, ONBOARD, DEVSH))),
+
+    # Three scripts gained authoring blocks this release. A block left in ships instructions
+    # addressed to the scaffolder as if they were project documentation — the exact defect the
+    # deletion step exists for, which previously named only two files.
+    ("the authoring-note deletion names every script that has one",
+     all(f"`{n}`" in SCAFF.split("Delete the authoring notes")[1][:400]
+         for n in ("ci.sh", "release.sh", "healthcheck.sh", "dev.sh", "deploy-reference.sh"))),
+
+    # An anchored `^# e.g.` sweep reports clean while healthcheck.sh's indented hints ship.
+    ("the authoring sweep is told the hints are not all at column 0",
+     "unanchored" in SCAFF),
 
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
