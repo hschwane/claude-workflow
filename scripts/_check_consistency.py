@@ -295,6 +295,26 @@ CASES = [
     ("the authoring sweep is told the hints are not all at column 0",
      "unanchored" in SCAFF),
 
+    # Found by an actual scaffolder run. `vitest related --run --passWithNoTests=false` fails
+    # whenever the selection is empty — which is every clean tree, i.e. exactly the state
+    # CONTRIBUTING tells humans to run `ci.sh fast` in. Strict belongs on the full suite only.
+    ("selection is permissive about collecting nothing, the full suite is not",
+     "--passWithNoTests=false" in SCAFF
+     and "`vitest related --run --passWithNoTests`" in SCAFF
+     and "an empty selection is normal" in SCAFF.lower()
+     and "collecting nothing is NORMAL and must PASS" in CI),
+
+    # ...and the same run found that filling only a version_probe broke the documented
+    # no-argument call, because it compares against an empty string and fails every time.
+    ("healthcheck skips version probes when no version was asked for",
+     '[ -z "$VERSION" ] && return 0' in HEALTHSH and "FILL BOTH KINDS" in HEALTHSH),
+
+    # REFERENCE_ENV: yes forced deploy-reference.sh to be installed, while the script itself
+    # told the reader to delete it when the platform tracks develop — the normal Railway setup.
+    ("the reference script is installed only where something must actually run",
+     "does not track `develop` itself" in SCAFF
+     and "absence is normal" in PR),
+
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
          for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",

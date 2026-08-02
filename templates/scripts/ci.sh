@@ -98,11 +98,20 @@ check() {
 # pass and the gate reports green having executed no test at all.
 #
 # It cannot count individual tests — no generic way to parse every runner's output — so the
-# other half of the guarantee lives in the stage command itself. Configure the runner so that
-# collecting NOTHING is a failure, because the default varies and two of the three common
-# ones are wrong: vitest and `go test ./...` exit 0 on an empty selection, pytest exits 5,
-# jest exits 1. Use `vitest --passWithNoTests=false`, `jest --passWithNoTests=false`, and for
-# pytest treat exit 5 as failure (it is, by default — do not add `|| true`).
+# other half of the guarantee lives in the stage command itself, and it applies to ONE of the
+# two unit stages:
+#
+#   {{UNIT_TESTS}} (full)      → collecting nothing IS a failure. Make it one: the defaults
+#                                disagree (vitest and `go test ./...` exit 0, pytest exits 5,
+#                                jest exits 1), so pass `--passWithNoTests=false` where the
+#                                runner has it. An empty full suite means the project has no
+#                                tests, which is exactly what this guard exists to catch.
+#   {{UNIT_TESTS_SELECTED}}    → collecting nothing is NORMAL and must PASS. The selection is
+#                                empty whenever the diff is empty — which is the state of every
+#                                clean tree, including right after a commit — and whenever the
+#                                changed file has no test reaching it yet. Making that fail
+#                                turns `scripts/ci.sh fast` red on correct code, and CONTRIBUTING
+#                                tells humans to run exactly that before pushing.
 check_tests() {
   TESTS=$((TESTS + 1))
   check "$@"

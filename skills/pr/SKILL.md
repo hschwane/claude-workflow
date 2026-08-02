@@ -86,7 +86,9 @@ approval. Otherwise merge: landing the branch is what `/pr` was invoked to do.
 Only where a reference environment exists (git-flow, and the project chose to have one). It follows
 `develop`, so it is stale the moment this merge lands.
 
-Run **`scripts/deploy-reference.sh`**, then `scripts/healthcheck.sh --env reference`.
+If `scripts/deploy-reference.sh` exists, run it, then `scripts/healthcheck.sh --env reference`.
+
+**Its absence is normal, not a gap.** A platform that watches `develop` itself deploys on the push, so there is nothing to run — just verify with `scripts/healthcheck.sh --env reference` once it has settled. `docs/dev/deploy.md` says which case this project is.
 
 If you do not run it, push the merge commit **without** `[skip ci]` so `reference-deploy.yml` does
 it instead. A workflow alone cannot be relied on here: `[skip ci]` suppresses *every* workflow for

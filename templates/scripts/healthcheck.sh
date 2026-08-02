@@ -45,6 +45,11 @@ echo "▶ healthcheck.sh ($ENVIRONMENT${VERSION:+ · expecting $VERSION})"
 #
 #   * Never append `|| true`. `probe` exits before the suffix is evaluated, so it cannot hide
 #     a failure — it just fails with a confusing message instead of the real one.
+#   * FILL BOTH KINDS. A plain `probe` answers "is it up" and runs always; a `version_probe`
+#     answers "is it the new build" and runs only when a version was passed. With only a
+#     version_probe, the no-argument call has nothing to run and reports "no probes configured";
+#     with only a plain probe, asking for a version is refused. Both guards below say which is
+#     missing, so a partial fill fails loudly rather than quietly.
 #   * A probe that only proves the endpoint ANSWERS is not a healthcheck. `curl -fsS /health`
 #     returns 200 from the old version too; `node dist/index.js --version` prints a version and
 #     throws it away, so a release of 9.9.9 still serving 0.2.0 exits 0. Compare against
@@ -71,8 +76,11 @@ probe() {
   exit "$code"
 }
 
-# A probe that compares the live version against the expected one.
+# A probe that compares the live version against the expected one. Skipped entirely when no
+# version was asked for: with VERSION empty it would compare against "" and fail every time,
+# which silently broke the documented no-argument (liveness) call.
 version_probe() {
+  [ -z "$VERSION" ] && return 0
   VERSION_PROBES=$((VERSION_PROBES + 1))
   probe "$@"
 }

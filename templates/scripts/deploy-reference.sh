@@ -62,9 +62,9 @@ echo "▶ deploy-reference.sh → $REFERENCE_TARGET"
 
 if [ "$STEPS" -eq 0 ] && [ "${REFERENCE_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ deploy-reference.sh: no steps are configured — this deployed nothing." >&2
-  echo "  If the platform tracks the develop branch by itself, there is genuinely nothing to" >&2
-  echo "  run here: delete this script and the reference-deploy workflow instead of leaving a" >&2
-  echo "  no-op that looks like it did something. Otherwise fill the steps." >&2
+  echo "  A platform that tracks the develop branch itself needs no script at all — in that" >&2
+  echo "  case this file should never have been installed. Delete it and reference-deploy.yml" >&2
+  echo "  together, rather than leaving a no-op that looks like it did something." >&2
   exit 1
 fi
 
