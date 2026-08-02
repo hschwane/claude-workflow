@@ -62,11 +62,11 @@ Ask (in chat — plain message, wait for the reply):
 
 **Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can and ask for the rest rather than guessing:
 - from the step 1 analysis: `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`), `BRANCHING_MODEL`
-- fixed or conditional: `ci-on-claude: no`; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
+- fixed or conditional: `ci-on-claude: no`; `REVIEW_DEPTH: critical-only` (the marked default — an onboarded project starts where every existing project already effectively is); `REFERENCE_ENV` only ever `yes` under `git-flow`, and only if the user wants one; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
 - from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION`
 - mechanically, without asking: `PROJECT_NAME` (the directory or the manifest), `LANGUAGE`, `TODAY`, `PLUGIN_SOURCE_DIR`, `TARGET_DIR`. `PROJECT_DESCRIPTION` needs judgment — draft it from the README and confirm it, don't invent one silently.
 
-Five of these values land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/commit`, `/pr` and `/release`.
+Several of these land in the `workflow-settings` block of the auto-loaded root `CLAUDE.md` and drive `/verify`, `/pr` and `/release`. Take the exact list and each default from `/workflow-settings` rather than counting them here — a number in prose goes stale the first time a setting is added or removed.
 
 ### 3. Install Workflow Infrastructure
 
@@ -164,7 +164,7 @@ If the project already deploys on Railway (a `railway.json`/`railway.toml` at th
   - No `railway.json`/`railway.toml`: offer `templates/configs/railway.json` at the repo root.
   - One exists without `build.watchPatterns`: offer to add the array, merging into the existing `build` object.
   - It already has them: leave them — a deliberate choice; just mention the docs/spec-commit rationale.
-- Set `deploy: railway` in `workflow-settings` and record platform settings, health check and required secrets in `docs/dev/deploy.md`. If the app serves markdown/docs/tests content at runtime, drop the matching `!` line from `railway.json` and note the exception.
+- Record the platform, the environment table, health check and required secrets in `docs/dev/deploy.md` — that file is where the deploy target lives; there is no `deploy` setting. If the app serves markdown/docs/tests content at runtime, drop the matching `!` line from `railway.json` and note the exception.
 
 #### 3g. Other root files
 

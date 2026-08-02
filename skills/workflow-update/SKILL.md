@@ -163,12 +163,11 @@ v2 wrote these as prose. Map what you find onto the v3 values:
 | | "git-flow", "develop branch", "release branches" | `git-flow` |
 | `trunk-branch` | no v2 equivalent — v2 hardcoded `main`/`master` in every workflow | **Ask the repo, not the docs** — resolve in the order below. Never the template default, and never `lifecycle.md`'s boilerplate. |
 | `version-source` | the manifest named in `release.md` | one of the values `/workflow-settings` allows — see below |
-| `deploy` | the platform named in `deploy.md` | one of the values `/workflow-settings` allows — see below |
 | `github` | issues/labels mirrored | `yes` / `no` |
 | `ci-on-claude` | CI runs on Claude's own pushes | `yes` / `no` |
 | `release-runner` | release runs via GitHub Actions | `ci`, otherwise `local` |
 
-**Take the allowed values from `/workflow-settings`, not from here.** That skill's table is authoritative for `deploy` (`railway` · `vercel` · `aws` · `self-hosted` · `manual` · `none`) and `version-source` (a manifest path, `VERSION`, or `none`). Map the v2 prose onto one of those; if none fits, ask. Writing a value outside the set — `docker`, a free-text platform name — puts something into an always-loaded block that `/workflow-settings` will reject the first time anyone tries to change it.
+**Take the allowed values from `/workflow-settings`, not from here.** That skill's table is authoritative for `version-source` (a manifest path, `VERSION`, or `none`) and for `review-depth` (`critical-only` · `critical+complex` · `always`; take the marked default). There is no `deploy` setting — the platform lives in `docs/dev/deploy.md`'s environment table, and a v2 block that carries a `deploy:` line simply drops it. Map the v2 prose onto one of those; if none fits, ask. Writing a value outside the set — `docker`, a free-text platform name — puts something into an always-loaded block that `/workflow-settings` will reject the first time anyone tries to change it.
 
 **`version-source` has a terminal branch:** a project with no manifest at all (a scripts or docs repo) has nothing to bump — set it to `none` and say so, so `/release` asks for the version instead of reading a file that isn't there. But `none` is only right when nothing is versioned: if the project has no manifest yet its release workflow publishes a package, **ask** — and say what the valid answers are: an existing file path, or `none`. `/workflow-settings` validates this by checking the file exists, so naming a manifest that has not been created yet produces a value it will later reject. Set `none` and record restoring the manifest as tech debt.
 

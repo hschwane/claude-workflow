@@ -15,6 +15,7 @@ REL = Path("templates/scripts/release.sh").read_text()
 HEALTH = Path("templates/scripts/healthcheck.sh").read_text()
 DEPREF = Path("templates/scripts/deploy-reference.sh").read_text()
 GATEST = Path("templates/scripts/gate-status.sh").read_text()
+CRIT = Path("templates/scripts/criteria-check.sh").read_text()
 
 
 CHECK_STAGES = ("FORMAT_CHECK", "LINT", "TYPECHECK")
@@ -125,6 +126,20 @@ def gate_status(record=None, *, commits=("code",), dirty=False, want="full"):
                               capture_output=True).returncode
 
 
+def crit(spec):
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "scripts").mkdir()
+        (Path(d) / "scripts" / "criteria-check.sh").write_text(CRIT)
+        (Path(d) / "s.md").write_text(spec)
+        return subprocess.run(["bash", "scripts/criteria-check.sh", "s.md"], cwd=d,
+                              capture_output=True).returncode
+
+
+_C2 = "## Acceptance Criteria\n- run x -> Z\n- bad w -> V\n\n"
+_TBL = ("## Criteria verification\n| Criterion | Expected | Observed | Source |\n|---|---|---|---|\n"
+        '| "run x -> Z" s.md:2 | Z | Z | manual run |\n'
+        '| "bad w -> V" s.md:3 | V | V | test asserts V |\n')
+
 VALID = '{"mode":"full","status":"passed","sha":"%s","dirty":false}'
 
 CASES = [
@@ -195,6 +210,16 @@ CASES = [
     ("a later spec-only commit stays valid",      gate_status(VALID, commits=("code", "spec")) == 0),
     ("a recorded sha that is not a commit fails",
      gate_status('{"mode":"full","status":"passed","sha":"deadbeef%.0s","dirty":false}') != 0),
+
+    # --- criteria-check: /verify §3 is the one step with no skip rule, and nothing enforced it ---
+    ("a complete criteria table passes",          crit(_C2 + _TBL) == 0),
+    # The section is usually last in the file. A sed range with no closing heading runs to EOF,
+    # so trimming its final line drops the last row — that off-by-one rejected correct specs.
+    ("...whether it is the last section or not",  crit(_C2 + _TBL + "\n## Open Questions\n\n") == 0),
+    ("a missing section fails",                   crit(_C2) != 0),
+    ("a table short a row fails",                 crit(_C2 + "\n".join(_TBL.splitlines()[:-1]) + "\n") != 0),
+    ("a header-only table fails",                 crit(_C2 + "## Criteria verification\n| a |\n|---|\n") != 0),
+    ("a spec with no criteria fails",             crit("## Acceptance Criteria\n\n" + _TBL) != 0),
 ]
 
 bad = [name for name, passed in CASES if not passed]

@@ -15,10 +15,10 @@ testing-scope: {{TESTING_SCOPE}}
 branching: {{BRANCHING_MODEL}}
 trunk-branch: {{TRUNK_BRANCH}}
 version-source: {{VERSION_SOURCE}}
-deploy: {{DEPLOY_TARGET}}
 github: {{GITHUB_INTEGRATION}}
 ci-on-claude: {{CI_ON_CLAUDE}}
 release-runner: {{RELEASE_RUNNER}}
+review-depth: {{REVIEW_DEPTH}}
 <!-- workflow-settings: end -->
 
 Change one with `/workflow-settings` — it knows the allowed values and what each means, so they are not repeated here. Personal toggles (`unsupervised`, `auto_resume`, the usage threshold) are not project settings; they live in `.claude/memory/local-settings.md`, which is gitignored.

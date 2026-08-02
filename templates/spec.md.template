@@ -38,13 +38,31 @@ As a [user], I want [goal], so that [benefit].
      /implement re-reads these) -->
 
 
+## Documentation impact
+<!-- One or two lines, decided by /plan — NOT a checklist, and "None." is a complete answer.
+     Are docs affected, and which; or is there a new algorithm, interface, file format,
+     protocol, contract or other concept that someone would otherwise have to reconstruct by
+     reading the whole implementation? That last kind belongs in docs/dev/ with a row in
+     docs/dev/README.md. Decided here, at planning time, because at implementation time it is
+     the first thing dropped under pressure — and /verify checks against this line. -->
+None.
+
 ## Subtasks
 <!-- Ordered; each a green-committable unit. -->
 - [ ] #1: [title] — [what]
 
 ## Smoke steps
-<!-- Written by /verify (fewest steps that meaningfully validate the new behavior); re-runnable later.
-     Each: action → expected observable result. Handed BLACKBOX to the smoke-tester (no spec/code). -->
+<!-- Written by /verify: 1-3 for the main story as intended, one per acceptance criterion, plus
+     any needed for interactions between criteria or areas this could plausibly affect.
+     Each: exact action + literal inputs → exact observable expected result. Handed BLACKBOX to
+     the smoke-tester (no spec, no code), which makes no judgement calls — anything left
+     implicit is lost, and a step needing interpretation comes back as could-not-complete. -->
 
 ## Open Questions
 <!-- Must be empty before status → ready. -->
+
+## Criteria verification
+<!-- Written by /verify: one row per acceptance criterion, four columns (criterion verbatim +
+     spec line · literal expected · literal observed · where the observed value came from).
+     The expected column comes from the criterion, never from the code or a run. A spec cannot
+     reach status: done with this section missing or short a row — scripts/criteria-check.sh. -->

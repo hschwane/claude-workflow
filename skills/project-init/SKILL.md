@@ -150,7 +150,7 @@ Ask (in chat — plain message, wait for the reply) — **pre-select values infe
 1. **Release type**: npm package / PyPI package / GitHub Release (binary/tag) / Docker image / Internal only
 2. **Deploy**: Railway (Recommended) / No deploy / Manual steps / Vercel / AWS / Other cloud / Self-hosted server
 
-   Railway is the preferred deploy target. When chosen, the scaffolder writes `railway.json`; the Railway **guideline** (`.claude/guidelines/railway.md`) is present in every project regardless — that guideline holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — just set `deploy: railway` in the `workflow-settings` block and fill `docs/dev/deploy.md`.
+   Railway is the preferred deploy target. When chosen, the scaffolder writes `railway.json`; the Railway **guideline** (`.claude/guidelines/railway.md`) is present in every project regardless — that guideline holds all the details (scale-to-zero, EU region, URL = project name, watch-path exclusions, and the rule that Railway-specifics live behind a project-defined interface for portability). `/plan` reads it when a ticket touches deployment. No need to restate the values here — record the platform, its environments, health check and secrets in `docs/dev/deploy.md`, which is the only place the deploy target lives.
 3. **Branching model**: main-only (simpler — features merge into `main`, releases tagged on `main`) / Git Flow (features merge into `develop`; `/release` merges `develop` → `main`, so `main`'s tip always equals the latest release). The release branch is `main` either way — git-flow adds `develop`, it does not rename `main`.
 
 **Then set two CI/release decisions — recommend by project type, confirm (don't belabor):**
@@ -203,6 +203,8 @@ CI_LANGUAGE_TEMPLATE: {typescript | python | rust | cpp}
 RELEASE_CI_TEMPLATE: {release-npm | release-pypi | release-github | none}
 CI_ON_CLAUDE: {no | yes}
 RELEASE_RUNNER: {local | ci}
+REVIEW_DEPTH: critical-only
+REFERENCE_ENV: {yes | no — always no under main-only}
 TODAY: {today's date, YYYY-MM-DD}
 WORKFLOW_REPO: {owner/repo from plugin.json `repository`, with the https://github.com/ prefix stripped — the templates add it}
 WORKFLOW_VERSION: {version field from .claude-plugin/plugin.json}

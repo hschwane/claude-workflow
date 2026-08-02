@@ -38,6 +38,8 @@ The `[PROJECT DECISIONS]` block contains:
 | `RELEASE_CI_TEMPLATE` | release-npm / release-pypi / release-github / none |
 | `CI_ON_CLAUDE` | no (default) / yes (cross-platform libraries) |
 | `RELEASE_RUNNER` | local (default) / ci |
+| `REVIEW_DEPTH` | critical-only (default) / critical+complex / always — how readily `/verify` escalates to the `reviewer` agent |
+| `REFERENCE_ENV` | `yes` / `no` — whether this project has a reference environment following `develop`. Only ever `yes` under `git-flow`; decides whether `scripts/deploy-reference.sh` and the reference-deploy workflow are installed at all |
 | `TODAY` | Date in YYYY-MM-DD format |
 | `WORKFLOW_REPO` | `owner/repo` (the templates prefix `https://github.com/` themselves) |
 | `WORKFLOW_VERSION` | Plugin version string |
@@ -303,7 +305,8 @@ Fill the `workflow-settings` block — **this is the only home for these values*
 - `{{BRANCHING_MODEL}}` → BRANCHING_MODEL
 - `{{TRUNK_BRANCH}}` → in init always `main` (Step J normalizes to it); in **onboard**, `TRUNK_BRANCH` from the prompt — the repo's existing branch, which is `master` on most older projects
 - `{{VERSION_SOURCE}}` → the manifest for this language: `package.json` (TS) · `pyproject.toml` (Python) · `Cargo.toml` (Rust) · `CMakeLists.txt` (C++)
-- `{{DEPLOY_TARGET}}` → DEPLOY
+- `{{DEPLOY_TARGET}}` → DEPLOY  (fills `docs/dev/deploy.md` only — DEPLOY is an init-time answer, not a persisted setting)
+- `{{REVIEW_DEPTH}}` → REVIEW_DEPTH
 - `{{GITHUB_INTEGRATION}}` → `no` if GITHUB_REPO is `no`, else `yes`
 - `{{CI_ON_CLAUDE}}` → CI_ON_CLAUDE
 - `{{RELEASE_RUNNER}}` → RELEASE_RUNNER
@@ -382,7 +385,7 @@ Detail: `docs/dev/architecture.md`
 
 and set the index line to `**Topics:** architecture`.
 
-The workflow settings ({TESTING_SCOPE}, {BRANCHING_MODEL}, {VERSION_SOURCE}, {DEPLOY}, GitHub integration, {CI_ON_CLAUDE}, {RELEASE_RUNNER}) do **not** go here — they belong in the `workflow-settings` block of `CLAUDE.md`, written in Step E.
+The workflow settings ({TESTING_SCOPE}, {BRANCHING_MODEL}, {VERSION_SOURCE}, GitHub integration, {CI_ON_CLAUDE}, {RELEASE_RUNNER}, {REVIEW_DEPTH}) do **not** go here — they belong in the `workflow-settings` block of `CLAUDE.md`, written in Step E.
 
 (Do NOT create `context.md` — that name is a gitignored runtime note. Runtime state lives in the repo.)
 
