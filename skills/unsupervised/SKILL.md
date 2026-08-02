@@ -41,7 +41,7 @@ Print unsupervised state + threshold from local-settings.md, then `bash .claude/
 - **Never** ask the user — apply the most reasonable default and note assumptions.
 - `/plan` — reasonable defaults for open questions, noted in the spec; default to in-scope.
 - `/implement` — proceed through subtasks; `/consult` when genuinely stuck rather than asking.
-- **Merge** — local git per the Merge policy (no PR).
+- **Merge** — `/pr`, which picks a local fast-forward when the ticket is not tracked on GitHub.
 - `/release` — needs the bump type as an argument (`/ship … minor` or `/release minor`).
 - **Blocker** (merge conflict unresolvable, missing credentials, unresolvable ambiguity) → write `## Blocked` (reason + what's required) to `.claude/memory/context-{branch}.md` and stop.
 - **Done** → clear `## Ship`/`## Blocked` notes and post a short final report (what shipped, anything deferred, anything blocked) so you can see what happened on return.

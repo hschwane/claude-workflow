@@ -20,7 +20,7 @@ Nothing in progress anywhere → say so, list `status: ready` specs, tear down a
 Compare the spec's checkboxes against `git log --oneline -15` on this branch. **On disagreement, trust git:** a subtask with a matching commit is done even if unchecked; an unchecked box with no commit is the next work. This is what self-corrects a crash mid-subtask.
 
 ### 3. Continue
-Resume at the first unchecked subtask per `/implement`; if all are done, `/verify`, then merge per the Merge policy. For a ship run, continue the orchestration loop.
+Resume at the first unchecked subtask per `/implement`; if all are done, `/verify`, then `/pr` (or `/release` under `main-only`, where landing on the trunk is the release). For a ship run, continue the orchestration loop.
 
 An agent that died mid-run (`runner`, `smoke-tester`) is simply re-run — they're idempotent, there's nothing to recover.
 

@@ -94,9 +94,9 @@ Commit with `[skip ci]` per the same rule as 2d.
 - If a `## Blocked` note was written for this branch, clear it.
 - If this was a standalone `/implement` (no active `## Ship` run) and no other spec is in-progress, and a `auto-resume: {branch}` heartbeat is armed, tear it down (delete the Routine + clear `recovery_trigger:`, per `/auto-resume`) — the work is done; the `auto_resume` setting stays on so the next prompt re-arms. Inside a `/ship` run, leave it; `/ship` tears it down when the whole run finishes.
 
-Merging is a separate step — the caller (`/ship`) or the user handles it per the **Merge policy** (local git, no formal PR by default). Report:
+Merging is a separate step: `/pr` under `git-flow`, `/release` under `main-only` (where landing on the trunk is the release). The caller (`/ship`) or the user invokes it. Report:
 ```
 Implemented ✓  {id} — {title}
 Branch: {branch}   Subtasks: {N}   Gate: green   Verify: clean
-Next: merge to {integration branch} (local, per Merge policy) — or /ship continues.
+Next: /pr (git-flow) or /release (main-only) — or /ship continues.
 ```

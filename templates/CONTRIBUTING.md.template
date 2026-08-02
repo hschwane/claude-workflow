@@ -33,6 +33,8 @@ Also fine. The rules are the same ones the workflow enforces:
 
 **Before you push:** run `scripts/ci.sh fast`. Before opening a PR or merging: `scripts/ci.sh full`. This is the same script CI runs — if it passes locally it passes there.
 
+The other entrypoints, all runnable by hand: `scripts/dev.sh` brings up a local instance with test data (`--info` prints how to reach it), `scripts/healthcheck.sh [version]` says whether a deployment is up and serving what you expect, and `scripts/gate-status.sh` answers whether the last gate run still covers the current tree.
+
 **Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```

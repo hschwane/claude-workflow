@@ -4,7 +4,7 @@
 # calls the SAME script as a fallback (when local can't publish — missing creds / OIDC).
 #
 # The version bump + changelog are prepared by the main session BEFORE this runs (judgment).
-# This script is the deterministic mechanical part: gate → build → publish → deploy.
+# This script is the deterministic mechanical part: gate → build → publish → migrate → deploy.
 # Health verification is NOT here — see step 5.
 #
 #   ./scripts/release.sh <version>
@@ -77,10 +77,11 @@ step {{MIGRATIONS}}
 # 4. Deploy. This is the ONE step that may legitimately be a no-op: a platform that
 # auto-deploys on merge (Railway, Vercel) genuinely has nothing to run here.
 #
-# A project that publishes nothing and deploys nowhere (release-type: internal,
-# deploy: none) can legitimately delete steps 2-4 and keep only the healthcheck —
-# that one step is enough to satisfy the guard at the bottom. Do not delete the
-# healthcheck to make the script shorter; it is what proves the release runs.
+# A project that publishes nothing and deploys nowhere (release-type: internal, no deploy)
+# legitimately has no steps left at all — the healthcheck moved to scripts/healthcheck.sh,
+# which /release runs after the deploy settles. That project sets RELEASE_ALLOW_EMPTY=1 and
+# records why in tech-debt.md. Do not invent a no-op step to satisfy the guard: the guard
+# exists to make "this released nothing" visible, and a `step :` hides exactly that.
 # e.g. step railway up | step : (Railway auto-deploys on merge)
 step {{DEPLOY}}
 

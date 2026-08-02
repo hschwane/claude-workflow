@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "The one orchestrator — turn a spec list or a topic/direction into a shipped version. Plans the tickets (batching every question up front), then autonomously implements, verifies, merges locally, and releases, ending with a report."
+description: "The one orchestrator — turn a spec list or a topic/direction into a shipped version. Plans the tickets (batching every question up front), then autonomously implements, verifies, merges and releases, ending with a report."
 argument-hint: "[TICKET-ID ...] | \"topic / direction\" | [patch|minor|major]"
 ---
 

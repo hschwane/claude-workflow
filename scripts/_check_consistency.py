@@ -271,6 +271,17 @@ CASES = [
     # one leaves a live placeholder, which aborts the run.
     ("the gate distinguishes selected from full unit tests",
      "{{UNIT_TESTS_SELECTED}}" in CI and "{{UNIT_TESTS}}" in CI and "check_tests" in CI),
+    # A token nothing fills ships as a live placeholder, and `fast` then dies with "command
+    # not found" on the very first subtask. Every stage token needs a filler on BOTH install
+    # paths; this one was added to ci.sh with neither, which is how it would have shipped.
+    ("both install paths fill every ci.sh stage token",
+     all(all(tok in doc for tok in ("{{UNIT_TESTS_SELECTED}}",))
+         for doc in (SCAFF, ONBOARD))),
+    # ...and both must say what to do when the runner has no selection mode, or the honest
+    # answer ("same command as the full suite") reads as "leave it empty".
+    ("both say to degrade selection upward, never to nothing",
+     "same command as `{{UNIT_TESTS}}`" in SCAFF
+     and "same command as `{{UNIT_TESTS}}`" in ONBOARD),
 ]
 
 bad = [name for name, ok in CASES if not ok]

@@ -49,12 +49,12 @@ def ci(prepare="true", stages="true", full=True, soften=False, empty=False, test
     return s
 
 
-def rel(publish="echo ok", health="echo ok", empty=False):
+def rel(publish="echo ok", empty=False):
     s = REL.replace('"$(dirname "$0")/ci.sh" full', "true")
     if empty:
         # every step deleted — what a project that publishes and deploys nothing produces
         return re.sub(r"^\s*step \S.*\n", "", s, flags=re.M)
-    s = s.replace("step {{PUBLISH}}", f"step {publish}").replace("step {{HEALTHCHECK}}", f"step {health}")
+    s = s.replace("step {{PUBLISH}}", f"step {publish}")
     return re.sub(r"^\s*step \{\{[A-Z_]+\}\}\s*\n", "", s, flags=re.M)
 
 

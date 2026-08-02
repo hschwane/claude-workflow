@@ -6,7 +6,7 @@ argument-hint: "patch|minor|major"
 
 # Release
 
-The main session prepares the judgment parts (version bump, changelog), then the `runner` agent executes the deterministic `scripts/release.sh` (gate → build → publish → deploy) locally. GitHub Actions release runs only as a fallback (`release-runner: ci`, or when local can't publish).
+The main session prepares the judgment parts (version bump, changelog), then the `runner` agent executes the deterministic `scripts/release.sh` (gate → build → publish → migrate → deploy) locally, and verifies the live version afterwards with `scripts/healthcheck.sh`. GitHub Actions release runs only as a fallback (`release-runner: ci`, or when local can't publish).
 
 ## Usage
 ```
@@ -19,7 +19,7 @@ The main session prepares the judgment parts (version bump, changelog), then the
 - Read `branching` and **`trunk-branch`** in `CLAUDE.md`. The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
 - **Where you run from depends on the model.** Under `git-flow`: from `develop`, and the release merges `develop` → trunk. Under `main-only`: **from the feature branch**, because landing on the trunk *is* the release — `/pr` refuses that merge and sends you here precisely so the version bump happens before the code ships. Several tickets may share that branch and release together; the unit of release is the branch, not the ticket.
 - Working tree clean (`git status`); `[ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"` so the release includes everything a remote already has. The guard matters: `github: no` is supported, and an unguarded `git pull` makes the first executable line of `/release` exit 1.
-- **Check for unmerged ticket branches: `git branch --no-merged {trunk-branch}`.** A finished ticket that is not merged is simply not in this release, and nothing else notices — the pull above only fetches what a remote has. Merge it per the **Merge policy** in `CLAUDE.md` (fast-forward if the full gate passed on this exact HEAD, otherwise resolve, re-run `ci.sh full`, then merge), or say explicitly that it is being held back.
+- **Check for unmerged ticket branches: `git branch --no-merged {trunk-branch}`.** A finished ticket that is not merged is simply not in this release, and nothing else notices — the pull above only fetches what a remote has. Land it with `/pr` first, or say explicitly that it is being held back — do not merge it here, and do not re-derive the gate rules to decide whether you may.
 - **Run `/verify release`.** It owns the gate and the review — running them at the right depth, skipping what is provably still valid for this tree, scoping the review to the delta since the last one, and adding a regression smoke pass over the combined state in a long unsupervised run. `release.sh` also gates, but conditionally (`gate-status.sh`), so nothing runs twice; in the CI fallback there is no recorded result and its gate is the only one, which is why it stays.
 
 ### 2–6. Prepare version + changelog (main session — the judgment part)
