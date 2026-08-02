@@ -40,13 +40,9 @@ its **acceptance criteria** — everything below compares against them.
 still valid for this exact tree and re-running proves nothing; any other exit means run it —
 invoke the `runner` agent with `scripts/ci.sh full`, fix what is red, commit, repeat until green.
 
-That script is the **only** implementation of the rule. It compares five things (recorded mode,
-recorded pass, sha, recorded-clean, clean-right-now) plus the one exception, that a `docs/specs/`-only
-commit since the recorded run does not invalidate it. Do not re-derive any of that here or paraphrase
-it in another skill: the rule previously existed in four places at four strengths, and each
-paraphrase had dropped a different condition. Two of them are easy to think redundant and are not —
-recorded-clean catches a gate that ran over edits later reverted, clean-now catches an edit *after*
-a green run, and editing never moves HEAD, so every other field still matches.
+That script is the **only** implementation of the rule, and it documents its own conditions. Do not
+paraphrase them here or in any other skill: the rule previously lived in four files at four
+strengths and each paraphrase had quietly dropped a different one.
 
 Read the verdict from `.claude/memory/last-gate.json` rather than the `runner`'s prose: the agent's
 report is the failure excerpt, the file is the verdict.
@@ -58,13 +54,9 @@ nothing about the parts it skipped — but scope the review per §2.
 
 ### 2. Review
 
-**Depth comes from the `review-depth` setting**, not from a judgement call made fresh each time:
-
-| | escalate to the `reviewer` agent for |
-|---|---|
-| `critical-only` (default) | security-sensitive, structurally significant, high blast radius, or a value whose right answer exists outside the code |
-| `critical+complex` | those, **plus** changes touching a lot of pre-existing code or with many moving parts |
-| `always` | every ticket and every merge |
+**Depth comes from the `review-depth` setting** — `/workflow-settings` holds what each value means
+— not from a judgement call made fresh each time, which is what degrades first under context
+pressure.
 
 Below the threshold, **self-review**: reread the diff adopting a reviewer's perspective —
 correctness, security basics, conventions, test quality — and fix what you find. Above it, spawn
@@ -173,12 +165,11 @@ step needs:
   in the future", "the newest item is first" — and pass on a broken build because of when the clock
   happened to be. Pin the inputs: an explicit timestamp, a seeded fixture.
 
-**You prepare the environment; the smoke-tester never sets anything up.** `scripts/dev.sh` brings up
-the dev environment with test data and `scripts/dev.sh --info` prints the URL and test credentials —
-hand that output to the agent verbatim as `HOW_TO_RUN`. Start it before handing off and stop it right
-after. **Never production**, and a throwaway database, not a dev one you care about. If the change
-genuinely cannot run locally, agree a strategy with the user and record it in `deploy.md`; in
-unsupervised mode with none on record, note it as a blocker rather than testing against prod.
+**You prepare the environment; the smoke-tester never sets anything up.** `scripts/dev.sh` brings it
+up and `--info` prints the URL and credentials — hand that output to the agent verbatim as
+`HOW_TO_RUN`, and stop the instance after. If the change genuinely cannot run locally, agree a
+strategy with the user and record it in `deploy.md`; in unsupervised mode with none on record, that
+is a blocker, not a reason to test against production.
 
 **Hand the agent only** the resolved steps, that `HOW_TO_RUN`, and which tool to drive with — never
 the spec, the criteria or the code. It reports per-step evidence plus detail on failures.

@@ -29,6 +29,7 @@ SMOKE = Path("agents/smoke-tester.md").read_text()
 SPEC = Path("templates/spec.md.template").read_text()
 SETTINGS = Path("skills/workflow-settings/SKILL.md").read_text()
 DELIVERY = json.loads(Path(".claude-plugin/delivery.json").read_text())
+GATEST = Path("templates/scripts/gate-status.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 
 CASES = [
@@ -206,10 +207,12 @@ CASES = [
      and "gate-status.sh" in Path("templates/scripts/release.sh").read_text()
      # /pr and /release delegate to /verify rather than carrying their own copy
      and "/verify pr" in PR and "/verify release" in RELEASE),
-    ("the five conditions are only spelled out where the script lives",
-     "clean-right-now" in VERIFY
-     and 'git status --porcelain' not in PR
-     and 'git status --porcelain' not in RELEASE),
+    # Stronger than it looks: the conditions must live in the SCRIPT and in none of the three
+    # skills. Every past paraphrase dropped one, so the fix is not "state it consistently" but
+    # "state it once, executably". A skill that starts describing the mechanics again fails here.
+    ("the five conditions live in the script and nowhere else",
+     all(c in GATEST for c in ('git status --porcelain', 'git rev-parse --verify', '"$DIRTY" = false'))
+     and not any('git status --porcelain' in doc for doc in (VERIFY, PR, RELEASE))),
 
     # /verify is the single verification skill; the modes are what /pr and /release pass it.
     ("verify takes a mode",

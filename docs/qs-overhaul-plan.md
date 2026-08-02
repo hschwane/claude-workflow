@@ -702,12 +702,23 @@ comparison stays beside it in the skill.
 
 Plus one addition: the **documentation check** against `## Documentation impact`.
 
-### Expected outcome — corrected
+### Expected outcome — corrected twice
 
-An earlier draft predicted `/verify` would end up under 12 KB. With the mode parameter it absorbs
-rows 5 and 7, so **it may well grow** — the honest metric is the **sum of `/verify` + `/pr` +
-`/release`**, which must shrink, because the gate-and-review logic stops being written three times
-at three different strengths. If that sum grows, something was described twice rather than moved.
+An earlier draft predicted `/verify` would end up under 12 KB; the next one predicted the sum of
+`/verify` + `/pr` + `/release` must shrink. **Measured after phase 4: 24961 → 28354 bytes, +3393.**
+
+The prediction was wrong, not the work. It assumed the change was pure *movement*, and it was not:
+the mode system, `/pr`'s PR-or-local decision, the reference-environment deploy, post-release
+verification and the documentation check are all behaviour that did not exist before. What the
+metric was really trying to catch is **duplication**, so that is what was checked directly — no
+sentence longer than 55 characters appears in more than one of `/verify`, `/pr`, `/release`,
+`/ship`, `/implement` and the always-loaded template. Compaction removed 1494 bytes of genuine
+restatement along the way (the five conditions, the `review-depth` values, the dev-environment
+paragraph, three changelog rules).
+
+**Lesson worth keeping:** a size target is a proxy. When a proxy and its purpose disagree, measure
+the purpose — here, run the duplicate-sentence check rather than compacting prose until the number
+looks right.
 
 ### Still post-implementation
 
