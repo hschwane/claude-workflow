@@ -5,10 +5,10 @@ A professional, reusable AI-assisted software development workflow for Claude Co
 ## What It Does
 
 ```
-/draft → /plan → /implement → /verify → merge → /release  (or just /ship)
+/draft → /plan → /implement → /verify → /pr → /release   (or just /ship)
 ```
 
-An idea enters the backlog as a one-liner, gets planned into a spec with observable acceptance criteria, is implemented subtask-by-subtask with tests, is verified by running it, merges locally, and ships with a semver release — each step is one command, or `/ship` runs the whole chain.
+An idea enters the backlog as a one-liner, gets planned into a spec with observable acceptance criteria, is implemented subtask-by-subtask with tests, is verified by running it, merges through one gated skill, and ships with a semver release — each step is one command, or `/ship` runs the whole chain.
 
 ## Quick Start
 
@@ -61,11 +61,11 @@ The development lifecycle:
 | `/draft feature\|bug "title"` | Capture a raw idea as a minimal spec in `docs/specs/backlog/` (+ GitHub issue). Deliberately no planning — capturing must be cheap |
 | `/plan FEAT-001 [FEAT-002 …]` | Turn draft(s) into ready spec(s) in one light pass: goal, **observable acceptance criteria**, approach + interfaces, subtasks. Surfaces open questions (batched up front for multiple IDs), defaults to in-scope. Uses `code-explorer` for codebase context |
 | `/implement FEAT-001` | For each subtask: write code + its tests, run the fast gate (`ci.sh fast` via `runner`), commit green, tick the box. Then runs `/verify`. State is the repo (spec boxes + git log) |
-| `/verify [FEAT-001]` | Feature-done QA: full gate (`ci.sh full`) + review (self, or `reviewer`/`consult` for critical) + blackbox manual smoke (`smoke-tester`, new features). Smoke bugs become automated tests |
+| `/verify [ticket\|pr\|release]` | **The verification skill.** Gate (`ci.sh full`, skipped only when `gate-status.sh` says it is still valid), review at the `review-depth` setting, the criteria table, the documentation check, and a blackbox smoke run (`smoke-tester`). `/pr` and `/release` call it rather than restating any of it. Smoke bugs become automated tests |
 | `/commit` | Gated conventional commit: runs the canonical `ci.sh fast` via `runner`, generates a `type(scope): description` message, appends `[skip ci]` per `ci-on-claude` |
-| `/release patch\|minor\|major` | Bump version + changelog (main session), then `runner` runs `scripts/release.sh` locally (gate → build → publish → deploy). CI release only as fallback |
+| `/release patch\|minor\|major` | Bump version + changelog **before** the trunk merge, land it fast-forward, tag, run `scripts/release.sh` locally (build → publish → migrate → deploy), then wait for the deploy and assert the live version with `healthcheck.sh`. CI release only as fallback |
 | `/ship [IDs] \| "topic" [patch\|minor\|major]` | The orchestrator: from a spec list **or** a topic/direction → plan (batch questions) → implement → verify → **local merge** → release → report. Out-of-scope deferrals surfaced in the report |
-| `/pr [base]` | **Optional** — open a PR for external review or a repo that requires it. The default flow merges locally with plain git (no PR) |
+| `/pr` | **The merge skill** — lands a branch on `develop` with the full gates, as a real PR when the ticket is tracked on GitHub, otherwise as a local fast-forward. Under `main-only` there is no `develop`, so it hands over to `/release`: landing on the trunk is releasing |
 | `/resume` | Continue interrupted work by reconstructing state from the repo (branch + in-progress spec's unchecked boxes + git log) — works the same in every environment |
 | `/consult "question"` | Delegate hard thinking to the `advisor` agent (best/high) — a decision, a design/architecture or debugging idea, or when unsure. You stay on your model (no switch, no cache churn); you brief the advisor with a focused question + curated context. Records the decision in `.claude/memory/decisions.md` when one is made |
 | `/unsupervised on [90]\|off` | Toggle autonomous mode (no questions + proactive 90% pause) — see [Unsupervised mode](#unsupervised-mode--resume-logic) |

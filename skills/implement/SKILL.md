@@ -23,7 +23,9 @@ Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` 
 Read the spec. **Readiness is a state, not a checklist to re-derive:** the spec is in `docs/specs/ready/` with `status: ready`, which `/plan` sets only once the template is filled and `## Open Questions` is empty. Re-listing the parts here is how the two ended up disagreeing about whether an approach was required. If a section is nevertheless empty or unusable, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing. Any guidelines that apply were already referenced + folded into the spec by `/plan` — follow the spec; if it lists applied guideline files, read those and honor them.
 
 ### 1. Branch
-If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
+**Under `main-only`, a `/ship` run shares one branch for all its tickets** — every merge to the trunk is a release, so a branch per ticket would mean a release per ticket. If a run's branch already exists and is checked out, stay on it and skip the branch creation below; the spec's subtasks and its own commits still identify its work.
+
+Otherwise branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
 ```
 git checkout {develop|trunk-branch}
 [ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"
