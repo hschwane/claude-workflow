@@ -13,7 +13,13 @@ jobs:
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
-      # Add language toolchain setup here if the build needs it.
+      # release.sh calls ci.sh, whose stages all go through the package manager — so the
+      # toolchain AND the dependencies have to be installed here. `ubuntu-latest` ships node
+      # and cargo but no node_modules and no uv: without an install step every stage exits
+      # non-zero on its first `npm run` / `uv run`. This is the path nobody exercises until
+      # the day local publishing breaks, so it has to be right when it is first used.
+      # Fill with the SAME steps as ci-{language}.yml (npm ci / uv sync --locked / …).
+      {{TOOLCHAIN_STEPS}}
       - run: bash scripts/release.sh "${{ github.event.inputs.version }}"
         env:
           GH_TOKEN: ${{ github.token }}

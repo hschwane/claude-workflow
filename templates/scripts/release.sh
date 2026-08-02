@@ -5,6 +5,7 @@
 #
 # The version bump + changelog are prepared by the main session BEFORE this runs (judgment).
 # This script is the deterministic mechanical part: gate → build → publish → deploy.
+# Health verification is NOT here — see step 5.
 #
 #   ./scripts/release.sh <version>
 #
@@ -17,8 +18,16 @@ VERSION="${1:?usage: release.sh <version>}"
 
 echo "▶ release.sh $VERSION"
 
-# 1. Gate — never release on a red suite.
-"$(dirname "$0")/ci.sh" full
+# 1. Gate — never release on a red suite, and never re-run one that is still valid.
+# gate-status.sh is the single implementation of "is the recorded result still good for this
+# tree?". Locally /verify release has just run the gate, so this is a no-op; in the CI fallback
+# there is no recorded result, it exits non-zero, and the gate runs — which is the only gate
+# that path gets.
+if "$(dirname "$0")/gate-status.sh" full; then
+  echo "  ⏭ gate already green for this commit — not re-running"
+else
+  "$(dirname "$0")/ci.sh" full
+fi
 
 # --- how to fill this in ---------------------------------------------------------------
 # Each step below is a `step <command>` line — a COMMAND LINE, not a comment. Replace the
@@ -75,16 +84,11 @@ step {{MIGRATIONS}}
 # e.g. step railway up | step : (Railway auto-deploys on merge)
 step {{DEPLOY}}
 
-# 5. Healthcheck — must ASSERT, not just run.
-# `step curl -fsS https://<app>/health` proves the endpoint answered; it does not prove the
-# NEW version is live. `step node dist/index.js --version` prints a version and discards it —
-# a release of 9.9.9 that still reports 0.2.0 exits 0. Compare against "$VERSION":
-#   step sh -c 'node dist/index.js --version | grep -q "$0"' "$VERSION"
-#   step sh -c 'curl -fsS https://<app>/health | grep -q "\"version\":\"$0\""' "$VERSION"
-# `docs/dev/deploy.md` carries the URL. If it is genuinely unknown, put `exit 1` here with a
-# TODO rather than a no-op — a release that reports success having verified nothing is worse
-# than one that stops.
-step {{HEALTHCHECK}}
+# 5. NO healthcheck here — deliberately. Under a platform that deploys on push, the deploy is
+# still building when this script ends, so a check run here probes the OLD version and reports
+# a healthy release that has not happened yet. /release owns it instead: wait for the deploy to
+# settle, then `scripts/healthcheck.sh "$VERSION"`, then roll back only to protect users while
+# the real fix is made. Do not add a healthcheck step back into this script.
 
 if [ "$STEPS" -eq 0 ] && [ "${RELEASE_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ release.sh $VERSION: no steps are configured — this released nothing." >&2

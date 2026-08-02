@@ -40,6 +40,7 @@ echo "▶ ci.sh ($MODE)"
 # --- end of authoring notes; everything below is live code ------------------------------
 CHECKS=0
 FULL_CHECKS=0
+TESTS=0
 FAILED=0
 IN_FULL=0
 
@@ -53,8 +54,8 @@ write_result() {
   # sha-only record lets a caller skip the gate on a tree that changed since it ran.
   local dirty=false
   [ -n "$(git status --porcelain 2>/dev/null)" ] && dirty=true
-  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"failed":%d,"sha":"%s","dirty":%s}\n' \
-    "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$FAILED" \
+  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"tests":%d,"failed":%d,"sha":"%s","dirty":%s}\n' \
+    "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$TESTS" "$FAILED" \
     "$(git rev-parse --verify -q HEAD || echo unknown)" "$dirty" \
     > .claude/memory/last-gate.json 2>/dev/null || true
 }
@@ -92,6 +93,21 @@ check() {
   exit "$code"
 }
 
+# Same as `check`, for a stage that RUNS TESTS. Counting them separately closes the hole one
+# level below CHECKS: delete only the test line and CHECKS is still 3, so format+lint+types
+# pass and the gate reports green having executed no test at all.
+#
+# It cannot count individual tests — no generic way to parse every runner's output — so the
+# other half of the guarantee lives in the stage command itself. Configure the runner so that
+# collecting NOTHING is a failure, because the default varies and two of the three common
+# ones are wrong: vitest and `go test ./...` exit 0 on an empty selection, pytest exits 5,
+# jest exits 1. Use `vitest --passWithNoTests=false`, `jest --passWithNoTests=false`, and for
+# pytest treat exit 5 as failure (it is, by default — do not add `|| true`).
+check_tests() {
+  TESTS=$((TESTS + 1))
+  check "$@"
+}
+
 # --- prepare: generate sources the checks need ------------------------------------------
 # Anything gitignored-but-required must be produced HERE, before lint/typecheck run — a fresh
 # CI clone does not have it, which is how a gate passes locally and fails on the first push.
@@ -107,8 +123,33 @@ check {{FORMAT_CHECK}}
 check {{LINT}}
 # e.g. check npm run typecheck | check uv run mypy . | (compile step)
 check {{TYPECHECK}}
-# e.g. check npm test | check uv run pytest tests/unit | check cargo test --lib
-check {{UNIT_TESTS}}
+
+# --- unit tests: the whole suite on `full`, only what this change touches on `fast` -----
+# `fast` runs per subtask, many times per ticket, so it runs the NEW tests plus the ones the
+# change actually reaches — via the runner's own changed-files mode, which walks the real
+# import graph. Name-matching (`src/foo.ts` → `tests/foo*`) is not equivalent: it misses the
+# test that breaks because a shared helper changed, and a gate that misses that is worse than
+# one that is slow.
+#   e.g. check_tests npx vitest related --run --passWithNoTests=false $(git diff --name-only HEAD)
+#        check_tests npx jest --onlyChanged --passWithNoTests=false
+#        check_tests uv run pytest --picked tests/unit
+# Where the runner has NO selection mode (cargo, ctest), fill this with the SAME command as
+# {{UNIT_TESTS}}. Degrade to running more, never to running less — an unfillable selection
+# must not quietly become an empty one.
+#
+# NB a brand-new test file is untracked, and `git diff` does not list untracked files. If the
+# selection is git-based, `git add -N .` first or the test this subtask just wrote — the one
+# most worth running — is silently excluded.
+if [ "$MODE" = "full" ]; then
+  # e.g. check_tests npm test | check_tests uv run pytest tests/unit | check_tests cargo test --lib
+  check_tests {{UNIT_TESTS}}
+  : # keeps this branch valid if the stage above is ever deleted — an empty `if` body is a
+    # SYNTAX error, so the script would not parse at all. Not a check; leave it. Same reason
+    # as the `:` at the end of the full block below.
+else
+  check_tests {{UNIT_TESTS_SELECTED}}
+  : # same, for this branch
+fi
 
 if [ "$MODE" = "full" ]; then
   IN_FULL=1
@@ -119,10 +160,10 @@ if [ "$MODE" = "full" ]; then
   # feature that is actually present. Neither answer is about the code you just wrote.
   # e.g. check npm run build | check docker build . | check cargo build --release
   check {{BUILD}}
-  # e.g. check npm run test:integration | check uv run pytest tests/integration
-  check {{INTEGRATION_TESTS}}
-  # e.g. check npx playwright test | check uv run pytest tests/e2e   (delete if no E2E framework)
-  check {{E2E_TESTS}}
+  # e.g. check_tests npm run test:integration | check_tests uv run pytest tests/integration
+  check_tests {{INTEGRATION_TESTS}}
+  # e.g. check_tests npx playwright test | check_tests uv run pytest tests/e2e   (delete if no E2E framework)
+  check_tests {{E2E_TESTS}}
   : # keeps this block valid if every stage above was deleted — not a check. Once real stages
     # are filled in, this line does nothing; leave it anyway, so deleting a stage later never
     # produces an empty `if` body. Do not "clean it up" and do not turn it into a `check`.
@@ -136,6 +177,15 @@ if [ "$CHECKS" -eq 0 ] && [ "${CI_ALLOW_EMPTY:-0}" != "1" ]; then
   exit 1
 fi
 
+if [ "$TESTS" -eq 0 ] && [ "${TESTS_ALLOW_NONE:-0}" != "1" ]; then
+  echo "✗ ci.sh ($MODE): no test stage ran — format, lint and types passed on untested code." >&2
+  echo "  A gate with no tests is a spell-checker. Fill the test stages in scripts/ci.sh." >&2
+  echo "  If this project genuinely has no test suite yet, record that in" >&2
+  echo "  .claude/memory/tech-debt.md and set TESTS_ALLOW_NONE=1 to acknowledge it." >&2
+  write_result untested
+  exit 1
+fi
+
 if [ "$MODE" = "full" ] && [ "$FULL_CHECKS" -eq 0 ] && [ "${FULL_ALLOW_NONE:-0}" != "1" ]; then
   echo "✗ ci.sh (full): no full-only stages are configured — 'full' ran exactly what 'fast' runs." >&2
   echo "  A merge or release gated on this proves nothing more than a per-subtask check did." >&2
@@ -146,4 +196,4 @@ if [ "$MODE" = "full" ] && [ "$FULL_CHECKS" -eq 0 ] && [ "${FULL_ALLOW_NONE:-0}"
 fi
 
 write_result passed
-echo "✓ ci.sh ($MODE) passed — $CHECKS check(s)$([ "$MODE" = full ] && echo ", $FULL_CHECKS full-only")"
+echo "✓ ci.sh ($MODE) passed — $CHECKS check(s), $TESTS test stage(s)$([ "$MODE" = full ] && echo ", $FULL_CHECKS full-only")"

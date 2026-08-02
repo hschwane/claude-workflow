@@ -10,6 +10,8 @@ on:
     branches: {{CI_BRANCHES}}   # the PR TARGET branch, not the source — gate before the human merges
     paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
   workflow_dispatch:        # manual backup — Claude can trigger when a local run can't
+permissions:
+  contents: read      # the gate only reads the repo; nothing here needs write
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
