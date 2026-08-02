@@ -1,7 +1,7 @@
 # QA / CI / environments overhaul — working plan
 
 Status: **DECIDED** (user has ruled) · **OPEN** (needs a decision) · **PARKED**
-Target: next release after 3.1.0. Nothing here is implemented yet.
+Target: **3.1.0**, on top of the other unreleased changes. See "Delivery process" near the end.
 
 > **No settings migrations needed — there are no existing 3.x projects.**
 > This applies to every settings change in this overhaul: removing `deploy` (D) and adding
@@ -233,7 +233,7 @@ pytest exits 5, jest exits 1. A subtask can be committed green having executed n
   each project's runner flags being right.
 - Escape hatch consistent with the existing three: env var + a required `tech-debt.md` entry.
 
-### E1. `fast` runs new + adjacent unit tests only — **design proposal, needs sign-off**
+### E1. `fast` runs new + adjacent unit tests only — **DECIDED**
 
 Today `ci.sh fast` runs the whole unit suite, while `/commit` and `runner.md` both already claim it
 runs "affected" tests — prose describing behaviour the script does not have. **Fix the prose
@@ -293,7 +293,7 @@ each runner rather than assuming.**
 
 ---
 
-## F. Criteria-verification table — mechanize existence
+## F. Criteria-verification table — mechanize existence — **DECIDED**
 
 `/verify` §3 builds a four-column table and stores it under `## Criteria verification`. The skill
 calls it "the only mechanism in the workflow that catches an implementation whose own tests agree
@@ -634,15 +634,28 @@ something odd in passing. The less supervision a run has, the more the workflow 
 attention back deliberately. This is the same judgment axis as `review-depth`'s `critical+complex`,
 applied to manual testing — so the two should read as one idea, not two unrelated heuristics.
 
-### J3. Open
+### J5. Both J-opens, resolved by J4
 
-- **How is the mode determined?** Derived (`branching: main-only` **and** the platform watches the
-  trunk) or an explicit setting? Derived is fewer knobs but the workflow cannot see the platform's
-  config; explicit is honest but is another always-loaded row. Leaning: an init/onboard question
-  whose answer is recorded in `deploy.md`, not in the settings block.
-- Whether `release.sh` is still the entrypoint under CD, or `/release` orchestrates
-  prepare → merge → tag → healthcheck directly and `release.sh` shrinks to build+publish for the
-  non-CD path.
+*(This subsection was numbered J3 twice; renumbered. Both questions are now answered.)*
+
+**1. How is the CD mode determined? — there is no mode.** J4 removed the need: under `main-only`,
+`/pr` redirects to `/release`, so landing on the trunk is always a release. J1's rules
+(bump-before-merge, `--ff-only`, tag, healthcheck) are harmless where nothing auto-deploys and
+necessary where something does, so no flag has to distinguish the two. `branching` alone decides.
+
+**2. Is `release.sh` still the entrypoint? — yes, with its gate made conditional.**
+`/verify release` now runs the gate, so `release.sh`'s unconditional `ci.sh full` would violate the
+I-rule by running it twice on unchanged code. But `release.sh` is *also* the CI fallback path, where
+no `/verify` ran and the gate is the only one there is.
+
+Resolution: **`scripts/gate-status.sh`** — exits 0 when the recorded full-gate result is valid for
+HEAD (the five-condition comparison), non-zero otherwise. `release.sh` runs `ci.sh full` only when
+it exits non-zero. In CI there is no `last-gate.json`, so it exits non-zero and the gate runs, as it
+must. This makes the I-rule an **executable** with exactly one implementation, called by `/verify`
+(all modes) and by `release.sh`.
+
+`release.sh` therefore keeps: conditional gate → build artifact → publish → migrations → deploy.
+Healthcheck leaves it entirely (row 8 owns it, post-merge, after the deploy settles).
 
 ## H2. `/verify` itself — **target shape DECIDED; read-through stays post-implementation**
 
@@ -702,7 +715,7 @@ The read-through itself. Once the pieces land: does it read as one document, is 
 twice across `/verify`, `/pr` and `/release`, and did the shared predicate actually get shared
 rather than copied.
 
-## H. Smoke testing — partly unparked by section C
+## H. Smoke testing — **DECIDED**
 
 Answered elsewhere, no longer open:
 - **environment** → C + `dev.sh` (started on demand, stopped right after use);
@@ -712,7 +725,7 @@ Answered elsewhere, no longer open:
 - **does it belong in `/pr`** → no. Row 5 has no smoke; the regression pass lives at row 7 in long
   unsupervised runs.
 
-### H1. `smoke-tester.md` contradicts itself — **proposed**
+### H1. `smoke-tester.md` contradicts itself — **DECIDED**
 
 Two sections cannot both hold as written:
 - *"Output — failures only. Report **only** steps where observed ≠ expected. Stay silent on passes."*
@@ -735,14 +748,14 @@ matters. Observed ≠ expected is a failure, reported as such; the main session 
 A step vague enough to need interpretation is a defect in the step, and the agent should report it
 as could-not-complete rather than resolve it.
 
-### H2b. No smoke artifact — **proposed: correct, by the row-8 rule**
+### H4. No smoke artifact — **DECIDED: correct, by the row-8 rule**
 
 Smoke needs no stored artifact, for the same reason row 8 does not: the **steps live in the spec**
 and are re-runnable, which beats a record that they once ran. Nor is there a double-run risk —
 row 4 is per ticket, row 7 per run, different scopes by construction, so idempotence has nothing to
 prevent here.
 
-### H3. `dev.sh` → `HOW_TO_RUN` — **proposed**
+### H3. `dev.sh` → `HOW_TO_RUN` — **DECIDED**
 
 `dev.sh --info` prints the URL and test credentials; the main session passes that verbatim as the
 agent's `HOW_TO_RUN`, starts the instance before handing off and stops it right after (per C). This
@@ -807,17 +820,46 @@ These changes ship **on top of the other unreleased changes**, as **3.1.0**.
 
 ---
 
-## Implementation order (draft)
+## Implementation order
 
-1. A1 — three CI template fixes. Smallest, self-contained, no design open.
-2. E — zero-test guard.
-3. D — drop the `deploy` setting, add `healthcheck.sh`, `dev.sh`.
-4. C — environment tiers into `app-baseline.md` + the git-flow question in init/onboard.
-5. B — gate/smoke placement into `/verify`, `/ship`, `/release`.
-6. G — `review-depth` + reviewed-sha marker.
-7. F — criteria-table enforcement.
-8. E1 — affected-test selection (largest design surface).
-9. H — remaining smoke questions.
+Bottom-up: mechanisms first, then the skills that call them, then the installers that deliver them.
 
-Each lands as a ticket through `/draft` → `/plan`, plus a `_check_consistency.py` case wherever the
-change is a cross-file claim.
+**1 — Scripts and templates (no skill depends on them yet)**
+1. A1: `release-github.yml` install step; `permissions: contents: read` ×4. *(A1.3 shipped in `b211360`.)*
+2. `scripts/gate-status.sh` — the five-condition predicate as an executable (I, J5).
+3. `ci.sh`: zero-test guard (E) + `{{UNIT_TESTS_SELECTED}}` for `fast` (E1).
+4. `healthcheck.sh` (`[version] [--env]`), `dev.sh` (`--info`), `deploy-reference.sh`;
+   `release.sh` gate becomes conditional on `gate-status.sh`, healthcheck step leaves it (D, C2, J5).
+5. Spec template: `## Documentation impact` (K1 row 1).
+6. `criteria-check` script — section presence + row count (F).
+
+**2 — Settings**
+7. Drop `deploy` (D1); add `review-depth` (G). Template block, `/workflow-settings`,
+   `_check_settings.py`, and every site D1 lists.
+
+**3 — Skills**
+8. `/plan` — delete the ready enumeration, add `Documentation impact` + the L1 dev-doc trigger,
+   add the end-of-plan spec review.
+9. `/implement` — readiness by directory+status, hands-on developer check (K1 row 3), `fast`
+   selection wording.
+10. `/verify` — the mode parameter and everything that moves in or out (H2).
+11. `/pr` — the merge skill: target `develop`, PR-or-local, redirect under `main-only`,
+    post-merge reference deploy.
+12. `/release` — prep → `/verify release` → `/pr` → tag → deploy → row 8.
+13. `/ship` — one branch per run under `main-only`; call sites.
+14. `smoke-tester.md` — per-step evidence line, no judgement calls (H1).
+
+**4 — Guidelines and docs**
+15. `app-baseline.md` — the three environments, isolation, API/mocking policy (C).
+16. `docs/dev/README.md` template + the L1 rules; `docs/dev/deploy.md` environment table (D) and
+    the conditional CD note (J4).
+
+**5 — Installers**
+17. `project-scaffolder`, `/project-init`, `/project-onboard` — new scripts, the reference-env
+    question, `docs/dev/README.md`, deploy-setting removal.
+18. `/workflow-update` — new files, removed setting, new variants.
+19. `delivery.json` — entries for every new file.
+
+**6 — Self-check**
+20. `_check_consistency.py` cases for every cross-file claim above; `_check_gate.py` cases for the
+    zero-test guard and `gate-status.sh`.
