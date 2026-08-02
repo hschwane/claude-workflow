@@ -1,41 +1,97 @@
 ---
 name: pr
-description: Open a pull request for the current branch — optional utility for external review or collaboration. NOT part of the default flow (which merges locally per the Merge policy). Use when a human should review, or the repo requires PRs.
-argument-hint: "[base branch]"
+description: The merge skill — lands a finished feature branch on the integration branch, as a GitHub PR or as a local fast-forward, with the same gates either way. Under git-flow it targets develop; under main-only there is nothing to merge into but the trunk, so it hands over to /release.
+argument-hint: "(no arguments — the target is always the integration branch)"
 ---
 
-# PR (optional)
+# PR — the merge skill
 
-The default flow **merges locally** with plain git (see **Merging and release authority** in `CLAUDE.md`) and does not open PRs. Use `/pr` only when you explicitly want one: a human reviewer, an open-source contribution flow, or a repo whose branch protection requires PRs.
+**Every merge goes through here.** A local fast-forward is not a different path with lower
+standards; it is this skill choosing the cheaper execution because the conditions allow it. Local
+merging exists so a small project does not pay for GitHub ceremony it gets nothing from — never so
+it gets a weaker gate.
+
+**`/pr` always targets `develop`.** `/release` always targets the trunk. One fixed target each, so
+neither has to be told where to merge, and neither can be pointed at the wrong branch.
 
 ## Usage
 ```
-/pr              # base = integration branch (develop if it exists, else the trunk-branch setting)
-/pr main
+/pr
 ```
 
 ## Instructions
 
-### 1. Pre-flight
-- Ensure the branch's work is done and its gate is green (`/verify` has run). If not, do that first.
-- Ensure the branch is pushed and up to date with the base: `git fetch origin {base} && git merge origin/{base} --no-edit` (resolve conflicts locally; re-run the gate if the merge changed code).
+### 0. Under `main-only`, stop and hand over
 
-### 2. Create the PR
-- Look for a PR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE/…`, `docs/…`). If one exists, populate its sections; otherwise write a concise body: what changed, why, how it was verified (gate + `/verify` result), and any deferred-scope notes.
-- `gh pr create --base {base} --head {branch} --title "{type}({scope}): {summary}" --body-file {body}`.
+Read `branching` in `CLAUDE.md`. If it is `main-only` there is no `develop`: the only branch to
+land on is the trunk, and **landing on the trunk is releasing**. Say so and stop —
 
-### 3. Review
-- **Default: rely on the local `/verify` already done** — self-review + smoke happened there.
-- For a genuinely critical change, spawn the `reviewer` agent (best/high) on `git diff origin/{base}...HEAD`, or `/consult` a specific concern. Address `[MUST FIX]` findings, push, re-verify. `[CONSIDER]`/`[DECISION NEEDED]` are report-only.
-- If the PR carries **user-facing behavior that no smoke test exercised** (e.g. `/verify` ran but the change is worth showing a reviewer working), it's worth a quick blackbox pass: bring up a local/test instance and hand the `smoke-tester` a few **concrete, executable steps** (exact action + literal inputs + exact observable expected result — it can't see the spec/code), so the PR body can state it was manually confirmed. Skip for pure internal/refactor changes already covered by the gate.
+> This project is `main-only`, so a merge to the trunk is a release. Run `/release {patch|minor|major}`
+> instead; it does the gates, the merge and the release in one step.
 
-### 4. CI (only if it actually runs)
-Claude's commits carry `[skip ci]`, so **CI usually does not run on this PR** — don't wait for checks that will never report (a skipped required check sits Pending forever). Only when the project is `ci-on-claude: yes` **and** CI is running: arm `subscribe_pr_activity` once and end the turn; act on failures when the webhook wakes you. Never sleep-poll `gh pr checks`.
+Do not merge to the trunk from here. Under `main-only` a platform watching that branch deploys the
+moment the merge lands, so a merge outside `/release` ships unversioned code and leaves the release
+gate running after users already have it.
 
-### 5. Merge
-Once review is satisfied (and CI green if it ran): `gh pr merge --squash`. Set the squash commit message explicitly and append `[skip ci]` unless `ci-on-claude: yes`, so the squashed commit landing on the base doesn't re-trigger CI. **Don't use `--auto` expecting a `[skip ci]` check to report** — a skipped required check sits Pending forever; if branch protection blocks the merge on a stuck check, that protection config is the problem to fix (this scheme assumes CI is not a required check).
+Nothing is lost by batching: several tickets can share one branch and release together.
 
-Ask before merging when: a merge conflict needed non-trivial resolution, the change is a major/breaking version, or the base branch requires human approval. Otherwise merge — creating and merging the PR is what `/pr` was invoked to do (see **Merging** in `CLAUDE.md`), so don't stop for permission to land it on the base branch.
+### 1. Verify
 
-### 6. Report
-PR URL, review outcome, merge state.
+`/verify pr`. It runs the gate and the review at the right depth, skips what is provably still
+valid for this exact tree, and scopes the review to what changed since the last one. Do not restate
+those rules here — one skill owns them.
+
+Before that, bring the branch up to date with its target: `git fetch origin develop && git merge
+origin/develop --no-edit`. Resolve conflicts locally. **Do this first**, because it is exactly the
+thing that invalidates the recorded gate, and `/verify` will then notice.
+
+If `/verify pr` reports `## Blocked` or a red gate, stop on the failure.
+
+### 2. Choose the execution
+
+| Condition | Execution |
+|---|---|
+| The ticket lives on GitHub — a linked issue, or the project tracks work there | **Open a real PR.** |
+| No GitHub ticket **and** every gate ran green locally | **Local fast-forward.** |
+
+Gate strictness is identical. What differs is where the evidence is written down and who can read
+it — which is the whole reason a tracked ticket gets a PR.
+
+**Real PR.** Look for a template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE/`,
+`docs/`) and populate its sections; otherwise write what changed, why, and **how it was verified —
+the gate result, the review depth and outcome, the smoke result, and any fix made in response**.
+That record is the point: a reviewer arrives knowing what has already been checked. Then
+`gh pr create --base develop --head {branch}`.
+
+A gate that genuinely could not run locally — a platform you do not have, a matrix you cannot
+reproduce — runs in Actions instead: `gh workflow run ci.yml --ref {branch}`, and record the result
+in the PR. That is the only reason to wait on CI. Claude's commits carry `[skip ci]`, so nothing
+runs on the push itself; never sleep-poll for checks that will not report.
+
+**Local fast-forward.** `git merge --ff-only {branch}` onto `develop`, then push. If it cannot
+fast-forward, the branch is behind — go back to step 1, which re-verifies the merged result rather
+than assuming it is fine.
+
+### 3. Merge
+
+For a PR: `gh pr merge --squash`, with the squash message set explicitly and `[skip ci]` appended
+unless `ci-on-claude: yes`. Do not use `--auto` expecting a skipped check to report — a skipped
+required check sits Pending forever.
+
+Ask before merging when a conflict needed non-trivial resolution or the base requires human
+approval. Otherwise merge: landing the branch is what `/pr` was invoked to do.
+
+### 4. Post-merge — update the reference environment
+
+Only where a reference environment exists (git-flow, and the project chose to have one). It follows
+`develop`, so it is stale the moment this merge lands.
+
+Run **`scripts/deploy-reference.sh`**, then `scripts/healthcheck.sh --env reference`.
+
+If you do not run it, push the merge commit **without** `[skip ci]` so `reference-deploy.yml` does
+it instead. A workflow alone cannot be relied on here: `[skip ci]` suppresses *every* workflow for
+that commit, not just CI, so a marked merge would silently stop the reference environment tracking
+`develop` — with nothing reporting it. Local first, CI as the fallback, exactly as everywhere else.
+
+### 5. Report
+Branch, execution (PR URL or local ff), verify outcome, reference-environment state.

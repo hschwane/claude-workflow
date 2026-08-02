@@ -20,7 +20,7 @@ Implements a ready spec subtask by subtask: write the code and its tests togethe
 ### 0. Pre-flight
 Find the spec: by ID under `docs/specs/ready/`, or via `gh issue view {number}` for its linked spec. If it's still in `docs/specs/backlog/`, print "Not planned yet — run /plan {id} first" and stop.
 
-Read the spec. Confirm it's ready to build: clear goal, **observable acceptance criteria**, subtasks listed, no open `[USER]` questions. If something essential is missing, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing. Any guidelines that apply were already referenced + folded into the spec by `/plan` — follow the spec; if it lists applied guideline files, read those and honor them.
+Read the spec. **Readiness is a state, not a checklist to re-derive:** the spec is in `docs/specs/ready/` with `status: ready`, which `/plan` sets only once the template is filled and `## Open Questions` is empty. Re-listing the parts here is how the two ended up disagreeing about whether an approach was required. If a section is nevertheless empty or unusable, run `/plan {id}` (or, for a tiny change, fill the gap inline) rather than guessing. Any guidelines that apply were already referenced + folded into the spec by `/plan` — follow the spec; if it lists applied guideline files, read those and honor them.
 
 ### 1. Branch
 If not already on this spec's branch, branch from the integration branch (`develop` if it exists, else the `trunk-branch` setting):
@@ -47,6 +47,10 @@ For each subtask:
 
 **c) Gate** — invoke the `runner` agent with `scripts/ci.sh fast` (format + lint + typecheck/compile + unit tests). It digests output so raw logs stay out of this context. Read the verdict from `.claude/memory/last-gate.json` rather than the agent's prose. Fix anything red before committing — **never commit on a red gate.**
 
+**`fast` runs the new and adjacent unit tests, not the whole suite** — the runner's changed-files mode, filled at init. That is why `full` at feature-done is not optional: it is the run that covers everything this selection skipped.
+
+**c2) Run it yourself.** Before committing, exercise what you just wrote the way a developer would: curl the endpoint, run the CLI command with real arguments, load the page and click the thing. Whitebox and unscripted — you have the code and the spec, and it takes a minute. This is *not* the smoke test: that one is blackbox, comes from the acceptance criteria, and runs once per ticket. This one catches "it doesn't even run" now, rather than at feature-done after three more subtasks were built on top of it. `scripts/dev.sh` brings the environment up if the change needs one.
+
 **Run `scripts/ci.sh full` here instead of `fast` if this subtask adds or changes integration or E2E tests — *or changes behaviour those tests already assert*: a CLI's output or which stream it writes to, an HTTP contract, a serialized format, an exit code.** When in doubt, run `full`; it costs one build. `fast` excludes exactly those stages, so the subtask that adds them would be committed green having never executed one of them — and the next `full` run, possibly days later, is where you find out.
 
 **d) Commit** (green only) and push:
@@ -69,7 +73,7 @@ When every subtask box is ticked, run **`/verify`** (full gate + review + manual
 
 ### 4. Documentation (minimal, per policy)
 
-Update only what the change actually affects (see the documentation policy in `CLAUDE.md`):
+**The spec's `## Documentation impact` line already decided this** — `/plan` wrote it while scope was still negotiable. Do what it says; if it says `None.` there is nothing to do here. Update it only if the implementation genuinely turned out to affect something it did not foresee, and say so. Beyond that line, the policy in `CLAUDE.md` still applies (only what the change actually affects):
 Do this **before** running `/verify`, not after. Documentation commits move HEAD, so a `/verify` that ran first leaves `last-gate.json` pointing at a sha that is no longer HEAD, and a doc commit can itself break the format check.
 
 Step 5's spec-completion commit necessarily lands *after* `/verify`, so HEAD moves once more regardless. That is fine and does not invalidate the gate: a recorded result still applies when `git diff --name-only <recorded sha>..HEAD` is entirely under `docs/specs/`. Say so when you take the fast-forward, so the claim is checkable.
@@ -77,6 +81,7 @@ Step 5's spec-completion commit necessarily lands *after* `/verify`, so HEAD mov
 - **`CHANGELOG.md`:** add a line under `## [Unreleased]` naming the ticket. `/release` builds the next section from the commit log, but between releases the changelog is the only place a reader sees what has landed since the tag — leave it empty and the file is behind the shipped truth, quietly, until someone cuts a release.
 - **`README.md`:** if the change altered how the tool is invoked — a new command, a changed flag, a different install step — update the usage example now. `/release` re-checks it, but leaving it stale means every branch and every PR in between documents the wrong thing.
 - **Technical:** keep `docs/dev/architecture.md` accurate if structure, algorithms, APIs, or the data model changed, and record a lasting choice as a dated entry in `.claude/memory/decisions.md`. A pure bug fix usually needs nothing — but check.
+- **A new `docs/dev/` document** the spec named — a complex or foundational algorithm, a file format, an API interface, a network protocol, another contract. Write it, and **add its row to `docs/dev/README.md`**: that index is how `/plan`, `code-explorer` and `reviewer` know the document exists at all. A dev doc nothing indexes is a dev doc nobody finds.
 - **User docs (`docs/user/`):** only if user-facing behavior changed (new/changed command, endpoint, UI, config). Prefer self-explanatory UI + in-app hints over prose.
 - **Doc-comments:** only for function usage/params, class/file usage, and genuinely tricky algorithms/decisions.
 

@@ -16,10 +16,11 @@ The main session prepares the judgment parts (version bump, changelog), then the
 ## Instructions
 
 ### 1. Pre-flight
-- Read `branching` and **`trunk-branch`** in `CLAUDE.md`. Be on the right branch (main-only: the trunk; git-flow: `develop`). The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
+- Read `branching` and **`trunk-branch`** in `CLAUDE.md`. The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
+- **Where you run from depends on the model.** Under `git-flow`: from `develop`, and the release merges `develop` → trunk. Under `main-only`: **from the feature branch**, because landing on the trunk *is* the release — `/pr` refuses that merge and sends you here precisely so the version bump happens before the code ships. Several tickets may share that branch and release together; the unit of release is the branch, not the ticket.
 - Working tree clean (`git status`); `[ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"` so the release includes everything a remote already has. The guard matters: `github: no` is supported, and an unguarded `git pull` makes the first executable line of `/release` exit 1.
 - **Check for unmerged ticket branches: `git branch --no-merged {trunk-branch}`.** A finished ticket that is not merged is simply not in this release, and nothing else notices — the pull above only fetches what a remote has. Merge it per the **Merge policy** in `CLAUDE.md` (fast-forward if the full gate passed on this exact HEAD, otherwise resolve, re-run `ci.sh full`, then merge), or say explicitly that it is being held back.
-- The full gate runs inside `scripts/release.sh`, which this skill invokes at **its own step 7** below (the script calls that stage "1. Gate") — so don't run the gate separately here. For `release-runner: ci` **only**, run `scripts/ci.sh full` via the `runner` now as a fail-fast check before dispatching to Actions.
+- **Run `/verify release`.** It owns the gate and the review — running them at the right depth, skipping what is provably still valid for this tree, scoping the review to the delta since the last one, and adding a regression smoke pass over the combined state in a long unsupervised run. `release.sh` also gates, but conditionally (`gate-status.sh`), so nothing runs twice; in the CI fallback there is no recorded result and its gate is the only one, which is why it stays.
 
 ### 2–6. Prepare version + changelog (main session — the judgment part)
 - **Bump type**: the argument, or ask (patch/minor/major).
@@ -37,7 +38,17 @@ The main session prepares the judgment parts (version bump, changelog), then the
 - **Check for work that shipped but was never released.** `git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline` non-empty at the *start* of a release is normal — that is what you are releasing. But if `## [Unreleased]` is empty while those commits exist, the changelog has been behind the truth since the last tag: rebuild the section from the log rather than trusting the file.
 - **Strip template scaffolding from the README.** A scaffolded README ships commented guidance ("Small project: the complete instructions belong here…"). Those comments are for the author, not the reader; if any survive, delete them now.
 - **Check the README before bumping.** Its description, install/run instructions and usage example are the project's entry point and the first thing a new reader sees. If what shipped since the last release changed any of them, update them now — this is the checkpoint that keeps the README true.
-- Commit the bump + changelog: `chore: release v{version}  [skip ci]` (omit `[skip ci]` if `ci-on-claude: yes`). For git-flow, do this on `develop`.
+- Commit the bump + changelog: `chore: release v{version}  [skip ci]` (omit `[skip ci]` if `ci-on-claude: yes`). Under git-flow, on `develop`; under `main-only`, **on the feature branch, before the merge in step 7a** — production must never run unlabelled code, and every later check (`healthcheck.sh $VERSION`, rollback, "what is live?") depends on the deployed artifact carrying the right version from its first second.
+
+### 7a. Land it on the trunk
+
+**Under `main-only`:** `git merge --ff-only {branch}` onto the trunk, then push. Fast-forward is
+required, not preferred — it makes the trunk's tree bit-identical to the one `/verify` passed. If
+it cannot fast-forward, rebase and re-run `/verify release`; a merge commit into a trunk that
+deploys on push would ship a tree nothing has ever tested. Where the project uses PRs, open and
+merge one instead, with the same requirement.
+
+**Under `git-flow`:** step 8 does this merge, after the release runs on `develop`.
 
 ### 7. Run the release (local by default)
 
@@ -68,8 +79,15 @@ The tag is the version record; it triggers nothing (the release workflow is disp
 
 **Push the release branch — that's the point of `/release`.** Pushing the trunk branch and `develop` and tagging are steps of this skill, authorized by its invocation (see **Merging** in `CLAUDE.md`); a session instruction naming a feature branch doesn't override them. If the push is rejected GitHub-side (protected branch, proxy), fall back to `gh` rather than stopping. That fallback is for a *rejected* push; a repo with **no remote at all** is not a failure to escalate — note it and continue. If `scripts/release.sh` deploys to production, that too is what `/release` was asked to do — run it and verify health (step 9); don't pause for a separate confirmation.
 
-### 9. Deploy verification
-For a deployed app (e.g. Railway auto-deploys on the merge/push): verify health — hit the healthcheck / use the Railway MCP to confirm the new deploy is live and serving. Report the result; roll back if unhealthy.
+### 9. Post-release verification
+
+**Wait, then verify, then fix.**
+
+1. **Wait for the deploy to settle**, with a timeout. Where the platform deploys on push, the push returns immediately while the build runs for minutes — a check fired straight after it probes the *old* version and reports a release that has not happened.
+2. **`scripts/healthcheck.sh {version}`** against production. It refuses to confirm a version unless a probe actually compares against it: reaching the service proves it answers, not that the new build is live.
+3. **Unhealthy → fix it.** Roll back to protect users while you diagnose, then fix forward. A rollback is not the resolution, and a release left rolled back with no diagnosis is an unfinished job. The rollback procedure is in `docs/dev/deploy.md`.
+
+No artifact is recorded here, deliberately: liveness is a current fact, not a historical one. A record saying "the release steps executed" can be true while the service is down. Re-running the healthcheck answers the real question, which is why it is a script and not a note.
 
 ### 10. Report
 ```

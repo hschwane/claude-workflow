@@ -47,6 +47,9 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 - **Approach / interfaces** — the key interfaces or signatures to add/change, and a short note on the approach. Enough to implement without re-deciding architecture mid-build; not a full design doc.
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
 - **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the `testing-scope` setting in `CLAUDE.md`. Quality over quantity — the important behaviors.
+- **Documentation impact** — one or two lines. `None.` is a complete and common answer; the documentation policy is unchanged (only what the change actually affects, and tokens spent on docs nobody reads are wasted twice). Decide it **here**, not at implementation time, where it is invisible while scope is still negotiable and is the first thing dropped under pressure. `/verify` checks the result against this line.
+
+  Answer two things: which existing docs the change makes untrue, and whether it introduces something a reader would otherwise have to reconstruct from the implementation. The second is what `docs/dev/` is for — **a complex algorithm or one the software is built on, a file format, an API interface, a network protocol, any other contract, or a design that is hard to enumerate comprehensively later.** The test is not "is this complicated" but *"would someone have to read the whole implementation to recover this?"* If yes, name the new `docs/dev/` file here; `/implement` writes it and adds its row to `docs/dev/README.md`.
 
 ### 3. Scope discipline — never defer the core
 
@@ -65,8 +68,22 @@ If resolving the spec needs the user's input, collect every `[USER]` question.
 - **Multi-ticket** mode: **plan all tickets first, collecting questions across all of them, then ask the whole set together** in one chat message (a numbered list), before returning. Be thorough — surface every decision that would otherwise need the user *later* (scope boundaries, ambiguous acceptance criteria, design/tech forks), because after this batch the caller (e.g. `/ship`) runs autonomously and won't ask again. Then finish every spec. The user answers once and walks away.
 - **Unsupervised** mode: don't ask — apply the most reasonable default, note the assumption in the spec, and continue.
 
-### 5. Mark ready
-When a spec has a goal, observable acceptance criteria, an approach, subtasks, and no open questions:
+### 5. Review the spec, then mark ready
+
+**Reread each finished spec once, as a reviewer would.** This is the last point where a bad
+criterion is free to fix: after it, `/implement` builds to it, its tests assert it, `/verify`
+checks against it and a reviewer is handed it as the contract — all of which agree with a wrong
+criterion as readily as a right one. Look for a criterion with no observable result, an expected
+value taken from the approach rather than from a source, scope quietly narrower than the goal, and
+a `Documentation impact` line that says `None.` when the ticket introduces a contract.
+
+For a **critical or complex** ticket — the same trigger `review-depth` uses — `/consult` the
+`advisor` on the spec instead of self-reviewing. Not every spec; the ones where being wrong is
+expensive.
+
+**Ready is the template being complete, not a list to recite.** A spec is ready when its sections
+are filled and `## Open Questions` is empty — the template defines the shape, so nothing here or
+in `/implement` restates it. Then:
 - Set frontmatter `status: ready`; `git mv docs/specs/backlog/{file} docs/specs/ready/{file}`.
 - If `github_issue` is set and the `github` setting in `CLAUDE.md` is not `no`: move labels to `ready`.
 - Commit: `git add docs/specs/ .claude/memory/decisions.md && git commit -m "docs(specs): plan {id}  [skip ci]"` — `decisions.md` too, because step 2 may have recorded provenance or an answered conflict there; left unstaged it is swept into the next `feat(...)` commit by `/implement`'s `git add -A` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.

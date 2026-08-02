@@ -42,16 +42,21 @@ Record the resolved plan (ticket order + the batched answers) in **`.claude/memo
 
 ### 2. Per ticket, in priority order
 For each ticket:
-1. **`/implement {id}`** — builds it on its own feature branch, fast-gating + committing each subtask, then runs `/verify` (full gate + review + smoke for new features).
-2. **Merge to the integration branch — local git, per the Merge policy** (no PR): if the merge is fast-forward and the full gate is known-green on this exact HEAD from this session (e.g. `/verify` just ran) → `git merge --ff-only`, no re-run. Otherwise — or after a `/resume`, when the last-green sha isn't known — resolve conflicts if any, re-run the full gate (`ci.sh full`), then merge. The merge commit carries `[skip ci]` unless `ci-on-claude: yes`.
+1. **`/implement {id}`** — builds it, fast-gating + committing each subtask, then runs `/verify` (gate + review + criteria table + smoke).
+2. **Under `git-flow`: `/pr`** — it lands the branch on `develop` with the gates, choosing a real PR or a local fast-forward by its own rule, and updates the reference environment afterwards.
+   **Under `main-only`: nothing here.** Landing on the trunk is releasing, so the tickets accumulate on one branch and step 3 releases them together.
 3. Tick the ticket off in the `## Ship` state.
 
-No CI waits, no PR round-trips — nothing to idle on, so tickets flow one after another. (Use `/pr` instead of the local merge only if the user asked for PRs / the repo requires them.)
+**Branching depends on the model.** Under `git-flow`, each ticket gets its own branch off `develop`, as `/implement` does by default. Under `main-only`, the whole run shares **one** branch: `/implement` stays on it for every ticket instead of branching per spec, because each merge to the trunk would otherwise be a separate release.
+
+Nothing to idle on, so tickets flow one after another — `/pr` only waits on CI when a gate genuinely could not run locally.
 
 **No more questions after step 1 — the user is AFK.** For any decision that comes up mid-implementation, apply a reasonable default (note the assumption in the spec/report) or `/consult` if it's genuinely hard — never stop to ask. If a ticket hits a **genuine blocker** (needs a human decision or missing credentials): write `## Blocked` (ticket + reason) to `context-ship.md`, **skip that ticket, and continue with the next independent one** — don't halt the whole run and don't ask. This holds in supervised mode too: once the up-front batch is answered, `/ship` behaves autonomously to the end. **Never defer a ticket's core work / acceptance criteria to "later" to keep moving** (see `/plan` and `/implement` scope rules) — a ticket is done only when its criteria are actually met, or it's `## Blocked`. Deferral is only for genuinely peripheral extras a ticket never required; capture those as a new backlog draft and surface them in the report.
 
 ### 3. Release
-On the integration branch: `/release {bump_type}` — bump version + changelog (main session), then the `runner` executes the full gate + `scripts/release.sh` (build/publish/deploy) locally; Actions release only as fallback. Do **not** re-run the manual smoke here (it's a new-feature check, already done per ticket) unless the user asked.
+`/release {bump_type}` — from `develop` under git-flow, from the run's branch under `main-only`. It runs `/verify release`, bumps version + changelog, lands the trunk merge, tags, and executes `scripts/release.sh` locally; Actions release only as fallback.
+
+**A long `/ship` run gets the regression smoke pass** `/verify release` describes — over the new features *and* the important older ones. Every ticket was verified alone, before the others existed, so this is the only check the combined state gets. The more tickets in the run and the less supervision it had, the more that matters; a two-ticket supervised run does not need it.
 
 `/ship` runs to a **released version** — merging, pushing the integration branch, tagging, and the deploy `release.sh` triggers are all part of what the user asked for by invoking it (see **Merging** in `CLAUDE.md`). Don't stop after the merge to ask permission to release, and don't stop before pushing the trunk branch because a session branch rule mentions a feature branch. Stop only on a failed gate, a genuine blocker, or an action outside these steps.
 

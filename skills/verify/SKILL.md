@@ -1,99 +1,206 @@
 ---
 name: verify
-description: Feature-done QA — run the full gate, review (self or agent), and a blackbox manual smoke test of a new feature, then report. Proves the change works and matches its acceptance criteria. Invoked by /implement and /ship; also runnable directly.
-argument-hint: "[FEAT-001] (defaults to the in-progress spec on this branch)"
+description: The verification skill — runs the gate, the review, the criteria table and the smoke test at whichever point in the workflow asked. Called at feature-done, before a merge, and before a release; /pr and /release delegate to it rather than restating checks.
+argument-hint: "[ticket|pr|release] [FEAT-001] (defaults to `ticket` and the in-progress spec)"
 ---
 
 # Verify
 
-The "feature done" quality step. Confirms a change (a) passes the full automated gate, (b) survives review, and (c) actually does what its acceptance criteria say when run for real. Automated tests carry the breadth; the manual smoke test is a small, blackbox discovery pass over the *new* behavior.
+**All verification logic lives here.** `/implement` calls it at feature-done, `/pr` before a merge,
+`/release` before a release. Those skills *act*; this one decides whether acting is safe. The
+checks are the same in all three cases — only their depth and scope change.
 
 ## Usage
 ```
-/verify            # verifies the in-progress spec on the current branch
-/verify FEAT-001
+/verify                 # ticket mode, the in-progress spec on this branch
+/verify FEAT-001        # ticket mode, that spec
+/verify pr
+/verify release
 ```
+A first argument that is not `ticket`/`pr`/`release` is a ticket id, and the mode is `ticket`.
 
-## Instructions
+## What runs in which mode
 
-Resolve the spec: the argument, or the in-progress spec on the current branch. Read its **acceptance criteria**.
+| | `ticket` | `pr` | `release` |
+|---|---|---|---|
+| §1 full gate | per §1 | per §1; skipped when one ticket and nothing changed since it was verified | as `pr` |
+| §2 review | whole diff | **delta since the last review** | as `pr` |
+| §3 criteria table | **mandatory** | — done per ticket | — |
+| §4 documentation | vs the spec's line | — | — |
+| §5 smoke | §5's scope | none | regression pass in long unsupervised runs |
+
+In `ticket` mode, resolve the spec (the argument, or the in-progress spec on this branch) and read
+its **acceptance criteria** — everything below compares against them.
+
+---
 
 ### 1. Full gate
-Invoke the `runner` agent with `scripts/ci.sh full` (format + lint + typecheck + **all** automated tests incl. integration/e2e + the deployable build). Fix anything red, commit the fix, re-run until green. This is the authoritative correctness gate.
 
-**Skip only if the recorded result says you may.** `ci.sh` writes `.claude/memory/last-gate.json` — `{mode, status, checks, full_checks, failed, sha, dirty}`. Skip the re-run only when **all five** hold:
-  1. the file says `"mode":"full"`,
-  2. and `"status":"passed"`,
-  3. and its `sha` equals `git rev-parse HEAD`,
-  4. and it says `"dirty":false`,
-  5. **and `git status --porcelain` is empty right now.**
+`scripts/gate-status.sh full` decides whether it has to run. Exit 0 means the recorded result is
+still valid for this exact tree and re-running proves nothing; any other exit means run it —
+invoke the `runner` agent with `scripts/ci.sh full`, fix what is red, commit, repeat until green.
 
-  (5) is not a restatement of (4). The record is a snapshot taken *before* any later edit, so after a green clean run plus one uncommitted change all four recorded fields still hold — HEAD does not move when a file is edited. Checking only the JSON skips the authoritative gate on changed code, which is the precise failure this paragraph exists to prevent. The fourth is not optional — uncommitted edits do not move HEAD, so without it the one path that skips the authoritative gate is reachable on a tree whose code has changed since the green run. That is a comparison, not a memory: it survives a `/resume`, a context compaction and a different session, all of which "I'm fairly sure nothing changed" does not.
+That script is the **only** implementation of the rule. It compares five things (recorded mode,
+recorded pass, sha, recorded-clean, clean-right-now) plus the one exception, that a `docs/specs/`-only
+commit since the recorded run does not invalidate it. Do not re-derive any of that here or paraphrase
+it in another skill: the rule previously existed in four places at four strengths, and each
+paraphrase had dropped a different condition. Two of them are easy to think redundant and are not —
+recorded-clean catches a gate that ran over edits later reverted, clean-now catches an edit *after*
+a green run, and editing never moves HEAD, so every other field still matches.
 
-No file, a different sha, or any other status → **run it**. And read the file yourself rather than taking the `runner`'s word for the outcome: the agent's prose is the failure excerpt, this is the verdict.
+Read the verdict from `.claude/memory/last-gate.json` rather than the `runner`'s prose: the agent's
+report is the failure excerpt, the file is the verdict.
 
-### 2. Review (Claude's judgment)
-Default: **self-review** — reread the diff (`git diff {integration-branch}...HEAD`) adopting a reviewer's perspective: correctness, security basics, conventions, test quality. Fix what you find.
+**In `pr` and `release` mode there is one further skip:** when a single ticket was built on this
+branch and nothing has changed since its `/verify` ran, the gate and the review both already cover
+exactly this tree. If anything *did* change, **re-run the gate in full** — a partial re-run proves
+nothing about the parts it skipped — but scope the review per §2.
 
-Escalate **only for genuinely critical changes** (security-sensitive, structurally significant, high blast radius, **or a calculation, rate, protocol or format whose right answer exists outside the code** — a wrong constant there is invisible to every other check and is exactly what a fresh reader with the spec catches): either `/consult` the specific concern, or spawn the `reviewer` agent (best/high, fresh eyes). Use sparingly — most changes don't need it.
+### 2. Review
 
-**Hand the reviewer the spec, not just the diff.** Its whole added value over your own read is an independent check that the code produces what the *criteria* say; given only a diff it can confirm the code is coherent, which a wrong implementation with matching tests always is.
+**Depth comes from the `review-depth` setting**, not from a judgement call made fresh each time:
 
-**Check the oracle, not just the criteria.** A criterion whose expected value was computed from the same model the code implements is self-referential: it passes because the code agrees with itself. Before signing off on a feature with a right answer that exists outside the code — a calculation, a rate, a protocol, a format — confirm the spec says where its expected values came from, that at least one criterion is anchored to something independent, and — where the spec carries two anchors — **spot-check that they are mutually consistent**. Two published pairs cannot both hold under a wrong constant, so this is the one check that can catch a plausible-looking citation of a wrong value; confirming the spec merely *has* provenance cannot. If the spec has no such source, that is a `[MUST FIX]`-shaped finding: report it and, unless the user says otherwise, raise a follow-up ticket. Do not record it as verified on the strength of internal consistency alone.
+| | escalate to the `reviewer` agent for |
+|---|---|
+| `critical-only` (default) | security-sensitive, structurally significant, high blast radius, or a value whose right answer exists outside the code |
+| `critical+complex` | those, **plus** changes touching a lot of pre-existing code or with many moving parts |
+| `always` | every ticket and every merge |
 
-Same for **unsourced constants and seed data** the ticket introduced: if a magic number or a reference table arrived without a citation, say so in the report.
+Below the threshold, **self-review**: reread the diff adopting a reviewer's perspective —
+correctness, security basics, conventions, test quality — and fix what you find. Above it, spawn
+the `reviewer` agent (fresh eyes) or `/consult` the specific concern.
 
-### 3. Criteria verification — always, no exceptions
+**A calculation, rate, protocol or format whose right answer exists outside the code is always
+critical**, whatever the setting. A wrong constant there is invisible to every other check in this
+workflow and is exactly what a fresh reader holding the spec catches.
 
-**This section is never skipped.** The smoke run in §4 has a skip rule; this table does not. It is the only mechanism in the workflow that catches an implementation whose own tests agree with it, so a ticket phrased as a refactor gets the table exactly like any other.
+**Hand the reviewer the spec, not just the diff.** Its whole added value is an independent check
+that the code produces what the *criteria* say. Given only a diff it can confirm the code is
+coherent — which a wrong implementation with matching tests always is.
 
-Build a table with one row per criterion and **four columns**:
+**Never review the same diff twice.** Record `{sha, depth}` in `.claude/memory/last-review.json`
+when a review completes. Skip when the sha matches HEAD, the tree is clean, and the recorded depth
+is at least the depth now required — a record made at `critical-only` does not satisfy `always`.
+In `pr`/`release` mode with the sha *behind* HEAD, review only `git diff <recorded sha>..HEAD`:
+review is expensive to repeat and perfectly meaningful on a delta, which is exactly why the gate's
+rule is the opposite one.
+
+### 3. Criteria verification — `ticket` mode, never skipped
+
+**This section has no skip rule.** §5 has one; this does not. It is the only mechanism in the
+workflow that catches an implementation whose own tests agree with it, so a ticket phrased as a
+refactor gets the table exactly like any other.
+
+One row per criterion, four columns:
 
 | Criterion (quoted verbatim, + `spec.md:LINE`) | Literal expected value | Literal observed value | Where the observed value came from |
 |---|---|---|---|
 
-Both values are quoted verbatim. The first column exists so a reader can diff your expected value against the spec **without trusting you** — a table whose expected column was quietly copied from the code's output is otherwise indistinguishable from a correct one, and that forgery is the residual hole this column closes.
+Both values quoted verbatim. The first column exists so a reader can diff your expected value
+against the spec **without trusting you** — a table whose expected column was quietly copied from
+the code's output is otherwise indistinguishable from a correct one.
 
 | Outcome | What it takes |
 |---|---|
-| **Met** | The observed literal equals the expected literal. The observed value comes from a run you performed, or from an automated test **that asserts the criterion's own expected value** — quote the assertion. "Covered by a passing test" is *not* evidence on its own: a test written from the same wrong model as the code passes, and citing it certifies nothing. If the test asserts something other than the criterion's literal, treat the criterion as not test-covered and run it. |
-| **Not covered** | Implemented but nothing asserts the criterion's value → it needs a smoke step in §4. |
-| **UNMET → verify FAILS** | Not implemented, stubbed, "deferred", silently narrowed, **or the observed literal differs from the expected one**. This is not a "flag" — the ticket is not done. Go back to `/implement` and build it (or `/consult`, or `## Blocked` if it truly needs a human). A criterion is never satisfied by deferring it. |
-| **Undemonstrable** | Genuinely impossible to demonstrate *because of the environment* (needs hardware, a third-party sandbox you cannot reach) → note it explicitly with why, and pass. **Not** applicable when it is undemonstrable because the criterion never said what to compare against — that is a spec defect: send it back to `/plan`. |
+| **Met** | Observed literal equals expected literal, from a run you performed or from a test **that asserts the criterion's own expected value** — quote the assertion. "Covered by a passing test" is not evidence: a test written from the same wrong model as the code passes. If the test asserts something else, treat the criterion as not covered and run it. |
+| **Not covered** | Implemented but nothing asserts the value → it needs a smoke step in §5. |
+| **UNMET → verify FAILS** | Not implemented, stubbed, "deferred", silently narrowed, **or the observed literal differs**. Not a flag — the ticket is not done. Back to `/implement`, or `/consult`, or `## Blocked`. A criterion is never satisfied by deferring it. |
+| **Undemonstrable** | Impossible to demonstrate *because of the environment* (hardware, an unreachable third-party sandbox) → say so, with why, and pass. **Not** applicable when it is undemonstrable because the criterion never said what to compare against — that is a spec defect, back to `/plan`. |
 
-**The expected column comes from the spec. Full stop.** Never from the code, the tests, or a run — not even to "check what format it prints in". The moment you read the implementation to decide what the answer should be, this table certifies that the code agrees with itself, which it always does. Tests and runs supply the **observed** column only. If a criterion's expected value is missing or unusable, that is a finding about the spec, not a gap to fill from the output.
+**The expected column comes from the spec. Full stop.** Never from the code, the tests, or a run —
+not even to "check what format it prints in". The moment you read the implementation to decide what
+the answer should be, the table certifies that the code agrees with itself, which it always does.
 
-**Store the table in the spec, under `## Criteria verification`.** A judgment reported in chat evaporates at the end of the turn; the point of a table is that someone can audit it later. Record the first pass, including any row that failed and what you did about it — a spec showing "row 2 failed, constant corrected, re-run green" is worth far more than one asserting everything passed.
+**Check the oracle, not just the criteria.** A criterion whose expected value was computed from the
+same model the code implements is self-referential. Before signing off on anything with a right
+answer outside the code, confirm the spec says where its expected values came from, that at least
+one criterion is anchored to something independent, and — where the spec carries two anchors —
+**spot-check that they are mutually consistent**. Two published pairs cannot both hold under a wrong
+constant, which is the one check that catches a plausible citation of a wrong value. No such source
+is a `[MUST FIX]`-shaped finding: report it and raise a follow-up ticket. Same for **unsourced
+constants and seed data** the ticket introduced.
 
-### 4. Manual smoke test
+**Store the table in the spec under `## Criteria verification`,** then run
+`scripts/criteria-check.sh <spec>` — it fails on a missing section or a criterion with no row.
+A judgment reported in chat evaporates at the end of the turn. Record the first pass, including any
+row that failed and what you did about it: a spec showing "row 2 failed, constant corrected, re-run
+green" is worth far more than one asserting everything passed.
 
-Run it for anything a user can observe. Skip it only for a change with **no user-visible surface** — an internal refactor, a dependency bump — or one whose behavior was already covered by tests *before this ticket started*. A bug fix that ships its own regression test does **not** qualify: those tests were written by the same session that wrote the fix, so they prove the code does what the author intended, not what the user asked for. That is the gap the smoke run exists to close. **This skip applies to the smoke steps only — never to §3's table.**
+### 4. Documentation — `ticket` mode
 
-**Write the fewest smoke steps that meaningfully validate the new behavior** — as few as possible, as many as needed. Breadth is the automated tests' job; don't re-test everything here.
+Check the spec's `## Documentation impact` line was honoured. `None.` means there is nothing to
+check. Otherwise: the named docs are updated, and a new `docs/dev/` document has its row in
+`docs/dev/README.md` — an unindexed dev doc is one nothing will find. If the implementation turned
+out to introduce a contract the line did not foresee — an algorithm, a format, an interface, a
+protocol — that is a finding, not a silent fix: say so and write it.
 
-**Each step must be a concrete, executable test case — not a goal.** The agent is blackbox: it never sees the spec, the criteria, or the code, so anything you leave implicit is simply lost, and a vague step comes back as "could not complete" (or a false pass). Every step needs:
-- an **exact action** with the **literal inputs** — the precise URL/route or command, the exact values to type, which control to click by its visible label, the test credentials to use. Not "log in" but "open `http://localhost:3000/login`, type `test@example.com` / `pw123`, click **Sign in**".
-- an **exact, observable expected result** — a specific visible string, element, route, status code, or output. Not "it works" or "the dashboard loads" but "lands on `/dashboard` and shows the text **Welcome, test**". If a human couldn't tell pass from fail by reading your step, the agent can't either.
+### 5. Manual smoke test
 
-- **derived from the acceptance criterion, never from the code or its output.** This is the same rule as the mapping table above, and it is the step most often broken: running the tool, seeing what it prints and writing that down as the expected result produces a smoke run that passes against any implementation, including a wrong one. Take the expected string from the criterion.
-- **a fixed expected result.** A step can be perfectly observable and still non-deterministic — "the answer is in the future", "the newest item is first" — and pass against a broken build because of when the clock happened to be. Pin the inputs: an explicit timestamp, a seeded fixture. A step that only detects the bug half the time reports a pass you will trust.
+Run it for anything a user can observe. Skip only for a change with **no user-visible surface** — an
+internal refactor, a dependency bump — or behaviour already covered by tests written *before this
+ticket started*. A bug fix shipping its own regression test does **not** qualify: those tests came
+from the same session as the fix, so they prove the code does what the author intended, not what the
+user asked for. **The skip applies to §5 only — never to §3.**
 
-Hand the agent only the resolved, unambiguous steps.
+**Scope:**
+- **1–3 steps for the main story**, as the ticket describes and intends it;
+- **one step per acceptance criterion**;
+- **more where they earn it** — interactions between criteria, or areas of the project this change
+  could plausibly have disturbed.
 
-**You (the main session) prepare the environment — the smoke-tester never sets anything up.** Bring up the app on a **local/test instance with test data — never production**, run any needed migrations/seeds yourself, and confirm it's reachable. If it genuinely can't run locally (needs cloud services/hardware), do not skip: agree a project-specific strategy with the user (debug/staging deploy) and record it in `deploy.md`. In unsupervised mode with no such strategy on record, note it as a blocker rather than testing against prod. Use a throwaway/test database, not a dev DB you care about.
+**Intensity scales with risk and autonomy.** More manual testing the larger, more complex or more
+critical the change — and the more autonomously the work is running. A long unsupervised run with
+many tickets gets the full scope every ticket; a small bugfix with the user watching gets little or
+nothing, and a trivial one gets none. Automation removes the human who would otherwise have noticed
+something odd in passing, so the less supervision a run has, the more deliberately that attention
+has to be bought back. Same judgement axis as `review-depth`.
 
-**Hand the steps to the `smoke-tester` agent** (blackbox — give it ONLY the step list + how to reach the already-running app + which tool to drive with; never the spec, criteria, or code). Remind it of its boundaries: it **drives the app through its interface and reports; it must not write/delete any project file, must not touch the database except through the app, and must not run git/build/migrations** (its agent definition enforces this). It **reports only failing steps** (expected vs observed + screenshot). If it reports "could not complete — needs setup", that's on you to prepare, then re-run — not something it should have done.
+**Each step is a concrete, executable test case — not a goal.** The agent is blackbox: it never sees
+the spec, the criteria or the code, and it **makes no judgement calls**. It does not decide whether
+a near-match counts, or whether a difference matters. Observed ≠ expected is a failure. So anything
+left implicit is lost, and a step needing interpretation comes back as could-not-complete. Every
+step needs:
+- an **exact action** with **literal inputs** — the precise URL or command, the exact values to
+  type, the control to click by its visible label, the test credentials. Not "log in" but "open
+  `http://localhost:3000/login`, type `test@example.com` / `pw123`, click **Sign in**".
+- an **exact, observable expected result** — a specific visible string, element, route, status code
+  or output. Not "the dashboard loads" but "lands on `/dashboard` and shows **Welcome, test**". If a
+  human could not tell pass from fail by reading your step, neither can the agent.
+- **derived from the acceptance criterion, never from the code or its output.** Running the tool,
+  seeing what it prints and writing that down produces a smoke run that passes against any
+  implementation, including a wrong one.
+- **a fixed expected result.** A step can be observable and still non-deterministic — "the answer is
+  in the future", "the newest item is first" — and pass on a broken build because of when the clock
+  happened to be. Pin the inputs: an explicit timestamp, a seeded fixture.
 
-**On a reported failure:** look at the screenshot/output and decide — a real bug, a UX problem (a step a novice couldn't do either), or a limitation of the instructions. Fix bugs; note UX issues. **Every bug found here → fix it AND add an automated test** so it can't recur.
+**You prepare the environment; the smoke-tester never sets anything up.** `scripts/dev.sh` brings up
+the dev environment with test data and `scripts/dev.sh --info` prints the URL and test credentials —
+hand that output to the agent verbatim as `HOW_TO_RUN`. Start it before handing off and stop it right
+after. **Never production**, and a throwaway database, not a dev one you care about. If the change
+genuinely cannot run locally, agree a strategy with the user and record it in `deploy.md`; in
+unsupervised mode with none on record, note it as a blocker rather than testing against prod.
 
-**Store the smoke steps in the spec** (a "Smoke steps" section) so they're re-runnable later. The stored copy is for reuse; the agent still runs blackbox.
+**Hand the agent only** the resolved steps, that `HOW_TO_RUN`, and which tool to drive with — never
+the spec, the criteria or the code. It reports per-step evidence plus detail on failures.
 
-### 5. Report
+**On a reported failure:** decide — a real bug, a UX problem (a step a novice could not do either),
+or a limitation of your instructions. Fix bugs; note UX issues. **Every bug found here → fix it AND
+add an automated test** so it cannot recur.
+
+**Store the steps in the spec** under `## Smoke steps` so they are re-runnable. That, not a stored
+result, is the record: re-running them answers "does it still work?", which a past claim cannot.
+
+**In `release` mode**, a long unsupervised run gets a second pass here over the combined state —
+the new features **and** the important older ones. It is the only human-shaped check the merged
+result ever gets, since every ticket was verified alone, before the others existed.
+
+### 6. Report
 ```
-Verify ✓  {id}
-Gate: green (full)   Review: {self | reviewer agent | consult}   Smoke: {N steps, all pass | M failed→fixed | n/a}
+Verify ✓  {mode}{ · id}
+Gate: {green (full) | skipped — valid for this sha}   Review: {self | reviewer | consult | skipped — same sha}
 Criteria: {N/N met — table in <spec>#criteria-verification | FAIL — unmet: <list> → back to /implement}
           {any row that failed on the first pass, and what fixed it}
+Docs: {done per spec | none required}   Smoke: {N steps, all pass | M failed→fixed | n/a}
 {bugs found → tests added: …}
 ```
-If something can't be made green/clean and needs a human, write `## Blocked` and stop.
+If something cannot be made green and needs a human, write `## Blocked` and stop.
