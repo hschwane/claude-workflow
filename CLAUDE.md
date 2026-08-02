@@ -29,7 +29,7 @@ templates/                   ← files copied into projects by project-init / pr
   CLAUDE.md.template, README.md.template, CONTRIBUTING.md.template
   CHANGELOG.md.template, spec.md.template, vision.md.template
   src-claude.md.template, tests-claude.md.template
-  dev/                       ← developer doc templates: code-style.md (plugin-owned engineering standards + all language rules), setup, deploy, architecture, user-readme
+  dev/                       ← developer doc templates: README.md (the index skills read), code-style.md (plugin-owned engineering standards + all language rules), setup, deploy, architecture, user-readme
   configs/                   ← standard language configs (tsconfig, eslint, etc.)
   github/                    ← GitHub Actions CI/release templates
   gitignore/                 ← per-language .gitignore templates
@@ -37,7 +37,7 @@ templates/                   ← files copied into projects by project-init / pr
   memory/                    ← decisions / gotchas / tech-debt templates (topic index in the head) + .gitignore
   guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README, INDEX.md.template (shipped verbatim, one row per guideline), LIBRARY.md (plugin-side catalogue), and the 12 library files. **Every project gets all of them** — relevance is per task, decided by the INDEX triggers, not per project at install time. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
   ui/                        ← reusable UI templates referenced by a guideline (changelog-template.html, self-contained, re-skin via CSS vars)
-  scripts/                   ← ci.sh, release.sh (canonical entrypoints), claude-loop.sh
+  scripts/                   ← canonical entrypoints: ci.sh, release.sh, gate-status.sh (the gate-validity rule as one executable), criteria-check.sh, healthcheck.sh, dev.sh, deploy-reference.sh (git-flow + reference env only); plus claude-loop.sh
 ```
 
 Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `hooks/hooks.json`) so the plugin itself does not activate hooks whose scripts only exist after project-init/onboard copies them into a project's `.claude/hooks/`.
@@ -51,10 +51,10 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/draft` | Add a raw feature/bug to the backlog |
 | `/plan` | Turn draft(s) into ready spec(s) — one light pass, batches questions |
 | `/implement` | Per-subtask code+tests, fast gate each, then `/verify` |
-| `/verify` | Feature-done QA: full gate + review + manual smoke |
+| `/verify` | **The verification skill** — `ticket\|pr\|release`. Gate, review, criteria table, docs, smoke, at whichever depth the caller needs. `/pr` and `/release` delegate to it |
 | `/commit` | Gated conventional commit (runs canonical `ci.sh fast`) |
-| `/pr` | Optional — open a PR for external review (default merges locally) |
-| `/release` | Semver bump + changelog, then run `release.sh` locally |
+| `/pr` | **The merge skill** — lands a branch on `develop`, as a real PR or a local fast-forward, same gates either way. Under `main-only` it hands to `/release`: landing on the trunk is releasing |
+| `/release` | Bump + changelog **before** the trunk merge, land it, tag, deploy, then assert the live version |
 | `/ship` | The orchestrator: spec list OR topic → plan → implement → verify → merge → release. Pass ticket IDs (`/ship FEAT-001 FEAT-003`) or a `"topic"` |
 | `/resume` | Resume interrupted work by reconstructing state from the branch + spec checkboxes + git log |
 | `/consult` | Delegate hard thinking to the top-tier `advisor` agent — a decision, a design/debugging idea, or when unsure. Session stays on its model (no switch); it briefs the advisor and delegates |

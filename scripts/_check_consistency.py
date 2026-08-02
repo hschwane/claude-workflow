@@ -4,6 +4,7 @@ Every case here is a contradiction that shipped at least once: two files giving
 opposite instructions for the same file, or a spec describing a template that has
 since changed under it. Prose drifts silently; these do not.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -18,6 +19,16 @@ PCLAUDE = Path("templates/CLAUDE.md.template").read_text()
 GUIDELINES = sorted(f.name for f in Path("templates/guidelines").glob("*.md")
                     if f.name not in ("LIBRARY.md", "INDEX.md.template", "README.md"))
 CI = Path("templates/scripts/ci.sh").read_text()
+VERIFY = Path("skills/verify/SKILL.md").read_text()
+PR = Path("skills/pr/SKILL.md").read_text()
+RELEASE = Path("skills/release/SKILL.md").read_text()
+PLAN = Path("skills/plan/SKILL.md").read_text()
+IMPL = Path("skills/implement/SKILL.md").read_text()
+SHIP = Path("skills/ship/SKILL.md").read_text()
+SMOKE = Path("agents/smoke-tester.md").read_text()
+SPEC = Path("templates/spec.md.template").read_text()
+SETTINGS = Path("skills/workflow-settings/SKILL.md").read_text()
+DELIVERY = json.loads(Path(".claude-plugin/delivery.json").read_text())
 REL = Path("templates/scripts/release.sh").read_text()
 
 CASES = [
@@ -185,6 +196,81 @@ CASES = [
      # A debug edit that happens to fix the bug is the tempting one to just keep —
      # it has had no review, no tests and no /verify. The rule has to say so.
      and "is not mergeable" in PCLAUDE),
+
+    # --- 3.1.0: one owner per rule -------------------------------------------------------
+    # The gate-validity rule lived as prose in four files at four strengths, and every
+    # paraphrase dropped a different condition. It is an executable now; the skills that used
+    # to restate it must call it instead of describing it again.
+    ("the gate-validity rule is a script, not prose in three skills",
+     "gate-status.sh" in VERIFY
+     and "gate-status.sh" in Path("templates/scripts/release.sh").read_text()
+     # /pr and /release delegate to /verify rather than carrying their own copy
+     and "/verify pr" in PR and "/verify release" in RELEASE),
+    ("the five conditions are only spelled out where the script lives",
+     "clean-right-now" in VERIFY
+     and 'git status --porcelain' not in PR
+     and 'git status --porcelain' not in RELEASE),
+
+    # /verify is the single verification skill; the modes are what /pr and /release pass it.
+    ("verify takes a mode",
+     "ticket|pr|release" in VERIFY and "## What runs in which mode" in VERIFY),
+
+    # /pr owns the merge and has ONE target. Under main-only it has none, so it must hand over
+    # — a merge to the trunk outside /release ships unversioned code on a watching platform.
+    ("pr targets develop and refuses the trunk under main-only",
+     "always targets `develop`" in PR
+     and "main-only" in PR and "/release" in PR),
+
+    # The keystone of the CD model: bump BEFORE the merge, or production runs unlabelled code
+    # and healthcheck.sh has nothing true to assert.
+    ("the release bumps before the merge under main-only",
+     "before the merge" in RELEASE and "--ff-only" in RELEASE),
+
+    # Every setting the always-loaded block ships must exist in the settings table, and vice
+    # versa. A block key with no row is unexplainable; a row with no key is never set.
+    ("the settings block and the settings table hold the same keys",
+     sorted(l.split(":")[0] for l in PCLAUDE.split("workflow-settings: start -->")[1]
+            .split("<!-- workflow-settings: end")[0].strip().splitlines())
+     == sorted(r.split("`")[1] for r in SETTINGS.splitlines()
+               if r.startswith("| `") and r.count("|") >= 4)),
+
+    # The spec template is the definition of "ready" now — the two enumerations are gone.
+    ("readiness is a state, not a re-listed checklist",
+     "Readiness is a state" in IMPL
+     and "Ready is the template being complete" in PLAN),
+
+    # Documentation is decided at planning time and checked at verify time; both ends must exist
+    # or the section is a note nobody acts on.
+    ("documentation impact is planned and then checked",
+     "## Documentation impact" in SPEC
+     and "Documentation impact" in PLAN and "Documentation impact" in VERIFY),
+    ("the dev-doc index has a writer and a reader",
+     "docs/dev/README.md" in IMPL and "docs/dev/README.md" in VERIFY
+     and Path("templates/dev/README.md.template").exists()),
+
+    # The smoke-tester said "failures only" and "record evidence for every step" — both.
+    ("the smoke-tester reports every step and judges none",
+     "one line per step" in SMOKE
+     and "no judgement calls" in SMOKE.lower()
+     and "Report **only** steps where observed" not in SMOKE),
+
+    # A reference environment is optional even under git-flow, so its script and its workflow
+    # must be installed together or not at all.
+    ("the reference deploy script and workflow are gated together",
+     "REFERENCE_ENV" in SCAFF
+     and all(any(e["path"] == p for e in DELIVERY["entries"])
+             for p in ("scripts/deploy-reference.sh", ".github/workflows/reference-deploy.yml"))),
+
+    # Every new script must be delivered, or it exists in the plugin and never reaches a project.
+    ("every shipped script has a manifest entry",
+     all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
+         for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",
+                   "healthcheck.sh", "dev.sh", "deploy-reference.sh"))),
+
+    # ci.sh fast must reach the SELECTED stage and full the whole suite; a rename that orphans
+    # one leaves a live placeholder, which aborts the run.
+    ("the gate distinguishes selected from full unit tests",
+     "{{UNIT_TESTS_SELECTED}}" in CI and "{{UNIT_TESTS}}" in CI and "check_tests" in CI),
 ]
 
 bad = [name for name, ok in CASES if not ok]

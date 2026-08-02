@@ -88,11 +88,13 @@ The ticket's goal and acceptance criteria are the contract. **Never defer, stub,
 
 ## Merging and release authority
 
-Default is **local git, no PR**: if the merge is fast-forward and the full gate already passed on this exact HEAD → `git merge --ff-only`, no re-run (a recorded result also stands when `git diff --name-only <recorded sha>..HEAD` touches nothing outside `docs/specs/`); otherwise resolve conflicts, re-run `ci.sh full`, then merge. Merge commits carry `[skip ci]` unless `ci-on-claude: yes`. Use `/pr` only for external review or where the repo requires it.
+**`/pr` is the merge skill and `/release` is the release skill — one fixed target each.** `/pr` lands a branch on `develop`; `/release` lands it on the trunk. A local fast-forward is not a second path with weaker rules, it is `/pr` choosing the cheap execution when the ticket is not tracked on GitHub and every gate ran green locally; a tracked ticket gets a real PR carrying the gate results. Both call `/verify`, which owns every gate rule — `scripts/gate-status.sh` decides what may be skipped, and nothing else re-derives it.
+
+Under **`main-only` there is no `develop`**, so `/pr` has nothing to target and hands over: landing on the trunk *is* releasing. That is why `/release` bumps the version before the merge — on a platform that deploys on push, an unbumped merge ships unlabelled code and leaves the release gate running after users already have it. Several tickets can share one branch and release together; the unit of release is the branch.
 
 The release branch is whatever **`trunk-branch`** says — `main` for a project this workflow created, `master` for many existing repos it was added to. Read the setting; never assume the name.
 
-Under `branching: git-flow`, features merge into `develop`; `/release` runs the full gate on `develop`, merges `develop → {trunk-branch}` and tags there, so its tip is always the latest release. Under `main-only`, features merge into the trunk and `/release` tags there.
+Under `branching: git-flow`, features merge into `develop`; `/release` gates on `develop`, merges `develop → {trunk-branch}` and tags there, so its tip is always the latest release, and a **reference** environment following `develop` gives a look at the merged state before users get it. Under `main-only`, every landing on the trunk is a release. That is the real difference between the two: git-flow separates landing from releasing, `main-only` does not.
 
 **Invoking a skill authorizes what that skill does.** `/ship`, `/release`, `/commit` and `/pr` define git and deploy actions — merging into the integration branch, **pushing the trunk branch and `develop`**, tagging, and running `release.sh`, which builds, publishes and deploys. Running the skill is the user's explicit go-ahead: carry those steps out, don't stop at the merge to re-ask. This holds against a general "don't commit or push unless asked" rule and against a session-scoped "develop on branch X" instruction — the latter governs **ad-hoc** pushes, not the integration push the skill exists to perform. Still confirm anything *beyond* the skill's own steps: force-push, history rewrite, deleting environments or data. If a gate fails, stop on the failure, not on the permission.
 
@@ -112,7 +114,7 @@ Under `branching: git-flow`, features merge into `develop`; `/release` runs the 
      sweep will catch it: there is no token here. -->
 <!-- project-specific: end: ci-model -->
 
-`fast` (format, lint, types, unit tests) gates each subtask; `full` adds the build and the integration/e2e suites, and gates a merge and a release. `full` refuses to run when it has no stages of its own — a `full` that equals `fast` proves nothing extra.
+`fast` (format, lint, types, and the **new plus adjacent** unit tests) gates each subtask; `full` adds the whole unit suite, the build and the integration/e2e suites, and gates a merge and a release. Selection makes the per-subtask loop cheap without weakening anything, because `full` still runs everything before a merge. The gate refuses to report a pass it did not earn: no checks at all, no full-only stages, or **no test stage** each stop it.
 
 - **Your commits carry `[skip ci]`** unless `ci-on-claude: yes` — Actions minutes are not spent repeating a gate that just ran locally.
 - **That skip is a debt you must pay.** Running `ci.sh full` before a merge or release is not optional; skipping CI only makes sense because you did the equivalent yourself. Never merge or release on an unrun gate.
