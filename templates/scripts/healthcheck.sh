@@ -110,7 +110,11 @@ if [ "$PROBES" -eq 0 ] && [ "${HEALTH_ALLOW_EMPTY:-0}" != "1" ]; then
   exit 1
 fi
 
-if [ -n "$VERSION" ] && [ "$VERSION_PROBES" -eq 0 ]; then
+# HEALTH_ALLOW_EMPTY waives this guard too. It did not, and the asymmetry was a dead end: a
+# project that publishes and deploys nothing could satisfy the probe guard and still never pass
+# `healthcheck.sh <version>`, with no override anywhere. Declaring "there is nothing to probe"
+# has to mean it for both guards or it means nothing.
+if [ -n "$VERSION" ] && [ "$VERSION_PROBES" -eq 0 ] && [ "${HEALTH_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ healthcheck.sh ($ENVIRONMENT): asked to verify $VERSION, but no probe compares the" >&2
   echo "  live version against it. Reaching the service proves it answers, not that the new" >&2
   echo "  build is live — which is the whole question after a deploy. Add a version_probe." >&2

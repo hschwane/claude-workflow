@@ -53,6 +53,8 @@ merge one instead, with the same requirement.
 
 Read the `release-runner` setting in `CLAUDE.md`.
 
+**A project that publishes and deploys nothing** — an internal tool, a private service run from a checkout — has no release steps and no health probes, and both scripts refuse by design rather than reporting a pass they did not earn. That project needs `RELEASE_ALLOW_EMPTY=1` (and `HEALTH_ALLOW_EMPTY=1` for step 10), which `/project-init` and `/project-onboard` record in `.claude/memory/tech-debt.md` and `docs/dev/deploy.md` when they set it up. **Read those before concluding the release is broken** — the first `/release` on such a project exits 1 otherwise, and the reason is a deliberate guard, not a fault.
+
 **`release-runner: local` (default):** hand off to the `runner` agent → `scripts/release.sh {version}` (it runs the gate again, builds, publishes where creds are present, and triggers/awaits deploy). The runner reports each step.
 - **On failure** (publish errored, unhealthy deploy) → the runner returns control; diagnose and fix, or `## Blocked` in unsupervised mode. Don't leave a half-published release silently.
 

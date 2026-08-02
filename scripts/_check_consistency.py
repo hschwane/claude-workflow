@@ -300,9 +300,20 @@ CASES = [
     # CONTRIBUTING tells humans to run `ci.sh fast` in. Strict belongs on the full suite only.
     ("selection is permissive about collecting nothing, the full suite is not",
      "--passWithNoTests=false" in SCAFF
-     and "`vitest related --run --passWithNoTests`" in SCAFF
-     and "an empty selection is normal" in SCAFF.lower()
+     and "--passWithNoTests --dir" in SCAFF
      and "collecting nothing is NORMAL and must PASS" in CI),
+    # The stronger half, found by a run: a selection command that merely NAMES the runner
+    # selects nothing on every invocation — silently, forever — while still counting as a test
+    # stage. It must compute and pass a file list, include untracked files, and stay in the
+    # unit tree, or `fast` reaches integration tests it never built.
+    ("the selected stage computes and passes a file list",
+     all(s in SCAFF for s in ("git diff --name-only HEAD --", "git ls-files -o --exclude-standard",
+                              "--dir tests/unit"))
+     and "COMPUTE AND PASS" in SCAFF and "COMPUTE AND PASS" in CI),
+    # The always-loaded file must not hard-code a source root onboard mode cannot create.
+    ("the source root is a token, with a producer",
+     "{{SOURCE_ROOT}}" in PCLAUDE and "`SOURCE_ROOT`" in SCAFF
+     and "src/CLAUDE.md" not in PCLAUDE),
 
     # ...and the same run found that filling only a version_probe broke the documented
     # no-argument call, because it compares against an empty string and fails every time.
@@ -314,6 +325,29 @@ CASES = [
     ("the reference script is installed only where something must actually run",
      "does not track `develop` itself" in SCAFF
      and "absence is normal" in PR),
+
+    # A guard that can never be satisfied is a dead end, not a safeguard. HEALTH_ALLOW_EMPTY
+    # waived the probe guard but not the version guard, so a project that publishes and deploys
+    # nothing could never pass `healthcheck.sh <version>` — and /release never mentioned the
+    # variable the install path is told to require.
+    ("the empty-project release path is actually reachable",
+     'VERSION_PROBES" -eq 0 ] && [ "${HEALTH_ALLOW_EMPTY' in HEALTHSH
+     and "RELEASE_ALLOW_EMPTY" in RELEASE and "HEALTH_ALLOW_EMPTY" in RELEASE),
+
+    # SOURCE_ROOT must have a producer on BOTH install paths, or the scaffolder guesses a value
+    # it is forbidden to guess and onboard ships a dangling always-loaded pointer.
+    ("both install paths produce SOURCE_ROOT",
+     "SOURCE_ROOT" in INIT and "SOURCE_ROOT" in ONBOARD),
+
+    # The ci-model block had two cases for three configurations, and the missing one leaves a
+    # self-negating sentence in the file loaded on every turn.
+    ("the ci-model block covers ci-on-claude: yes",
+     "At `ci-on-claude: yes` replace" in PCLAUDE),
+
+    # package.json.template is shaped for a service. A CLI published to npm needs bin/files/
+    # repository, none of which it has and none of which were mentioned anywhere.
+    ("the scaffolder covers the npm/CLI package fields",
+     all(f in SCAFF for f in ("**`bin`**", "**`files`**", "**`repository`**"))),
 
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])

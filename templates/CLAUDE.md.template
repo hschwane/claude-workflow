@@ -40,7 +40,7 @@ Nothing below is auto-loaded. Read a file when its trigger fires, not before.
 | Read when… | File |
 |---|---|
 | before writing code | `docs/dev/code-style.md` — style, errors, security, design, languages |
-| you need this codebase's layout, key types, patterns | `src/CLAUDE.md` · the test directory's `CLAUDE.md` |
+| you need this codebase's layout, key types, patterns | `{{SOURCE_ROOT}}/CLAUDE.md` · the test directory's `CLAUDE.md` |
 | `/plan`, `/project-init`, `/project-onboard`, or the user names one | `.claude/guidelines/INDEX.md` |
 | planning — past decisions and known traps | `.claude/memory/decisions.md` · `gotchas.md` |
 | architecture, data model, an external interface | `docs/dev/architecture.md` |
@@ -103,7 +103,13 @@ Under `branching: git-flow`, features merge into `develop`; `/release` gates on 
 <!-- project-specific: start: ci-model -->
 `scripts/ci.sh` is the parity anchor: the GitHub workflows call it, and so do you.
 
-<!-- At `github: no` replace the line above with:
+<!-- At `ci-on-claude: yes` replace the two `[skip ci]` bullets below with:
+     "**Your commits run CI too** — this project wants the Actions matrix on every push, so no
+     `[skip ci]` marker. The local gate still runs first; CI is the cross-platform half."
+     Left unedited they read "your commits carry [skip ci] unless ci-on-claude: yes" in a project
+     where it *is* yes — a sentence that negates itself, in the file loaded on every turn.
+
+     At `github: no` replace the line above with:
      "`scripts/ci.sh` is the only gate there is — no CI service runs it. Nothing catches a
      skipped run, so never merge or release without one."
      and delete the `[skip ci]` paragraphs below, which describe machinery this repo lacks.
@@ -116,7 +122,7 @@ Under `branching: git-flow`, features merge into `develop`; `/release` gates on 
 
 `fast` (format, lint, types, and the **new plus adjacent** unit tests) gates each subtask; `full` adds the whole unit suite, the build and the integration/e2e suites, and gates a merge and a release. Selection makes the per-subtask loop cheap without weakening anything, because `full` still runs everything before a merge. The gate refuses to report a pass it did not earn: no checks at all, no full-only stages, or **no test stage** each stop it.
 
-- **Your commits carry `[skip ci]`** unless `ci-on-claude: yes` — Actions minutes are not spent repeating a gate that just ran locally.
+- **Your commits carry `[skip ci]`** (this project is `ci-on-claude: no`) — Actions minutes are not spent repeating a gate that just ran locally.
 - **That skip is a debt you must pay.** Running `ci.sh full` before a merge or release is not optional; skipping CI only makes sense because you did the equivalent yourself. Never merge or release on an unrun gate.
 - **Everyone else's pushes carry no marker, so CI runs normally.** The skip is yours alone, never a project-wide switch.
 - **Keep the workflows current.** PR, release and deploy workflows are part of the deliverable: when the gate, the release steps or the deploy target change, the workflow files change with them in the same ticket. A workflow that no longer matches `ci.sh` is a broken gate for every human contributor.

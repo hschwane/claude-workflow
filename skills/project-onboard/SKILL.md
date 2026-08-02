@@ -61,7 +61,7 @@ Ask (in chat — plain message, wait for the reply):
 9. **GitHub owner** — only when question 2 was yes: "Which owner will the repo live under?" (`gh api user --jq .login` is the default). `docs/dev/setup.md`'s clone URL needs it and the scaffolder is forbidden from guessing one.
 
 **Everything the scaffolder needs must come from here or from the analysis.** It takes the same decisions block `/project-init` builds, and it does not improvise: a field you cannot fill is a question you have not asked. Derive what you can and ask for the rest rather than guessing:
-- from the step 1 analysis: `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`), `BRANCHING_MODEL`
+- from the step 1 analysis: **`SOURCE_ROOT`** — the directory this project's code actually lives in (`app/`, `lib/`, `pkg/`, `src/`). Never assume `src`: onboard mode is forbidden to create a source root, so a wrong value leaves the always-loaded `CLAUDE.md` pointing at a directory that does not exist. `MONOREPO`, `PROJECT_TYPE`, `ARCHITECTURE_LABEL`/`SUMMARY`, `GITIGNORE_TEMPLATE` and `CI_LANGUAGE_TEMPLATE` (the language), `version-source` (the manifest that exists), `TRUNK_BRANCH` (`git branch --show-current`), `BRANCHING_MODEL`
 - fixed or conditional: `ci-on-claude: no`; `REVIEW_DEPTH: critical-only` (the marked default — an onboarded project starts where every existing project already effectively is); `REFERENCE_ENV` only ever `yes` under `git-flow`, and only if the user wants one; `RELEASE_CI_TEMPLATE` is `none` unless the release publishes to a registry; `COPYRIGHT_HOLDER` only if a LICENSE already exists, since onboard never creates one
 - from the plugin's own `.claude-plugin/plugin.json`: `WORKFLOW_REPO` (bare `owner/repo`) and `WORKFLOW_VERSION`
 - mechanically, without asking: `PROJECT_NAME` (the directory or the manifest), `LANGUAGE`, `TODAY`, `PLUGIN_SOURCE_DIR`, `TARGET_DIR`. `PROJECT_DESCRIPTION` needs judgment — draft it from the README and confirm it, don't invent one silently.
@@ -114,7 +114,7 @@ This is the file an onboarded repo is most likely to already have, hand-written 
 
 **The one exception is the `**Topics:**` index line, which you must extend.** The scaffolder set it to `architecture`; a head-only reader stops there and never sees the rules you just appended, which is precisely the mechanism 3b relies on for a rule to reach `/plan`. Add a topic per entry (`no-orm, money, booking-ids, logging-pii, …`).
 
-**Write the test directory's `CLAUDE.md` yourself** — into the project's actual directory (`test/`, `tests/`, `spec/`), not a `tests/` the project does not have. `templates/tests-claude.md.template` describes a `tests/unit` + `tests/integration` split as prose rather than tokens, which is true for a project `/project-init` created and false for most existing ones: rewrite the Layout and the `ci.sh` sentence to match the suite that is actually here. This is why the file is carved out of the scaffolder's work alongside `CLAUDE.md` and `README.md`. Record the directory name as a decision too, so `/plan` knows it.
+**Write the test directory's `CLAUDE.md` yourself** — into the project's actual directory (`test/`, `tests/`, `spec/`), not a `tests/` the project does not have. `templates/tests-claude.md.template` describes a `tests/unit` + `tests/integration` split as prose rather than tokens. **Four things need rewriting, not one:** the opening line hard-codes `tests/`, the Layout section, the `ci.sh` sentence, and the relative link `../docs/dev/code-style.md`, whose depth assumes a top-level directory. It also claims `/project-init`'s clean-clone check verifies the layout, which never ran here. Writing the file from scratch is usually faster than editing it, which is true for a project `/project-init` created and false for most existing ones: rewrite the Layout and the `ci.sh` sentence to match the suite that is actually here. This is why the file is carved out of the scaffolder's work alongside `CLAUDE.md` and `README.md`. Record the directory name as a decision too, so `/plan` knows it.
 
 #### 3c. Make the gate real — the part that actually takes judgment
 
@@ -127,10 +127,15 @@ This is the file an onboarded repo is most likely to already have, hand-written 
 Then `bash -n scripts/ci.sh` and run `scripts/ci.sh fast`. Three things go wrong on a real codebase, and each needs a decision rather than a shrug:
 
 - **No command exists for a stage** (common: no `typecheck` script). Add one to the project's manifest rather than inlining a bare binary, and say you did. If the stage genuinely does not apply, delete its line — deleting them all still parses, and the script's own check counter then reports an empty gate honestly.
-- **An existing command fails.** That is a pre-existing break which the gate has just made load-bearing. Show the failure, propose the smallest fix, and get agreement before editing `package.json` or dependencies. Do not quietly work around it.
+- **An existing command fails.** That is a pre-existing break the gate has just made load-bearing. Show the failure, propose the smallest fix, and get agreement before editing the manifest or dependencies. Do not quietly work around it. **With nobody to ask** — unsupervised, or a scripted run — make the smallest fix anyway and report it under a heading that says it was not agreed: the alternative rules are "never end on a red gate" and "never edit the manifest without agreement", and with no human present those two cannot both hold. Note that for some languages *adding a stage at all* means adding a dependency (a Python project with no type checker needs `mypy` in the dev group), so the two rules collide by design, not by accident.
 - **The healthcheck cannot assert a version this project does not expose.** `scripts/healthcheck.sh` refuses to confirm a version unless a probe compares against it, and many existing projects report no version at runtime. Don't weaken it to a bare liveness probe: write the `version_probe` form, add a blocking backlog ticket for version visibility, and record it in `tech-debt.md`. `/release` will stop until that ships — deliberately, and the user should hear it in the step 6 report rather than discover it at their first release.
 - **The tool is installed but its config is missing** (an `eslint` dependency and a `lint` script but no `eslint.config.js` — common on a repo that drifted). **Do not copy `templates/configs/eslint.config.js`.** It is written for a fresh install: it pulls in `typescript-eslint` and `@eslint/js@10`, which ERESOLVE-conflicts with an existing `eslint@9`, and its type-checked rule sets then fail on any test tree the project's `tsconfig.json` does not include. Author a minimal config *for this project* instead — pinned to the major it already has, and non-type-checked where the test files sit outside the TypeScript project. The plugin's configs are for projects the plugin created.
-- **A missing lockfile.** If CI uses `npm ci` / `uv sync --locked` / `cargo --locked` and no lockfile is committed, generate and commit it — CI fails outright without one.
+- **A lockfile.** Generate and commit one if the project has none. Do not condition this on what CI currently demands: `uv sync` *writes* `uv.lock` as a side effect, so step 5's `git add -A` commits it either way — better deliberately, and named in the report, than silently.
+  **If the project uses `uv`, do not enable dependabot's `pip` ecosystem.** It bumps `pyproject.toml` without regenerating `uv.lock`, so every dependabot PR is red against a `--locked` install. Leave it commented and say so.
+
+**Add what the new gate creates to the project's `.gitignore`.** The stages you just filled produce caches and build output the project never had — `.ruff_cache/`, `.mypy_cache/`, `.pytest_cache/`, `dist/`, `build/`, `*.egg-info/`, `node_modules/`, `.venv/`. Step 5 forbids ending on a dirty tree, and the scaffolder is told to skip the project's `.gitignore` entirely, so nothing else owns this. Append them under a dated comment rather than rewriting the file.
+
+**Protect the plugin-owned markdown from *this project's* format check** — whatever that check is. `.prettierignore` handles it where prettier is the formatter and is inert everywhere else, but the hazard is not prettier-specific: `ruff format` covers Python blocks inside Markdown, so a Python project's format stage reaches the ~40 plugin-owned `.md` files under `.claude/`, and one unformatted example in a future `/workflow-update` turns this project's gate red for a reason nobody would look for. Add the equivalent exclusion for the project's own formatter (`[tool.ruff] extend-exclude`, and so on) and record it in `decisions.md`.
 
 **`✓ passed — 0 check(s)` is not a pass**, and neither is a stage whose command is `:` or `echo`.
 
@@ -142,6 +147,8 @@ Fill `scripts/release.sh` the same way — only its deploy step may be a no-op. 
 
 `scripts/gate-status.sh` and `scripts/criteria-check.sh` are plugin logic with no tokens — nothing to fill.
 
+**Narrowing the scope can leave `full` with nothing of its own.** The integration stage is usually the only full-only stage, so narrowing to `unit` makes `ci.sh full` exit 1 with "no full-only stages are configured". A build step (`uv build`, `cargo build --release`, `npm run build`) satisfies it and is the right answer where one exists. Where the project genuinely has neither — a scripts repo, a flat-test library — set `FULL_ALLOW_NONE=1` and record why in `tech-debt.md`; do not invent a stage.
+
 **Reconcile `testing-scope` with reality.** If the step 2 answer names a level the project has no directory or runner for, narrow the setting to what the gate actually runs — do not invent an integration directory and an npm script the project never asked for. Scaffold the missing level only if the user asks for it. Either way this **overrides an answer the user gave**, so say so in the step 6 report; silently recording a different value than the one they chose is worse than either option.
 
 #### 3d. Reconcile the existing CI
@@ -149,6 +156,8 @@ Fill `scripts/release.sh` the same way — only its deploy step may be a no-op. 
 If `.github/workflows/` already has CI, **do not leave it alone.** The `CLAUDE.md` you just installed asserts that the GitHub workflows call `scripts/ci.sh` — two independent definitions of "does this pass" make that false in an auto-loaded file, and the drift is invisible until something red merges.
 
 Diff its steps against `ci.sh`, show the user the difference, and offer to replace the check steps with `- run: bash scripts/ci.sh full`, keeping the project's own triggers, matrix and any deploy/publish jobs (`templates/github/ci-{lang}.yml` is the shape to aim at). If the user declines, record the divergence in `.claude/memory/tech-debt.md` and say so in the report.
+
+**The project's workflow may not be called `ci.yml`.** Edit whatever it is called in place — keep its name, its triggers and its language version — rather than renaming it or adding a second workflow beside it. Write the real filename into the `ci-note` project block, since the always-loaded `CLAUDE.md` refers to "the GitHub workflows" generically and the reader needs to know which file that is.
 
 If there is no CI at all, offer `templates/github/ci-{language}.yml` — **substituting `{{CI_BRANCHES}}` with the whole bracketed list**: `[master]` for a `main-only` repo whose trunk is `master`, `[master, develop]` under git-flow. The token appears **twice** — on the `push` trigger and on `pull_request` — so fill both. Shipping it unsubstituted, or with `main` assumed, gives a workflow that never fires on a trunk push and says nothing about it — valid YAML, dead trigger.
 
@@ -218,7 +227,8 @@ Installed:
   .claude/ (agents, skills, hooks, memory, guidelines)
   docs/dev/ (code-style, setup, architecture, deploy) · docs/VISION.md
   docs/specs/ (backlog, ready, completed + spec.md.template)
-  scripts/ (ci.sh, release.sh, claude-loop.sh) · .prettierignore
+  scripts/ (ci.sh, release.sh, healthcheck.sh, dev.sh, gate-status.sh,
+            criteria-check.sh, claude-loop.sh) · .prettierignore
   {CLAUDE.md / CONTRIBUTING.md / README section / CI workflow — as created}
 
 Gate: ci.sh fast exit {0} — {N} check(s)   ·   clean clone: exit {0} — {N} check(s)

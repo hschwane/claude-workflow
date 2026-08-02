@@ -199,6 +199,7 @@ GITHUB_REPO: {yes-public | yes-private | no}
 COPYRIGHT_HOLDER: {from question 4}
 GITHUB_OWNER: {the owner the repo will live under, or empty when GITHUB_REPO is no}
 MODE: init
+SOURCE_ROOT: src
 PLUGIN_SOURCE_DIR: {absolute path determined above}
 TARGET_DIR: {absolute path to the new project directory}
 GLOBAL_GUIDELINES: {absolute paths of matched ~/.claude/guidelines/ files, or empty}

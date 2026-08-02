@@ -98,20 +98,19 @@ check() {
 # pass and the gate reports green having executed no test at all.
 #
 # It cannot count individual tests — no generic way to parse every runner's output — so the
-# other half of the guarantee lives in the stage command itself, and it applies to ONE of the
-# two unit stages:
+# other half of the guarantee lives in the stage commands, and the two unit stages need OPPOSITE
+# settings. (Named in prose, not as tokens: this comment survives the fill, and a token below the
+# authoring-notes rule would still be here at the initial commit, where nothing is allowed to be.)
 #
-#   {{UNIT_TESTS}} (full)      → collecting nothing IS a failure. Make it one: the defaults
-#                                disagree (vitest and `go test ./...` exit 0, pytest exits 5,
-#                                jest exits 1), so pass `--passWithNoTests=false` where the
-#                                runner has it. An empty full suite means the project has no
-#                                tests, which is exactly what this guard exists to catch.
-#   {{UNIT_TESTS_SELECTED}}    → collecting nothing is NORMAL and must PASS. The selection is
-#                                empty whenever the diff is empty — which is the state of every
-#                                clean tree, including right after a commit — and whenever the
-#                                changed file has no test reaching it yet. Making that fail
-#                                turns `scripts/ci.sh fast` red on correct code, and CONTRIBUTING
-#                                tells humans to run exactly that before pushing.
+#   the FULL unit stage      → collecting nothing IS a failure. Make it one: the defaults disagree
+#                              (vitest and `go test ./...` exit 0, pytest exits 5, jest exits 1),
+#                              so pass `--passWithNoTests=false` where the runner has it. An empty
+#                              full suite means the project has no tests, which is what this guard
+#                              is for.
+#   the SELECTED unit stage  → collecting nothing is NORMAL and must PASS. The selection is empty
+#                              on every clean tree, including right after a commit. Making that
+#                              fail turns `scripts/ci.sh fast` red on correct code, which is what
+#                              CONTRIBUTING tells humans to run before pushing.
 check_tests() {
   TESTS=$((TESTS + 1))
   check "$@"
@@ -139,16 +138,17 @@ check {{TYPECHECK}}
 # import graph. Name-matching (`src/foo.ts` → `tests/foo*`) is not equivalent: it misses the
 # test that breaks because a shared helper changed, and a gate that misses that is worse than
 # one that is slow.
-#   e.g. check_tests npx vitest related --run --passWithNoTests=false $(git diff --name-only HEAD)
-#        check_tests npx jest --onlyChanged --passWithNoTests=false
+# The stage must COMPUTE AND PASS the file list. `vitest related` with no file arguments selects
+# nothing — silently, forever, while still counting as a test stage — so a command that merely
+# names the runner is worse than no selection at all. Include untracked files: a brand-new test is
+# untracked and `git diff` does not list it. Scope to the unit tree, or the selection reaches
+# integration tests that need a build `fast` never runs.
+#   e.g. check_tests sh -c 'npm run test:changed -- $(git diff --name-only HEAD -- src tests; git ls-files -o --exclude-standard -- src tests)'
+#          with "test:changed": "vitest related --run --passWithNoTests --dir tests/unit"
 #        check_tests uv run pytest --picked tests/unit
-# Where the runner has NO selection mode (cargo, ctest), fill this with the SAME command as
-# {{UNIT_TESTS}}. Degrade to running more, never to running less — an unfillable selection
-# must not quietly become an empty one.
-#
-# NB a brand-new test file is untracked, and `git diff` does not list untracked files. If the
-# selection is git-based, `git add -N .` first or the test this subtask just wrote — the one
-# most worth running — is silently excluded.
+# Where the runner has NO selection mode (cargo, ctest), fill this with the SAME command as the
+# full unit stage. Degrade to running more, never to running less — an unfillable selection must
+# not quietly become an empty one.
 if [ "$MODE" = "full" ]; then
   # e.g. check_tests npm test | check_tests uv run pytest tests/unit | check_tests cargo test --lib
   check_tests {{UNIT_TESTS}}
