@@ -265,6 +265,14 @@ CASES = [
              for p in ("scripts/deploy-reference.sh", ".github/workflows/reference-deploy.yml"))),
 
     # Every new script must be delivered, or it exists in the plugin and never reaches a project.
+    # A `mixed` file must be merged by hand, and /workflow-update decides that from a list it
+    # keeps in prose. A mixed entry the list does not name gets whatever the generic class walk
+    # does to it — for scripts/ci.sh that would mean replacing a project's filled gate with an
+    # unfilled template, which is silent and total.
+    ("every mixed manifest entry is named in the update's merge list",
+     not [e["path"] for e in DELIVERY["entries"]
+          if e["class"] == "mixed" and f'`{e["path"]}`' not in UPDATE]),
+
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
          for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",
