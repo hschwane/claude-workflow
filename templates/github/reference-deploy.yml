@@ -1,0 +1,31 @@
+# Updates the REFERENCE environment to match `develop`. git-flow only, and only where the
+# project has a reference environment.
+#
+# This is the FALLBACK. The default is that Claude runs scripts/deploy-reference.sh locally
+# right after the merge, and the merge commit keeps its [skip ci]. This workflow exists for
+# when it didn't — in which case the merge is pushed WITHOUT [skip ci] and this runs.
+#
+# Do not rely on this alone: [skip ci] suppresses EVERY workflow for a commit, not just CI, so
+# a marked merge would silently stop the reference environment tracking develop, with nothing
+# reporting it. That silence is why the local run is the default and this is the backstop.
+name: Deploy reference
+on:
+  push:
+    branches: [develop]
+    paths-ignore: ["docs/**", "**/*.md", ".claude/**"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: reference-deploy       # no cancel-in-progress: a half-finished deploy is worse than a slow one
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Same toolchain steps as ci-{language}.yml — deploy-reference.sh may build.
+      {{TOOLCHAIN_STEPS}}
+      - run: bash scripts/deploy-reference.sh
+        env:
+          REFERENCE_DEPLOY_TOKEN: ${{ secrets.REFERENCE_DEPLOY_TOKEN }}
+      - run: bash scripts/healthcheck.sh --env reference

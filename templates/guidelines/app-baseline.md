@@ -23,6 +23,28 @@ The running app must be able to say which version it is — a `--version` flag, 
 
 Anything exposed beyond localhost needs *some* gate before it holds real data — a password for a private single-user tool, API-token auth for a service, an account system where there are several users. Retrofitting authentication after the data model exists is a rewrite of every handler.
 
+## Environments — three names, and most projects have two (required)
+
+Use these words everywhere; a project that invents its own quickly has two things called "dev".
+
+| Name | Exists when | Fed by | Managed how |
+|---|---|---|---|
+| **production** | whenever the project deploys at all | `/release` | the only thing "deploy" means |
+| **reference** | `branching: git-flow`, if the project wants one | follows `develop` — updated after every merge into it | `scripts/deploy-reference.sh`, run after the merge; `reference-deploy.yml` as the fallback |
+| **dev** | always — where Claude builds, runs and tests | nothing; it tracks no branch | `scripts/dev.sh`, started on demand and stopped right after use |
+
+So the common shape is **production + a local dev environment**. `git-flow` adds reference, giving a
+look at the merged state before users get it. A *deployed* dev environment is a last resort, only
+where local genuinely cannot run the code or cannot surface the bug — not a default.
+
+**Reference must not be able to touch production.** Separate service, separate database, separate
+secrets, separate domain. No shared writable resource, ever. `deploy-reference.sh` refuses to run
+when its target equals production's, which is a backstop, not a substitute for configuring it right.
+
+**Data and APIs in dev.** Use the real API wherever it can be used — a mock only proves the code
+matches the mock. Mock what genuinely cannot be used against a test environment. **Anything that
+costs money or tokens needs the user's permission first**, every time, not once.
+
 ## Claude-driven smoke-testing must always be possible (required)
 Claude must always be able to run a smoke test and debug failures against a **live instance** — clicking through the UI, hitting the API, whatever fits the app. Satisfy this one of two ways:
 - Run the app **locally** (the common case — see the `run` skill), or

@@ -1,0 +1,30 @@
+# Developer documentation index
+
+One row per document in `docs/dev/`. Skills and agents read **this file**, not the bodies — `/plan`
+when deciding a ticket's documentation impact, `code-explorer` when orienting, `reviewer` and
+`advisor` when they need context. A document with no row here is one nothing will find, so adding
+the row is part of adding the document, not a follow-up.
+
+| Document | Covers |
+|---|---|
+| [`code-style.md`](code-style.md) | Engineering standards, naming, testing levels, language-specific rules |
+| [`setup.md`](setup.md) | Getting a working checkout: clone, install, environment variables, first run |
+| [`architecture.md`](architecture.md) | Structure, main flows, data model, external interfaces |
+| [`deploy.md`](deploy.md) | Environments, platform settings, deploy steps, rollback, health check, secrets |
+
+## What else belongs here
+
+Not "document the code" — the documentation policy is minimal, and prose nobody reads costs twice.
+The test is narrower: **would someone have to read the whole implementation to recover this?**
+
+If yes, it belongs here as its own document:
+
+- a **complex algorithm**, or one the software is built on — its invariants and its *why*
+- a **file format**
+- an **API interface**
+- a **network protocol**
+- any other **contract** — something a second implementation would have to match exactly
+- a design that is **hard to enumerate comprehensively later** from the code alone
+
+`/plan` decides this per ticket, on the spec's `## Documentation impact` line, while scope is still
+negotiable. `/implement` writes the document and adds its row. `/verify` checks the row is here.

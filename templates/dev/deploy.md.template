@@ -1,5 +1,16 @@
 # Deploy Process: {{PROJECT_NAME}}
 
+## Environments
+<!-- One row per environment that exists. `healthcheck.sh --env <name>` reads its URL from here,
+     and deploy-reference.sh compares the two targets to refuse deploying develop to production.
+     Delete the reference row under main-only, or where the project chose not to have one. -->
+
+| Environment | URL | Fed by | Data | Secrets |
+|---|---|---|---|---|
+| production | {{HEALTH_CHECK_URL}} | `/release` | real | {{DEPLOY_SECRET_NAME}} |
+| reference | {{REFERENCE_URL}} | `develop`, via `scripts/deploy-reference.sh` | its own — never production's | its own |
+| dev | local, via `scripts/dev.sh` | nothing | test fixtures | test-only |
+
 ## Target Environment
 {{DEPLOY_TARGET}}
 <!-- Examples: Railway, Vercel, AWS EC2, Kubernetes, Fly.io, VPS via SSH -->
@@ -41,6 +52,10 @@
 
 ## Rollback
 {{ROLLBACK_PROCEDURE}}
+<!-- This is the only safety net once a merge can ship. It must be a real, exercised procedure —
+     an untested rollback is not a safety net. Exercise it once when the deploy pipeline is first
+     stood up. And it protects users while the cause is diagnosed; it is not the resolution.
+     A release left rolled back with no fix is an unfinished job. -->
 <!-- Example:
 1. git revert to previous tag: git checkout v1.1.0
 2. Re-run deploy steps with old version
