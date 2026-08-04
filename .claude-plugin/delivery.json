@@ -184,6 +184,11 @@
       "source": "templates/scripts/release.sh"
     },
     {
+      "path": ".claude/gate-overrides.env",
+      "class": "project",
+      "note": "Where a project persists a *_ALLOW_* escape hatch. Every gate script sources it if present, so local, CI and a fresh clone agree — an environment variable set in one shell does not survive to the other two. Project-owned: absent is the normal state, and an update never creates or touches it."
+    },
+    {
       "path": "scripts/gate-status.sh",
       "class": "plugin",
       "source": "templates/scripts/gate-status.sh",

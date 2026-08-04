@@ -349,6 +349,26 @@ CASES = [
     ("the scaffolder covers the npm/CLI package fields",
      all(f in SCAFF for f in ("**`bin`**", "**`files`**", "**`repository`**"))),
 
+    # Onboard copied 3 of 7 scripts while release.sh executes gate-status.sh on its first
+    # stage — a project onboarded per the instructions shipped a release that died on line 1.
+    ("onboard copies every script, not a subset",
+     "copy ALL of them" in SCAFF and "Copying a subset is not a smaller install" in SCAFF),
+
+    # Every *_ALLOW_* hatch is read from the environment. Without a file, local and CI disagree,
+    # which is the exact drift the parity guarantee exists to prevent.
+    ("the escape hatches have somewhere to live",
+     all(".claude/gate-overrides.env" in Path(f"templates/scripts/{s}").read_text()
+         for s in ("ci.sh", "release.sh", "healthcheck.sh", "dev.sh", "deploy-reference.sh"))
+     and any(e["path"] == ".claude/gate-overrides.env" for e in DELIVERY["entries"])),
+
+    # `pytest --picked tests/unit` exits 4 (argparse) on every run, and 5 on a clean tree even
+    # with correct syntax. Measured. Python takes the documented same-as-full fallback.
+    ("the python selection command is not the broken one",
+     "pytest --picked" not in SCAFF.replace("`pytest-picked` does not work here", "")
+     or "does not work here" in SCAFF),
+    # A free-text token inside a double-quoted shell string expands whatever the author wrote.
+    ("DEV_INFO is single-quoted", "DEV_INFO='{{DEV_INFO}}'" in DEVSH),
+
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
          for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",

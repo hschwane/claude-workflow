@@ -21,13 +21,24 @@ cd "$(dirname "$0")/.." || exit 1
 # Fails open: with `dirname` off PATH the expansion is empty and `cd "/.."` succeeds.
 [ -f scripts/dev.sh ] || { echo "✗ dev.sh: not in the repo root (cwd=$PWD)." >&2; exit 1; }
 
+# Project overrides live in a file, not in whoever's shell happens to run this. Every
+# *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
+# needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
+# meaning "would pass in CI", which is the one guarantee this script exists to give.
+# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# shellcheck disable=SC1091
+[ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
+
 # --- how to fill this in ---------------------------------------------------------------
 # DEV_INFO is what the smoke-tester is told; it must be enough to drive the app without any
 # other knowledge — the exact URL or command, and any test credentials. "Runs on localhost"
 # is not enough. Each `step` line is a COMMAND LINE, not a comment; delete the ones this
 # project does not need, and never append `|| true`.
 # --- end of authoring notes; everything below is live code ------------------------------
-DEV_INFO="{{DEV_INFO}}"
+# Single-quoted on purpose: DEV_INFO usually contains a command or a code snippet, and in
+# double quotes a `$` or a backtick in it would be expanded by this script before anyone saw
+# it. If the text itself needs a single quote, end the string and concatenate ('"'"').
+DEV_INFO='{{DEV_INFO}}'
 
 if [ "${1:-}" = "--info" ]; then
   printf '%s\n' "$DEV_INFO"

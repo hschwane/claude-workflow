@@ -27,6 +27,14 @@ cd "$(dirname "$0")/.." || exit 1
 # Fails open: with `dirname` off PATH the expansion is empty and `cd "/.."` succeeds.
 [ -f scripts/healthcheck.sh ] || { echo "✗ healthcheck.sh: not in the repo root (cwd=$PWD)." >&2; exit 1; }
 
+# Project overrides live in a file, not in whoever's shell happens to run this. Every
+# *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
+# needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
+# meaning "would pass in CI", which is the one guarantee this script exists to give.
+# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# shellcheck disable=SC1091
+[ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
+
 VERSION=""
 ENVIRONMENT="production"
 while [ $# -gt 0 ]; do
@@ -87,7 +95,9 @@ version_probe() {
 
 case "$ENVIRONMENT" in
   production)
-    # e.g. version_probe sh -c 'curl -fsS https://app.example.com/health | grep -q "\"version\":\"$0\""' "$VERSION"
+    # e.g. TWO lines — both kinds are required, see the notes above:
+    #   probe         sh -c 'curl -fsS https://app.example.com/health >/dev/null'
+    #   version_probe sh -c 'curl -fsS https://app.example.com/health | grep -q "\"version\":\"$0\""' "$VERSION"
     {{HEALTHCHECK_PRODUCTION}}
     : # keeps this branch valid if the probe above is deleted — an empty branch is a syntax error
     ;;

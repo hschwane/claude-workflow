@@ -17,6 +17,14 @@ cd "$(dirname "$0")/.." || exit 1
 # empty, `cd "/.."` succeeds, and every check then runs against the filesystem root — green
 # or red for reasons that have nothing to do with this project.
 [ -f scripts/ci.sh ] || { echo "✗ ci.sh: not in the repo root (cwd=$PWD) — cannot run the gate." >&2; exit 1; }
+
+# Project overrides live in a file, not in whoever's shell happens to run this. Every
+# *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
+# needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
+# meaning "would pass in CI", which is the one guarantee this script exists to give.
+# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# shellcheck disable=SC1091
+[ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
 MODE="${1:-full}"
 
 echo "▶ ci.sh ($MODE)"
@@ -106,7 +114,11 @@ check() {
 #                              (vitest and `go test ./...` exit 0, pytest exits 5, jest exits 1),
 #                              so pass `--passWithNoTests=false` where the runner has it. An empty
 #                              full suite means the project has no tests, which is what this guard
-#                              is for.
+#                              is for. **Some runners have no such flag** — `node --test <glob>`
+#                              exits 0 on zero matches with no way to change that. There, guard it
+#                              in the stage itself, e.g.
+#                                check_tests sh -c 'ls tests/unit/*.test.js >/dev/null 2>&1 || { echo "no test files" >&2; exit 1; }; npm run spec'
+#                              A runner without the flag is not an excuse to skip the guarantee.
 #   the SELECTED unit stage  → collecting nothing is NORMAL and must PASS. The selection is empty
 #                              on every clean tree, including right after a commit. Making that
 #                              fail turns `scripts/ci.sh fast` red on correct code, which is what

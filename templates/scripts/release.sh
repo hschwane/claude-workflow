@@ -14,6 +14,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 # Fails open: with `dirname` off PATH, `cd "/.."` succeeds and this would release from /.
 [ -f scripts/release.sh ] || { echo "✗ release.sh: not in the repo root (cwd=$PWD)." >&2; exit 1; }
+
+# Project overrides live in a file, not in whoever's shell happens to run this. Every
+# *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
+# needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
+# meaning "would pass in CI", which is the one guarantee this script exists to give.
+# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# shellcheck disable=SC1091
+[ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
 VERSION="${1:?usage: release.sh <version>}"
 
 echo "▶ release.sh $VERSION"
