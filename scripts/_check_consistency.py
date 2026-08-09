@@ -378,6 +378,18 @@ CASES = [
              for k in ("stages", "install", "test_count", "touch", "source_file", "test_dir", "new_test_file"))
          for l in sorted(p.name for p in Path("languages").iterdir() if p.is_dir()))),
 
+    # Every language the workflow supports must be EXECUTED, not just described. C++ had no
+    # fixture and a C++ init run then found four defects of exactly the class the harness
+    # catches elsewhere — an empty ctest selection exiting 0, bare clang-tidy exiting 0, a
+    # compile stage that cannot work on a fresh clone, and a build with no targets.
+    ("every supported language has an executed fixture",
+     sorted(p.name for p in Path("languages").iterdir() if p.is_dir())
+     == ["cpp", "python", "rust", "typescript"]),
+    # C++'s traps are flags, not commands, and each one is the difference between a gate and a
+    # stage that cannot fail.
+    ("the C++ guidance names the flags that make its gate real",
+     all(s in SCAFF for s in ("--no-tests=error", "WarningsAsErrors", "NDEBUG"))),
+
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
          for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",

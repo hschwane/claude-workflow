@@ -47,7 +47,11 @@ def fill_ci(stages, drop_tests=False):
             s = s.replace(f"{verb} {{{{{token}}}}}", "")
         else:
             s = s.replace(f"{verb} {{{{{token}}}}}", f"{verb} {cmd}")
-    s = s.replace("prepare {{GENERATE_SOURCES}}", "prepare true")
+    # Use the DECLARED prepare. Hardcoding `true` silently dropped C++'s cmake configure, so
+    # the compile stage ran against a build tree that a fresh clone does not have — which is the
+    # very defect this language's notes describe.
+    gen = stages.get("GENERATE_SOURCES")
+    s = s.replace("prepare {{GENERATE_SOURCES}}", f"prepare {gen}" if gen else "prepare true")
     return s
 
 

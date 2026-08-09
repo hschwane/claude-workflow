@@ -1,0 +1,35 @@
+{
+  "language": "cpp",
+  "install": "true",
+  "test_count": "tests passed, \\d+ tests failed out of (\\d+)",
+  "stages": {
+    "GENERATE_SOURCES": "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo",
+    "FORMAT_CHECK": "sh -c 'clang-format --dry-run -Werror $(git ls-files \"*.cpp\" \"*.hpp\")'",
+    "LINT": "sh -c 'clang-tidy -p build $(git ls-files \"src/*.cpp\")'",
+    "TYPECHECK": "cmake --build build",
+    "UNIT_TESTS": "ctest --test-dir build -L unit --no-tests=error --output-on-failure",
+    "UNIT_TESTS_SELECTED": "ctest --test-dir build -L unit --no-tests=error --output-on-failure",
+    "BUILD": null,
+    "INTEGRATION_TESTS": "ctest --test-dir build -L integration --no-tests=error --output-on-failure",
+    "E2E_TESTS": null
+  },
+  "notes": [
+    "assert() is COMPILED OUT under NDEBUG, which RelWithDebInfo and Release both define. A C++ suite written with assert() and gated in a release configuration passes unconditionally \u2014 every test, always. Use explicit return codes, or gate in Debug.",
+    "GENERATE_SOURCES is the cmake CONFIGURE, not a codegen step. `build/` is gitignored, so a",
+    "fresh clone has no build tree and `cmake --build build` fails outright \u2014 the first CI push",
+    "goes red. Configuring in prepare is what makes the gate work from a clean checkout.",
+    "--no-tests=error is REQUIRED. ctest's default on an empty selection is 'No tests were",
+    "found!!!' and exit 0, so a misspelled label reports a green gate that ran nothing. ctest is",
+    "a third case beyond the vitest/pytest/jest defaults the general note lists.",
+    "clang-tidy without a .clang-tidy carrying WarningsAsErrors reports findings and exits 0 \u2014",
+    "a lint stage that cannot fail. The fixture ships one; so must every scaffolded project.",
+    "Bare tool names are correct here and nowhere else: C++ has no package manager, and",
+    "ci-cpp.yml apt-installs clang-format, clang-tidy and cmake globally.",
+    "BUILD is null because the compile stage IS the release artifact. The integration ctest is",
+    "what gives `full` a stage of its own."
+  ],
+  "touch": "\nint touched() { return 1; }\n",
+  "source_file": "src/add.cpp",
+  "test_dir": "tests/unit",
+  "new_test_file": "test_brandnew.cpp"
+}
