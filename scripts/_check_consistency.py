@@ -375,7 +375,7 @@ CASES = [
      "languages/<language>/stages.json" in SCAFF and "the JSON is right" in SCAFF),
     ("every language with a fixture declares what the harness needs",
      all(all(k in json.loads(Path(f"languages/{l}/stages.json").read_text())
-             for k in ("stages", "install", "test_count", "touch", "source_file", "test_dir"))
+             for k in ("stages", "install", "test_count", "touch", "source_file", "test_dir", "new_test_file"))
          for l in sorted(p.name for p in Path("languages").iterdir() if p.is_dir()))),
 
     ("every shipped script has a manifest entry",

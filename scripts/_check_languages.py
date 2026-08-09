@@ -116,8 +116,10 @@ def check(lang):
         # this flaky, which in a harness is worse than a plain failure — it teaches you to re-run.
         tdir = d / spec["test_dir"]
         seed = sorted(p for p in tdir.iterdir() if p.is_file() and p.suffix != ".pyc")[0]
-        new = tdir / (f"test_brandnew{seed.suffix}" if lang == "python"
-                      else f"brandnew.test{seed.suffix}")
+        # Declared per language: cargo derives a test-target name from the file stem, so
+        # `brandnew.test.rs` is not a legal name there. A harness that invents filenames
+        # fails for reasons that have nothing to do with the thing it is testing.
+        new = tdir / spec["new_test_file"]
         new.write_text(seed.read_text().replace("adds", "brandnew"))
         rc, n, why = run_gate(d, "fast", spec)
         record("fast selects a brand-new untracked test", rc == 0 and n >= 1,

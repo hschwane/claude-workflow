@@ -25,5 +25,6 @@
   ],
   "touch": "\n\ndef touched() -> int:\n    return 1\n",
   "source_file": "src/pkg/add.py",
-  "test_dir": "tests/unit"
+  "test_dir": "tests/unit",
+  "new_test_file": "test_brandnew.py"
 }

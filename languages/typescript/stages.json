@@ -23,5 +23,6 @@
   ],
   "touch": "\nexport const touched = 1\n",
   "source_file": "src/add.ts",
-  "test_dir": "tests/unit"
+  "test_dir": "tests/unit",
+  "new_test_file": "brandnew.test.ts"
 }
