@@ -1,0 +1,24 @@
+{
+  "language": "rust",
+  "install": "cargo fetch --quiet",
+  "test_count": "([0-9]+) passed",
+  "stages": {
+    "GENERATE_SOURCES": null,
+    "FORMAT_CHECK": "cargo fmt --check",
+    "LINT": null,
+    "TYPECHECK": null,
+    "UNIT_TESTS": "cargo test --lib",
+    "UNIT_TESTS_SELECTED": "cargo test --lib",
+    "BUILD": "cargo build --release --quiet",
+    "INTEGRATION_TESTS": null,
+    "E2E_TESTS": null
+  },
+  "notes": [
+    "cargo has no changed-files selection mode, so SELECTED is the same command as UNIT_TESTS \u2014",
+    "the documented fallback. Compilation dominates the runtime anyway, so selection would save",
+    "little even if it existed."
+  ],
+  "touch": "\npub fn touched() -> i64 {\n    1\n}\n",
+  "source_file": "src/lib.rs",
+  "test_dir": "src"
+}

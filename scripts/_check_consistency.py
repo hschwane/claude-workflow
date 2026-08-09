@@ -369,6 +369,15 @@ CASES = [
     # A free-text token inside a double-quoted shell string expands whatever the author wrote.
     ("DEV_INFO is single-quoted", "DEV_INFO='{{DEV_INFO}}'" in DEVSH),
 
+    # The per-language commands moved out of prose into data BECAUSE prose nobody executes is
+    # how three unusable commands shipped. The scaffolder must point at the data, not replace it.
+    ("the scaffolder defers to the executed language data",
+     "languages/<language>/stages.json" in SCAFF and "the JSON is right" in SCAFF),
+    ("every language with a fixture declares what the harness needs",
+     all(all(k in json.loads(Path(f"languages/{l}/stages.json").read_text())
+             for k in ("stages", "install", "test_count", "touch", "source_file", "test_dir"))
+         for l in sorted(p.name for p in Path("languages").iterdir() if p.is_dir()))),
+
     ("every shipped script has a manifest entry",
      all(any(e.get("source") == f"templates/scripts/{n}" for e in DELIVERY["entries"])
          for n in ("ci.sh", "release.sh", "gate-status.sh", "criteria-check.sh",

@@ -90,6 +90,19 @@ for p in "docs/workflow/" "\.claude/preferences/" "\.claude/project-notes/" "doc
 done
 [ "$FAILED" -eq "$BEFORE" ] && ok "no references to paths removed in 3.0"
 
+# --- 8. the prescribed per-language stage commands actually run (opt-in: slow) -----------
+# Three severe defects shipped as commands nobody ever executed. This installs a real
+# toolchain per language, so it is not in the default run — but say so, because a check that
+# silently did not happen reads exactly like one that passed.
+BEFORE=$FAILED
+if [ "${1:-}" = "--languages" ]; then
+  echo "language stage commands"
+  python3 scripts/_check_languages.py || FAILED=$((FAILED + 1))
+else
+  echo "language stage commands"
+  echo "  ⚠ not run — ./scripts/check.sh --languages executes them (installs toolchains, ~4 min)"
+fi
+
 echo
 if [ "$FAILED" -gt 0 ]; then
   echo "✗ self-check: $FAILED problem(s)" >&2

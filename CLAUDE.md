@@ -23,6 +23,10 @@ After onboarding, the plugin files are copied into the project's `.claude/` dire
 ```
 .claude-plugin/plugin.json   ← plugin manifest (metadata only; skills/ and agents/ are auto-discovered)
 .claude-plugin/delivery.json ← ownership of every delivered path: project / plugin / mixed. Drives /workflow-update
+languages/                   ← per-language stage commands as DATA (stages.json) + a minimal
+                                fixture project. The source of truth the scaffolder reads and
+                                `check.sh --languages` executes — prose in an agent file that
+                                nothing runs is how three broken commands shipped
 skills/                      ← one directory per skill, each with SKILL.md
 agents/                      ← subagent definitions (each runs in an isolated context)
 templates/                   ← files copied into projects by project-init / project-onboard
@@ -81,16 +85,74 @@ Exploration: for most tasks reach for **one** `code-explorer` (understand code) 
 | `advisor` (best/high) | During `/consult` — top-tier reasoning on a briefed question (decision, design/debugging idea, unsure of approach); read-only, advises, never implements |
 | `project-scaffolder` (haiku) | During `/project-init` — mechanical file creation, template copying, initial commit |
 
-## Contributing to claude-workflow
+## Changing the workflow — how, and how it gets tested
 
-To improve the workflow itself:
-1. Create a branch: `git checkout -b feature/improve-X`
-2. Edit the relevant SKILL.md or agent .md files
-3. Test by using the skill in a test project with `--plugin-dir`
-4. Commit with conventional commits — **pushing the feature branch after every commit is fine** (pushes are backups; the quality gate is the review at merge time)
-5. Merge to `master` only after review (PR or explicit approval) — `master` is what users install from
-6. Tag a new version: `git tag vX.Y.Z`
-7. Push: `git push && git push --tags`
+This plugin is prose that another model executes. That makes it a peculiar kind of software:
+it has no compiler, most of it cannot be unit-tested, and a change that reads perfectly can be
+impossible to follow. Four releases of evidence say so — rounds of review found 6, then 12, then
+23, then 29 defects, and several in each round were regressions on the previous round's fixes.
+
+So the rule is: **anything that can be executed must be executed, and everything else gets
+asserted.** Reading it again is the weakest instrument here, not the strongest.
+
+### The three checks, in order of how much they prove
+
+| | Catches | Cost |
+|---|---|---|
+| `./scripts/check.sh` | contradictions *between files* — a rule stated twice at two strengths, a token nobody fills, a manifest entry with no owner | seconds |
+| `./scripts/check.sh --languages` | commands that **do not work**: wrong flag, wrong syntax, a selection that silently matches nothing | ~4 min, installs toolchains |
+| a live agent run (below) | instructions that are ambiguous, contradictory, or impossible for a fresh reader to follow | ~20 min, ~180k tokens |
+
+Run the first on every change. Run the second whenever you touch a stage command, `ci.sh`, or
+anything in `languages/`. Run the third before a release, or after restructuring a skill.
+
+### Making a change
+
+1. Branch: `git checkout -b feature/improve-X`.
+2. Make the change. **If it is a per-language command, edit `languages/<lang>/stages.json`** —
+   not the table in `project-scaffolder.md`, which now summarises that file. Its `notes` field
+   says why each command has the shape it does; read them before changing one.
+3. **Add an assertion.** Every cross-file claim gets a case in `scripts/_check_consistency.py`;
+   every executable claim gets a row in the language matrix. A fix with no assertion is a fix
+   that comes back — this has happened enough times to be a rule rather than advice.
+4. **Verify the assertion is load-bearing**: break the thing it guards and confirm it fails. An
+   assertion that passes on a broken tree is worse than none, because it reads as coverage.
+5. `./scripts/check.sh` (and `--languages` if step 2 applies).
+6. Conventional commit. Pushing the feature branch after every commit is fine — pushes are
+   backups; the gate is the review at merge time.
+7. Merge to `master` only after review — `master` is what users install from.
+8. `git tag vX.Y.Z && git push && git push --tags`.
+
+### Testing with a live agent run
+
+The only thing that finds "a fresh reader cannot follow this". Give an agent the skill or agent
+definition, a decisions block, and a real empty directory — then ask for two things: the work,
+**and** a list of every instruction that was ambiguous, contradictory, incomplete or impossible,
+quoting it. Tell it explicitly that "no defects found" is a valid answer, or it will invent some.
+
+What makes these runs worth the cost:
+- **Vary the shape.** A TypeScript web app and a Python library exercise different halves. Every
+  round that changed the shape found defects the previous shape could not reach — a library
+  broke `healthcheck.sh`, a `main-only` CLI broke the release path, an existing repo on a branch
+  named `trunk` broke assumptions four skills shared.
+- **Ask for counts, not exit codes.** "The gate passed" and "the gate passed having run zero
+  tests" are the same exit code. The worst defect in this project's history hid in that gap.
+- **Run init and onboard in parallel.** They find disjoint sets: init finds instructions that
+  produce a broken artifact, onboard finds instructions that collide with a codebase that
+  already has opinions.
+
+### Things this project has learned the hard way
+
+- **A guard that cannot be satisfied is a dead end, not a safeguard.** Check every refusal has a
+  reachable path out, and that the path is documented where the person hitting it will look.
+- **Escape hatches need somewhere to live.** `.claude/gate-overrides.env`, not an environment
+  variable in whoever's shell — or local and CI disagree and the parity guarantee is gone.
+- **Prose that assumes a deployed web app breaks libraries and CLIs.** Most defects in the last
+  two rounds were this, in different disguises.
+- **Fixing one defect frequently introduces the next one in the same paragraph.** Re-read the
+  whole passage after an edit, not just the sentence you changed, and prefer a `python` patch
+  with an exact-match assertion over a loose `sed`: two corruptions in this repo came from a
+  replacement matching somewhere it was never meant to.
 
 ## Note for Claude sessions: GitHub operations
 

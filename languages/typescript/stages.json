@@ -1,0 +1,27 @@
+{
+  "language": "typescript",
+  "install": "npm install --silent --no-audit --no-fund",
+  "test_count": "Tests +([0-9]+) passed",
+  "stages": {
+    "GENERATE_SOURCES": null,
+    "FORMAT_CHECK": "npm run format:check",
+    "LINT": null,
+    "TYPECHECK": "npm run typecheck",
+    "UNIT_TESTS": "npm test",
+    "UNIT_TESTS_SELECTED": "sh -c 'npm run test:changed -- $(git diff --name-only HEAD -- src tests; git ls-files -o --exclude-standard -- src tests)'",
+    "BUILD": "npm run build",
+    "INTEGRATION_TESTS": null,
+    "E2E_TESTS": null
+  },
+  "notes": [
+    "UNIT_TESTS_SELECTED must pass a computed file list. `vitest related` with no arguments",
+    "selects nothing on every run while still counting as a test stage.",
+    "It must include untracked files: a brand-new test is untracked and `git diff` never lists it.",
+    "It must be permissive about an empty selection (--passWithNoTests, NOT =false): the",
+    "selection is empty on every clean tree, and CONTRIBUTING tells humans to run `ci.sh fast`.",
+    "UNIT_TESTS is the opposite \u2014 strict, because an empty full suite means there are no tests."
+  ],
+  "touch": "\nexport const touched = 1\n",
+  "source_file": "src/add.ts",
+  "test_dir": "tests/unit"
+}

@@ -1,0 +1,29 @@
+{
+  "language": "python",
+  "install": "uv sync --quiet",
+  "test_count": "([0-9]+) passed",
+  "stages": {
+    "GENERATE_SOURCES": null,
+    "FORMAT_CHECK": "uv run ruff format --check .",
+    "LINT": "uv run ruff check .",
+    "TYPECHECK": null,
+    "UNIT_TESTS": "uv run pytest tests/unit",
+    "UNIT_TESTS_SELECTED": "uv run pytest tests/unit",
+    "BUILD": "uv build --quiet",
+    "INTEGRATION_TESTS": null,
+    "E2E_TESTS": null
+  },
+  "notes": [
+    "UNIT_TESTS_SELECTED is deliberately the SAME command as UNIT_TESTS \u2014 the documented",
+    "'degrade to running more, never to running less' fallback. pytest-picked does not work:",
+    "`--picked` takes an optional {only,first} choice, so `--picked tests/unit` binds the path",
+    "to it and pytest exits 4 on every run; with correct syntax it exits 5 on a clean tree.",
+    "Both measured. Do not reintroduce it without running it first.",
+    "ruff format reaches Python fences inside Markdown, so a real project needs",
+    "[tool.ruff] extend-exclude = ['.claude/'] or the gate covers ~40 plugin-owned files.",
+    "BUILD is uv build: without a full-only stage `ci.sh full` refuses, and for a Python library the build IS the release artifact."
+  ],
+  "touch": "\n\ndef touched() -> int:\n    return 1\n",
+  "source_file": "src/pkg/add.py",
+  "test_dir": "tests/unit"
+}

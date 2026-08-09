@@ -202,6 +202,10 @@ Every stage is a `check <command>` line — keep the `check ` prefix when you re
 
 **Never write a bare tool name.** `prettier`, `eslint`, `tsc` and `vitest` are not on `PATH` in GitHub Actions — `npm ci` installs them into `node_modules/.bin`, which only a package script or `npx` sees. A bare `prettier --check .` exits **127** in CI while passing on a laptop that happens to have it installed globally, which is the worst possible way for a gate to be wrong. Go through the package manager:
 
+**The commands themselves live in `{PLUGIN_SOURCE_DIR}/languages/<language>/stages.json` — read that file and use what it says.** It is the source of truth because it is *executed*: `scripts/_check_languages.py` builds a real project per language and runs the gate through six states (dirty tree, clean tree, brand-new untracked test, failing test, no tests at all). Three commands that lived only in this table turned out not to work at all — `vitest related` with no file list selects nothing forever, `pytest --picked tests/unit` exits 4 on every invocation — and each was reviewed repeatedly before anyone ran it. Its `notes` field records why each command is the shape it is; read those before changing one.
+
+The table below summarises the same commands for orientation. **If the two ever disagree, the JSON is right** — it is the one that gets run.
+
 **This table lists the script names *init* creates.** In onboard mode you do not fill these at all (see Onboard mode); `/project-onboard` §3c uses whatever the project already calls them.
 
 | | format · lint · typecheck | `{{UNIT_TESTS}}` (full) | `{{UNIT_TESTS_SELECTED}}` (fast) | full adds |
