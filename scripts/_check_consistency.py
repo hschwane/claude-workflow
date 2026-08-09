@@ -5,6 +5,8 @@ opposite instructions for the same file, or a spec describing a template that ha
 since changed under it. Prose drifts silently; these do not.
 """
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -33,8 +35,96 @@ GATEST = Path("templates/scripts/gate-status.sh").read_text()
 HEALTHSH = Path("templates/scripts/healthcheck.sh").read_text()
 DEVSH = Path("templates/scripts/dev.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
+CODESTYLE = Path("templates/dev/code-style.md.template").read_text()
+RUSTJSON = Path("languages/rust/stages.json").read_text()
+RUSTIGNORE = Path("templates/gitignore/rust.gitignore").read_text()
+
+# --- the hint sweep, executed rather than read -------------------------------------------
+# The scaffolder tells you to strip every `# e.g.` hint line from the five fillable scripts.
+# Both obvious patterns are wrong in opposite directions, and both shipped: `^# e.g.` misses
+# the hints indented inside a `case`/`if`, and an unanchored `e\.g\.` also matches the middle
+# of ci.sh's zero-test comment — which that same comment says survives the fill, because it is
+# where half the never-green-on-zero-tests guarantee is written down. So the pattern is lifted
+# out of the prose and RUN here, against both halves of that requirement.
+FILLABLE = ("ci.sh", "release.sh", "healthcheck.sh", "dev.sh", "deploy-reference.sh")
+_m = re.search(r"grep -nE '([^']+)'", SCAFF)
+SWEEP = _m.group(1) if _m else None
+
+
+def _sweep(name):
+    r = subprocess.run(["grep", "-nE", SWEEP, f"templates/scripts/{name}"],
+                       capture_output=True, text=True)
+    return [l.split(":", 1)[1] for l in r.stdout.splitlines()]
+
+
+def _hints(name):
+    """Ground truth: a hint is a comment whose first word is `e.g.`, at any indent."""
+    return [l for l in Path(f"templates/scripts/{name}").read_text().splitlines()
+            if re.match(r"^\s*#\s*e\.g\.", l)]
+
+
+SWEPT = {n: _sweep(n) for n in FILLABLE} if SWEEP else {}
+GUARANTEED = "in the stage itself, e.g."
 
 CASES = [
+    ("the prescribed hint sweep is a runnable quoted pattern", bool(SWEEP)),
+    # Load-bearing both ways: anchor it without allowing indent and this fails; drop the
+    # anchor and the next case fails.
+    ("the sweep finds every hint line in all five fillable scripts",
+     bool(SWEPT) and all(SWEPT[n] == _hints(n) and SWEPT[n] for n in FILLABLE)),
+    ("the sweep spares the comment ci.sh guarantees survives",
+     GUARANTEED in CI and not any(GUARANTEED in l for l in SWEPT.get("ci.sh", []))),
+    ("the scaffolder still promises that comment survives",
+     "this comment survives the fill" in CI),
+
+    # A Rust crate is a supported language whose release type had no value: `crates` was
+    # simply absent from an enum offered as exhaustive, so a published crate had to be
+    # mislabelled as `github` or `internal`.
+    ("crates.io is an offered release type on both install paths",
+     "npm | pypi | crates | github | docker | internal" in INIT
+     and "npm / pypi / crates / github / docker / internal" in SCAFF),
+    ("crates.io has a name-provenance probe like the other registries",
+     "crates.io/api/v1/crates" in SCAFF),
+    ("crates.io's lack of a release-CI template is stated, not left to be discovered",
+     "no registry-specific template" in INIT),
+
+    # Cargo calls everything in tests/ an "integration test". Read as the workflow's
+    # vocabulary, that makes a `testing-scope: unit` crate look non-compliant, and the
+    # tempting fix — move them into src/ — is the shape where `cargo test --lib` runs nothing.
+    ("code-style owns the level names against a toolchain that reuses them",
+     "cargo" in CODESTYLE.lower() and "--lib" in CODESTYLE),
+    ("the rust stages point at that section rather than restating it",
+     "code-style.md" in RUSTJSON),
+
+    # "Always commit a lockfile" and "never touch the project's .gitignore" are both true and
+    # collide on a Rust library, where cargo's own default is to ignore Cargo.lock: git add -A
+    # will not add an ignored file, so the report claims something that did not happen.
+    ("init commits Cargo.lock deliberately, and the gitignore agrees",
+     "including for a library" in SCAFF and "Cargo.lock" not in RUSTIGNORE),
+    ("onboard yields to a project that already ignores its lockfile",
+     "already excludes it" in ONBOARD),
+
+    # DEV_INFO is a URL plus credentials plus a fixture pointer — several lines. It is printed
+    # with `printf '%s\n'`, so a `\n` escape reaches the smoke-tester as two characters.
+    ("dev.sh says multi-line is the normal shape and escapes are not",
+     "REAL newlines" in DEVSH and "printf '%s\\n'" in DEVSH),
+    ("both fillers repeat it, since neither reads the other's instructions",
+     all("real newlines" in doc.lower() for doc in (SCAFF, ONBOARD))),
+
+    # The scaffolder installs ci.yml whenever the project has none; §3d used to offer it a
+    # second time, which both duplicates the install and contradicts the standing decision
+    # that the workflow is always installed.
+    ("onboard verifies the installed CI rather than offering it again",
+     "already installed — do not install it again" in ONBOARD
+     and "offer `templates/github/ci-{language}.yml`" not in ONBOARD),
+
+    # Version visibility is the blocker only for a deployed service. A published package or a
+    # CLI already exposes its version; treating those as blocked files a ticket for nothing and
+    # hides the hazard that IS real there — the registry answering for someone else's name.
+    ("onboard's healthcheck bullet branches on where the version is readable",
+     "npm view <pkg> version" in ONBOARD and "--version" in ONBOARD
+     and "this* is the blocking case" in ONBOARD.replace("**", "*")),
+
     # The onboard scaffolder must not fill or run the gate — /project-onboard §3c does,
     # because only it has looked at the project's real command names.
     ("onboard mode carves scripts/ out",

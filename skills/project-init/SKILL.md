@@ -173,7 +173,7 @@ All design decisions are now complete. Write a **1–3 sentence architecture sum
 Then determine:
 - `GITIGNORE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
 - `CI_LANGUAGE_TEMPLATE`: `typescript` | `python` | `rust` | `cpp`
-- `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`. **`release-runner: ci` requires a template other than `none`** — `/release` in `ci` mode dispatches `release.yml`, which would not exist. For a `docker` or `internal` release type, keep `release-runner: local`.
+- `RELEASE_CI_TEMPLATE`: `release-npm` | `release-pypi` | `release-github` | `none`. **`release-runner: ci` requires a template other than `none`** — `/release` in `ci` mode dispatches `release.yml`, which would not exist. For a `docker` or `internal` release type, keep `release-runner: local`. **`RELEASE_TYPE: crates` has no registry-specific template**: use `release-github`, whose `{{TOOLCHAIN_STEPS}}` takes the rust toolchain and whose publish step is `cargo publish` — there is no `release-crates.yml` and inventing one is not this step's job.
 - `PLUGIN_SOURCE_DIR`: the absolute path to this plugin's root directory (the directory containing `agents/`, `skills/`, `templates/`). Determine it from the path of this SKILL.md file (go up two directories from `skills/project-init/`).
 - `TARGET_DIR`: the absolute path to the new project directory.
 - `GLOBAL_GUIDELINES`: absolute paths of any **user-global** guidelines (`~/.claude/guidelines/`) that matched in step 1.5, comma-separated; empty is normal. The plugin's own library needs no list — the scaffolder installs all of it unconditionally, so there is nothing to compute here and nothing to get wrong. Global ones are the exception because they live outside the plugin and `~/.claude/` does not survive a cloud session.
@@ -191,7 +191,7 @@ ARCHITECTURE_SUMMARY: {the 1–3 sentence paragraph you just wrote}
 TESTING_SCOPE: {Unit only | Unit + Integration | Unit + Integration + E2E}
 DOCS_TYPE: {Markdown | MkDocs HTML}
 MONOREPO: {No | Yes}
-RELEASE_TYPE: {npm | pypi | github | docker | internal}
+RELEASE_TYPE: {npm | pypi | crates | github | docker | internal}
 DEPLOY: {railway | none | manual | vercel | aws | other | self-hosted}
 BRANCHING_MODEL: {main-only | git-flow}
 TRUNK_BRANCH: main

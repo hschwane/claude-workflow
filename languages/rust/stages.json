@@ -25,7 +25,11 @@
     "SELECTED is the same command as UNIT_TESTS: cargo has no changed-files mode, and",
     "compilation dominates the runtime anyway. The documented degrade-upward fallback.",
     "The fixture deliberately uses the tests/ layout. An earlier fixture put its test inside",
-    "src/, and that convenient shape hid this exact defect from the harness built to catch it."
+    "src/, and that convenient shape hid this exact defect from the harness built to catch it.",
+    "Cargo calls everything in tests/ an integration test, because each file is its own crate",
+    "compiled against the public API. That is cargo's vocabulary, not the workflow's: a crate on",
+    "testing-scope: unit still keeps its tests there, and UNIT_TESTS is the stage that runs them.",
+    "See the Testing section of docs/dev/code-style.md, which owns that distinction."
   ],
   "touch": "\npub fn touched() -> i64 {\n    1\n}\n",
   "source_file": "src/lib.rs",

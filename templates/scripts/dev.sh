@@ -34,10 +34,20 @@ cd "$(dirname "$0")/.." || exit 1
 # other knowledge — the exact URL or command, and any test credentials. "Runs on localhost"
 # is not enough. Each `step` line is a COMMAND LINE, not a comment; delete the ones this
 # project does not need, and never append `|| true`.
+#
+# DEV_INFO IS USUALLY SEVERAL LINES — a URL, a login and a fixture reference rarely fit on one.
+# Write them as REAL newlines inside the single quotes; a `\n` escape ships as the two literal
+# characters. Both call sites use `printf '%s\n'`, which prints the value verbatim on purpose:
+# `%b` or `echo -e` would eat the backslashes in credentials and paths. So:
+#
+#     DEV_INFO='http://localhost:3000
+#     login: dev@example.com / hunter2
+#     the seeded booking is BK-1001'
 # --- end of authoring notes; everything below is live code ------------------------------
 # Single-quoted on purpose: DEV_INFO usually contains a command or a code snippet, and in
 # double quotes a `$` or a backtick in it would be expanded by this script before anyone saw
 # it. If the text itself needs a single quote, end the string and concatenate ('"'"').
+# It may span several real lines; a `\n` escape would print literally (see the notes above).
 DEV_INFO='{{DEV_INFO}}'
 
 if [ "${1:-}" = "--info" ]; then

@@ -63,6 +63,8 @@ Formatting is a tool's job, not a discussion. The project's formatter runs in `s
 
 Glue code — thin controllers, adapters, wrappers — is covered indirectly by integration tests and needs no dedicated unit test.
 
+**These three names describe what a test *does*, not where the language's tooling files it.** Where a toolchain uses the same words differently, the setting means the definitions above and the toolchain's vocabulary is just vocabulary. Cargo is the case that bites: it calls everything in `tests/` an "integration test" purely because each file compiles as a separate crate against the public API. A pure-function test living there is a **unit** test by this list, and a crate under `testing-scope: unit` still puts its tests in `tests/` — that is the cargo convention, and it is what the gate's unit stage runs. Do not read cargo's label as evidence that the scope is being exceeded, and do not move tests into `src/` to make the names line up: `cargo test --lib` then becomes the only thing that would run them, which is the shape that reports green having executed nothing.
+
 **Rules that hold at every level:**
 - Deterministic and independent: no shared mutable state, no ordering dependence, no network, no wall-clock.
 - Name the behavior, not the function: `"returns 401 when the token is expired"`.
