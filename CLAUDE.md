@@ -39,7 +39,7 @@ templates/                   ← files copied into projects by project-init / pr
   gitignore/                 ← per-language .gitignore templates
   hooks/                     ← hooks.json (becomes project .claude/settings.json) + hook scripts
   memory/                    ← decisions / gotchas / tech-debt templates (topic index in the head) + .gitignore
-  guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README, INDEX.md.template (shipped verbatim, one row per guideline), LIBRARY.md (plugin-side catalogue), and the 12 library files. **Every project gets all of them** — relevance is per task, decided by the INDEX triggers, not per project at install time. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
+  guidelines/                ← standing engineering guidelines, **plugin-owned** (replaced on /workflow-update): README, INDEX.md.template (shipped verbatim, one row per guideline), LIBRARY.md (plugin-side catalogue), and the 13 library files. **Every project gets all of them** — relevance is per task, decided by the INDEX triggers, not per project at install time. Recommendations, not rules — /plan adapts or reasoned-rejects, and only /plan, /project-init and /project-onboard read the index
   ui/                        ← reusable UI templates referenced by a guideline (changelog-template.html, self-contained, re-skin via CSS vars)
   scripts/                   ← canonical entrypoints: ci.sh, release.sh, gate-status.sh (the gate-validity rule as one executable), criteria-check.sh, healthcheck.sh, dev.sh, deploy-reference.sh (git-flow + reference env only); plus claude-loop.sh
 ```
@@ -55,7 +55,7 @@ Note: `templates/hooks/hooks.json` deliberately lives under `templates/` (not `h
 | `/draft` | Add a raw feature/bug to the backlog |
 | `/plan` | Turn draft(s) into ready spec(s) — one light pass, batches questions |
 | `/implement` | Per-subtask code+tests, fast gate each, then `/verify` |
-| `/verify` | **The verification skill** — `ticket\|pr\|release`. Gate, review, criteria table, docs, smoke, at whichever depth the caller needs. `/pr` and `/release` delegate to it |
+| `/verify` | **The verification skill** — `ticket\|pr\|release`. Gate, review, criteria table, docs, smoke, UI review (once the project has a style guide), at whichever depth the caller needs. `/pr` and `/release` delegate to it |
 | `/commit` | Gated conventional commit (runs canonical `ci.sh fast`) |
 | `/pr` | **The merge skill** — lands a branch on `develop`, as a real PR or a local fast-forward, same gates either way. Under `main-only` it hands to `/release`: landing on the trunk is releasing |
 | `/release` | Bump + changelog **before** the trunk merge, land it, tag, deploy, then assert the live version |
@@ -80,8 +80,8 @@ Exploration: for most tasks reach for **one** `code-explorer` (understand code) 
 | `code-explorer` (sonnet/low) | During `/plan`, `/project-onboard`, ad-hoc — code-comprehension scout; orients via project docs, then targeted search; condensed, sourced briefings |
 | `text-scout` (haiku) | Ad-hoc — generic "intelligent grep": reads/searches/filters/summarizes any text (code, logs, docs, output) into a sourced digest |
 | `runner` (haiku) | During `/commit`, `/implement`, `/verify`, `/release` — runs a canonical entrypoint (`ci.sh`/`release.sh`), digests output |
-| `smoke-tester` (sonnet/low) | During `/verify`, `/pr`, or ad-hoc — drives the app from prose steps (blackbox), reports failing steps; used proactively whenever a manual check is warranted |
-| `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review |
+| `smoke-tester` (sonnet/low) | During `/verify`, `/pr`, or ad-hoc — drives the app from prose steps (blackbox), reports failing steps; used proactively whenever a manual check is warranted. Second mode: first-pass UI review of screenshots against spec + style guide, escalating what it is unsure of |
+| `reviewer` (best/high) | During `/verify`/`/pr` for critical diffs only — fresh-eyes read-only review. UI mode: second look at UI-review screenshots the smoke-tester escalated |
 | `advisor` (best/high) | During `/consult` — top-tier reasoning on a briefed question (decision, design/debugging idea, unsure of approach); read-only, advises, never implements |
 | `project-scaffolder` (haiku) | During `/project-init` — mechanical file creation, template copying, initial commit |
 

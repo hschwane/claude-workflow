@@ -163,6 +163,11 @@
       "class": "project"
     },
     {
+      "path": "docs/design/",
+      "class": "project",
+      "note": "The project's UI style guide (docs/design/style-guide.md) plus its mockup. Created by the first real design pass (.claude/guidelines/ui-frontend.md), never at init or onboard: the style guide existing is what switches on /verify's UI review, so a stub would turn it on against nothing."
+    },
+    {
       "path": "docs/specs/",
       "class": "project"
     },

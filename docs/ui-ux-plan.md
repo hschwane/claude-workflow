@@ -1,6 +1,16 @@
 # UI/UX overhaul — plan
 
-Status: **planning** (interview in progress). Nothing here is implemented yet.
+Status: **implemented** on the feature branch (v3.3.0 candidate), pending a live agent run.
+
+Deviations from the plan, found while implementing:
+- **No `docs/design/` stub at init/onboard.** The style guide *existing* is the switch for the UI
+  review (D9), so a stub would turn the review on against nothing. The path is fixed and documented
+  instead; the first real design pass creates the file and its `docs/dev/README.md` row. Onboard
+  moves an existing design-system doc there.
+- **The smoke-tester got a separate UI-review mode** rather than judging during its normal run. Its
+  step mode is blackbox and judgement-free by design — the property that makes §5's pass/fail
+  trustworthy — and M1 needs judgement. Two explicit modes keep both.
+- **A spec without a `ui:` field counts as `no`** (specs planned before 3.3).
 
 ## The problem
 
@@ -35,12 +45,12 @@ it. Design intent lives only in chat, so every ticket renegotiates taste from ze
 - **M5 Independent of `review-depth`.**
 - **M6 No browser / no runnable UI:** skipped with a stated reason, never silently.
 
-## Implied work (proposed scope)
+## Implemented scope
 
 - `ui-frontend.md`: canonical path (D1), style-guide recommendations (D2), timing (D3), diverge/converge (D4).
 - New or extended guideline for general UX rules (D7).
 - `/plan`: read `docs/design/` for tickets with a UI share; reference rather than copy (D8); note "test UI, no style guide yet" where D3 applies.
-- Scaffolder/onboard: create `docs/design/` (stub) and the `docs/dev/README.md` row; `delivery.json` ownership = project.
+- Onboard: move an existing design-system doc to `docs/design/style-guide.md`; `delivery.json`: `docs/design/` = project, no source (see deviations).
 - `/verify` (ticket mode): the UI QS step — condition (style guide exists + `ui: yes`), smoke-tester screenshots + first judgement, reviewer escalation, 4-round cap, skip-with-reason (D9, M1–M6).
 - `smoke-tester.md`: screenshots + UI feedback against spec, referenced style-guide parts and D7; flag uncertainty for escalation.
 - `reviewer.md`: UI mode — judge screenshots against spec, style guide, usability and best practice (M3).

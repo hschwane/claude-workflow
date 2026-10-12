@@ -38,6 +38,11 @@ REL = Path("templates/scripts/release.sh").read_text()
 CODESTYLE = Path("templates/dev/code-style.md.template").read_text()
 RUSTJSON = Path("languages/rust/stages.json").read_text()
 RUSTIGNORE = Path("templates/gitignore/rust.gitignore").read_text()
+UIFRONT = Path("templates/guidelines/ui-frontend.md").read_text()
+UXBASICS = Path("templates/guidelines/ux-basics.md").read_text()
+REVIEWER = Path("agents/reviewer.md").read_text()
+DEVIDX = Path("templates/dev/README.md.template").read_text()
+STYLEGUIDE = "docs/design/style-guide.md"
 
 # --- the hint sweep, executed rather than read -------------------------------------------
 # The scaffolder tells you to strip every `# e.g.` hint line from the five fillable scripts.
@@ -67,6 +72,50 @@ SWEPT = {n: _sweep(n) for n in FILLABLE} if SWEEP else {}
 GUARANTEED = "in the stage itself, e.g."
 
 CASES = [
+    # --- UI review (3.3) -----------------------------------------------------------------
+    # The style guide is found by one fixed path, and its EXISTENCE is the switch that turns
+    # /verify's UI review on. A path that differs in one file is a style guide nobody reads,
+    # or a review that never runs — both silent.
+    ("every file that locates the style guide uses the same path",
+     all(STYLEGUIDE in t for t in (UIFRONT, UXBASICS, PLAN, VERIFY, SMOKE, REVIEWER, DEVIDX, ONBOARD))),
+    ("the manifest owns docs/design/ as project, with no scaffolded source",
+     any(e["path"] == "docs/design/" and e["class"] == "project" and "source" not in e
+         for e in DELIVERY["entries"])),
+    # A stub would make "the style guide exists" true on day one and switch the review on
+    # against nothing. Every place that could create one must say not to.
+    ("nothing creates the style guide as a stub",
+     all("stub" in t for t in (UIFRONT, DEVIDX, ONBOARD))
+     and STYLEGUIDE not in SCAFF),
+    # `ui:` is the second half of the switch: /plan writes it, the template carries it,
+    # /verify reads it. One missing link and the review silently never runs.
+    ("the ui: switch is written by /plan, carried by the template, read by /verify",
+     "\nui: ~" in SPEC and "frontmatter `ui:`" in PLAN and "`ui: yes`" in VERIFY),
+    ("/plan references the style guide instead of copying it",
+     "reference" in PLAN and "instead of copying" in PLAN),
+    # The cap is the guard against the original problem — a taste loop that never converges.
+    # Stated once, in the skill that runs the loop, so it cannot drift to two numbers.
+    ("the UI fix loop is capped at 4 rounds, stated once",
+     "At most 4 rounds" in VERIFY
+     and not any("rounds of fix" in t.lower() for t in (PLAN, SMOKE, REVIEWER, UIFRONT))),
+    ("the UI review is independent of review-depth and never skips silently",
+     "independent of `review-depth`" in VERIFY and "Never silently" in VERIFY),
+    # The smoke-tester's blackbox guarantee is what makes §5 trustworthy. The UI-review
+    # mode asks for the opposite, so the two must be explicitly separate — and the blackbox
+    # rule must survive in step mode.
+    ("the smoke-tester keeps step mode blackbox beside its UI-review mode",
+     "## UI-review mode" in SMOKE and "You make no judgement calls" in SMOKE
+     and "Never mix them" in SMOKE),
+    ("escalation runs smoke-tester → reviewer, with a flag both sides name",
+     "escalate" in SMOKE and "escalated" in REVIEWER and "only on escalation" in VERIFY),
+    # Findings need a reason but not a pre-existing project rule — the user's explicit call.
+    ("UI findings need a what and a why, not a pre-existing project rule",
+     all("does not need a rule" in t or "does **not** need a rule" in t
+         for t in (VERIFY, SMOKE, REVIEWER))),
+    ("ui-frontend prescribes diverge-then-converge, not one mockup iterated",
+     "2–3 deliberately different variants" in UIFRONT),
+    ("ui-frontend leaves rejections case by case",
+     "general rule or a one-off" in UIFRONT),
+
     ("the prescribed hint sweep is a runnable quoted pattern", bool(SWEEP)),
     # Load-bearing both ways: anchor it without allowing indent and this fails; drop the
     # anchor and the next case fails.

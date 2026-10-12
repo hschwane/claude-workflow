@@ -19,7 +19,8 @@ The trigger text is what lands in the project's `INDEX.md`, and it is the *only*
 | `service-architecture.md` | Backend/service architecture, layered app, use cases, repository pattern, external API client |
 | `background-jobs.md` | Scheduled tasks, cron, retries, background jobs, timers, graceful shutdown |
 | `web-app-pwa.md` | Web app / PWA, service worker, app version + update |
-| `ui-frontend.md` | UI design, mockup, design system, icons, responsive layout, tooltips |
+| `ui-frontend.md` | UI design, mockup, design system, style guide, icons, responsive layout, tooltips |
+| `ux-basics.md` | UI screens, forms, validation, empty/loading/error states, user feedback, confirmations, UI copy/wording |
 | `plots-graphs.md` | Charts, graphs, plots, data viz, dashboards |
 | `maps.md` | Maps, tiles, markers/pins, clustering, offline maps, map tooltips |
 | `changelog.md` | Changelog, release notes, in-app version history |

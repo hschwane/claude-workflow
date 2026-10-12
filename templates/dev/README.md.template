@@ -26,5 +26,10 @@ If yes, it belongs here as its own document:
 - any other **contract** — something a second implementation would have to match exactly
 - a design that is **hard to enumerate comprehensively later** from the code alone
 
+**The UI style guide is the one document outside this directory with a row here.** It lives at
+`docs/design/style-guide.md`, is written by the project's first real design pass (see
+`.claude/guidelines/ui-frontend.md`), and gets its row then — not before: the file existing is what
+switches on `/verify`'s UI review, so it is never created as a stub.
+
 `/plan` decides this per ticket, on the spec's `## Documentation impact` line, while scope is still
 negotiable. `/implement` writes the document and adds its row. `/verify` checks the row is here.

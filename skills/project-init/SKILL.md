@@ -84,7 +84,7 @@ Read `{PLUGIN_SOURCE_DIR}/templates/guidelines/LIBRARY.md` and, if it exists, th
 Carry what you read into:
 - **Vision (step 2)** — a guideline can sharpen scope or an explicit non-goal.
 - **Architecture and deploy (steps 3–5)** — e.g. `service-architecture.md`'s layering, `ai-integration.md`'s interface rule, `railway.md`'s portability rule.
-- **Backlog (step 7)** — **every "required" item in a matching guideline that the scaffold doesn't already provide becomes a ticket.** `app-baseline.md` alone yields several (logging, in-app changelog, an update mechanism, Claude-testable smoke access); `ui-frontend.md` says when a real design pass is due; `web-app-pwa.md` yields version display, update control and the access gate.
+- **Backlog (step 7)** — **every "required" item in a matching guideline that the scaffold doesn't already provide becomes a ticket.** `app-baseline.md` alone yields several (logging, in-app changelog, an update mechanism, Claude-testable smoke access); `ui-frontend.md` says when the first real design pass is due — that ticket's scope includes writing `docs/design/style-guide.md`; `web-app-pwa.md` yields version display, update control and the access gate.
 
 Guidelines stay **recommendations** — judge each against this project's real scale and say so when you reject one (see the guidelines `README.md`). What you must not do is silently skip them.
 

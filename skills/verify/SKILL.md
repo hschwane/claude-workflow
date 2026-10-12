@@ -28,6 +28,7 @@ A first argument that is not `ticket`/`pr`/`release` is a ticket id, and the mod
 | §3 criteria table | **mandatory** | — done per ticket | — |
 | §4 documentation | vs the spec's line | — | — |
 | §5 smoke | §5's scope | none | regression pass in long unsupervised runs |
+| §6 UI review | when the spec says `ui: yes` and the style guide exists | — done per ticket | — |
 
 In `ticket` mode, resolve the spec (the argument, or the in-progress spec on this branch) and read
 its **acceptance criteria** — everything below compares against them.
@@ -185,13 +186,64 @@ result, is the record: re-running them answers "does it still work?", which a pa
 the new features **and** the important older ones. It is the only human-shaped check the merged
 result ever gets, since every ticket was verified alone, before the others existed.
 
-### 6. Report
+### 6. UI review — `ticket` mode
+
+**Runs when both hold:** the spec's frontmatter says `ui: yes`, and `docs/design/style-guide.md`
+exists. Before the style guide exists the project is on a test UI, and there is nothing to review
+it against. A spec with no `ui:` field — planned before the field existed — counts as `no`. It is **independent of `review-depth`** and of §5's skip rule: a small change to a
+screen still gets it. If it cannot run — no browser, a UI that will not start locally — skip it
+**with the reason**, in the report and in the spec. Never silently.
+
+**What it checks**, in this order of weight:
+- **(a) the spec** — what the ticket asked for, including the style-guide parts its `## UI`
+  section references;
+- **(b) the UX basics** in `.claude/guidelines/ux-basics.md` — the states, forms, feedback,
+  confirmations and copy every screen has to handle;
+- **(c) design judgement** — coherence with the rest of the app, ease of use, and fit with
+  reference applications and established practice.
+
+**A finding has to say what is wrong and why** — which rule, which screen it is inconsistent
+with, which usability problem, which established practice. It does **not** need a rule that
+already exists in this project: "the primary action is below the fold on the target phone size"
+is a valid finding with no style-guide line behind it. "Would look nicer if…" with no reason is not.
+
+**Stage 1 — the `smoke-tester`, in UI-review mode.** A separate invocation from §5's blackbox run,
+which stays exactly as it is. Hand it:
+- `HOW_TO_RUN` from `scripts/dev.sh --info`, as in §5, and stop the instance after;
+- the spec's **Goal and `## UI` section** — not the criteria, not the code;
+- the paths of `docs/design/style-guide.md`, `docs/design/prototype.html` if present, and
+  `.claude/guidelines/ux-basics.md`;
+- **what to capture**: each screen in *Screens & states*, in each listed state, at each target
+  viewport the style guide names. You prepare any state that needs data or a failure (a seeded
+  empty account, a stubbed error) — the agent never sets anything up, here as in §5.
+
+It screenshots, judges, and returns findings, each marked **sure** or **unsure**, plus an
+**escalate** flag when it was unsure about anything or something stood out it could not place.
+
+**Stage 2 — the `reviewer`, in UI mode, only on escalation.** Hand it the screenshot paths, the
+smoke-tester's report, the spec, the style guide and `ux-basics.md`. It confirms, rejects or adds
+findings as `[MUST FIX]` / `[CONSIDER]`. Without an escalation, stage 1's findings stand.
+
+**Fix and re-check.** Fix every valid finding; a `[CONSIDER]` may be declined, with the reason
+recorded. Fixes are code changes, so §1's gate rule applies to them like to any other. Then run the
+review again — stage 1, and stage 2 if it escalates. **At most 4 rounds of fix + re-check.** What
+is still open after the fourth goes to the user, listed in the report and the spec: it does not
+fail the ticket, and a fifth round is not the answer — a loop over taste that has not converged
+in four rounds needs the user, not more iterations. Unsupervised, record it and continue.
+
+A **functional** bug found here is handled as in §5: fix it **and** add an automated test.
+
+**Store the rounds in the spec** under `## UI review` — findings with their reason, who raised
+them, what was fixed, what was declined and why, what remains.
+
+### 7. Report
 ```
 Verify ✓  {mode}{ · id}
 Gate: {green (full) | skipped — valid for this sha}   Review: {self | reviewer | consult | skipped — same sha}
 Criteria: {N/N met — table in <spec>#criteria-verification | FAIL — unmet: <list> → back to /implement}
           {any row that failed on the first pass, and what fixed it}
 Docs: {done per spec | none required}   Smoke: {N steps, all pass | M failed→fixed | n/a}
+UI: {N findings, fixed in R rounds | K open after 4 rounds → user: <list> | skipped — <reason> | n/a (ui: no / no style guide)}
 {bugs found → tests added: …}
 ```
 If something cannot be made green and needs a human, write `## Blocked` and stop.

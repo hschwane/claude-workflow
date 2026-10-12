@@ -4,6 +4,7 @@ type: {{feature|bug}}
 status: draft            # draft → ready (after /plan) → in-progress (/implement) → done
 version: ~
 test_scope: ~           # unit | +integration | +e2e — set by /plan, within the project default
+ui: ~                   # yes | no — set by /plan: does this ticket change a graphical UI? yes switches on /verify's UI review once docs/design/style-guide.md exists
 created: {{YYYY-MM-DD}}
 updated: {{YYYY-MM-DD}}
 github_issue: ~
@@ -38,6 +39,18 @@ As a [user], I want [goal], so that [benefit].
      /implement re-reads these) -->
 
 
+## UI
+<!-- Only when ui: yes — delete otherwise. Written by /plan.
+     Style guide: the parts of docs/design/style-guide.md this ticket must follow, as REFERENCES
+     (docs/design/style-guide.md#forms), not copies. /implement and the UI review see the style
+     guide only through these lines, so a relevant part not referenced here is a part nobody applies.
+     No style guide yet: say "Test UI — no style guide yet" (or that this ticket IS the first real
+     design pass, which follows .claude/guidelines/ui-frontend.md and creates the style guide).
+     Screens & states: each screen this ticket adds or changes, and the states it must show
+     (content, empty, loading, error, …). /verify's UI review screenshots exactly these. -->
+Style guide: 
+Screens & states: 
+
 ## Documentation impact
 <!-- One or two lines, decided by /plan — NOT a checklist, and "None." is a complete answer.
      Are docs affected, and which; or is there a new algorithm, interface, file format,
@@ -57,6 +70,11 @@ None.
      Each: exact action + literal inputs → exact observable expected result. Handed BLACKBOX to
      the smoke-tester (no spec, no code), which makes no judgement calls — anything left
      implicit is lost, and a step needing interpretation comes back as could-not-complete. -->
+
+## UI review
+<!-- Written by /verify §6 when it runs: one entry per round — findings (what + why), who raised
+     them (smoke-tester / reviewer), what was fixed, what was declined and why. At most 4 fix
+     rounds; whatever is still open after that is listed here for the user. Skipped → the reason. -->
 
 ## Open Questions
 <!-- Must be empty before status → ready. -->
