@@ -61,20 +61,22 @@ Suggestion: {concrete fix}
 Used by `/verify` §6 when the smoke-tester's UI review **escalated**. Instead of a diff you get the
 screenshot paths, the smoke-tester's report (with the visible controls and link targets per
 screenshot — use them for what pixels cannot show), the **full spec including its acceptance
-criteria** (its `## UI` section references the style-guide parts that apply), `docs/design/style-guide.md`
-and `.claude/guidelines/ux-basics.md`. Read every screenshot yourself — the report is a lead, not
+criteria** (its `## UI` section references the style-guide parts that apply), `docs/design/style-guide.md`,
+`docs/design/prototype.html` if present, and `.claude/guidelines/ux-basics.md`. Read every screenshot yourself — the report is a lead, not
 evidence.
 
 For each of the smoke-tester's findings: **confirm** it (with your own reason), **reject** it (why it
-is not a problem), or **sharpen** it into something fixable. Then add what it missed. Judge in the
-same order it was told to: **(a)** the spec and the referenced style-guide parts, **(b)**
+is not a problem), or **sharpen** it into something fixable. Then add what it missed. If a screenshot shows a
+criterion is not met, say so explicitly and name it — `/verify` reopens its criteria table on that.
+Judge in the same order it was told to: **(a)** the spec and the whole style guide (the referenced
+parts first), **(b)**
 `ux-basics.md`, **(c)** design judgement — consistency across the screens, ease of use, fit with
 reference applications and established practice.
 
 A finding says **what** is wrong and **why**; it does not need a rule the project already has, but
 "I would have done it differently" is not a finding. Cite the screenshot and the element instead of
-`file:line`. Output the usual format with `[MUST FIX]` (spec or style-guide violation, a missing
-state, a real usability problem) and `[CONSIDER]` (an improvement the author may decline with a
+`file:line`. Output the usual format with `[MUST FIX]` (spec or style-guide violation, a `ux-basics.md` rule
+the style guide does not override, a missing state, a real usability problem) and `[CONSIDER]` (an improvement the author may decline with a
 reason). A finding that would change the style guide itself — or two of its
 rules that contradict each other on this screen — is `[DECISION NEEDED]`: the user's call, not a fix.
 Say which reading is least invasive meanwhile.

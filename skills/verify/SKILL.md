@@ -199,8 +199,9 @@ gets it. If it cannot run — no browser, a UI that will not start locally — s
 **with the reason**, in the report and in the spec. Never silently.
 
 **What it checks**, in this order of weight:
-- **(a) the spec** — what the ticket asked for, including the style-guide parts its `## UI`
-  section references;
+- **(a) the spec and the style guide** — what the ticket asked for, and the whole style guide.
+  The parts the spec references are where to look first, not a limit: a finding that rests on a
+  section the spec failed to reference is valid, and the missing reference is fixed in the spec;
 - **(b) the UX basics** in `.claude/guidelines/ux-basics.md` — the states, forms, feedback,
   confirmations and copy every screen has to handle;
 - **(c) design judgement** — coherence with the rest of the app, ease of use, and fit with
@@ -213,10 +214,11 @@ is a valid finding with no style-guide line behind it. "Would look nicer if…" 
 
 **First, complete the capture list.** The review sees only what is captured, and *Screens & states*
 is usually short of what the ticket actually changed. Before stage 1, check it against the
-style-guide sections the spec references and the states `ux-basics.md` requires, and add what is
-missing — above all **the results of the ticket's actions**: after saving, after deleting, after an
-invalid submit *with the other fields filled in* (that is where "never lose input" shows), and the
-loading state. A state the list leaves out is a defect no stage can find: in the first live run of
+style guide and `ux-basics.md`. **Mandatory for every screen the ticket touches:** the four data
+states that apply (content, empty, loading, error) and **the results of the ticket's actions** —
+after saving, after deleting, after an invalid submit *with the other fields filled in* (that is
+where "never lose input" shows). Everything else — long names, many items, keyboard focus — is
+worth adding where it is cheap; don't build new fixtures just for it. A state the list leaves out is a defect no stage can find: in the first live run of
 this review, the three worst defects — a delete with no confirmation, a save that never returned to
 the list, an invalid submit that wiped the form — were exactly the states nobody listed. Prepare
 what each state needs: data, a stubbed failure, a deliberately slow response for loading (a
@@ -235,14 +237,15 @@ which stays exactly as it is. Hand it:
   state requires them.
 
 It screenshots, judges, and returns findings, each marked **sure** or **unsure** and
-**must-fix** or **consider**. It sets **escalate** when an unsure finding would be must-fix, or when
-something stood out it could not place. An unsure *consider* does not escalate on its own — it
+**must-fix** or **consider**. It sets **escalate** when an unsure finding would be must-fix, when it
+hit a **style-guide question** (two rules contradict each other, or the guide does not cover the
+case), or when something stood out it could not place. An unsure *consider* does not escalate on its own — it
 stands as advisory, so a duplicated hint text does not summon the top-tier reviewer.
 
 **Stage 2 — the `reviewer`, in UI mode, only on escalation.** Hand it the screenshot paths, the
 smoke-tester's report (which lists the visible text and link targets per screenshot, since pixels
 cannot say whether a title is a link), the **full spec including the acceptance criteria**, the
-style guide and `ux-basics.md`. It confirms, rejects or adds findings as `[MUST FIX]` /
+style guide, `docs/design/prototype.html` if present, and `ux-basics.md`. It confirms, rejects or adds findings as `[MUST FIX]` /
 `[CONSIDER]`. Without an escalation, stage 1's findings stand with stage 1's severity. A
 `[DECISION NEEDED]` — the style guide itself is wrong or contradicts itself — goes to the user,
 listed in the report and the spec: it does not block and does not count as open. Meanwhile apply
@@ -250,8 +253,13 @@ the least invasive reading and say which.
 
 **Fix and re-check.** Fix every must-fix finding; a consider may be declined, with the reason
 recorded. Commit each round's fixes through `/commit` (its fast gate); §1's full gate then covers the
-final tree. Then run the review again — the **whole** capture list, not only what you touched: a
-fix to one screen breaks another often enough to be worth ten screenshots. The initial review is
+final tree. **A finding that contradicts a criterion §3 marked Met reopens §3** — correct the row and
+re-run `scripts/criteria-check.sh`; an unmet criterion fails the ticket there, whatever this loop
+decides. Then **update the capture list** — a fix renames labels and creates states (a confirmation
+dialog that did not exist before) — and run the review again over the **whole** capture list, not
+only what you touched: a fix to one screen breaks another often enough to be worth ten screenshots.
+Hand stage 1 the previous round's findings so it confirms each one is gone, and tell it to judge
+fresh all the same. The initial review is
 not a round; **a round is one fix + one complete re-check.** **At most 4 rounds of fix + re-check.** What
 is still open after the fourth goes to the user, listed in the report and the spec: it does not
 fail the ticket, and a fifth round is not the answer — a loop over taste that has not converged
@@ -270,7 +278,7 @@ Gate: {green (full) | skipped — valid for this sha}   Review: {self | reviewer
 Criteria: {N/N met — table in <spec>#criteria-verification | FAIL — unmet: <list> → back to /implement}
           {any row that failed on the first pass, and what fixed it}
 Docs: {done per spec | none required}   Smoke: {N steps, all pass | M failed→fixed | n/a}
-UI: {N findings, fixed in R rounds | K open after 4 rounds → user: <list> | skipped — <reason> | n/a (ui: no / no style guide)}
+UI: {N findings, fixed in R rounds | K open after 4 rounds → user: <list> | skipped — <reason> | n/a (ui: no / no style guide)}{ · decisions for the user: <list>}
 {bugs found → tests added: …}
 ```
 If something cannot be made green and needs a human, write `## Blocked` and stop.

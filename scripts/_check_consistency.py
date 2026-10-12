@@ -131,7 +131,7 @@ CASES = [
      "complete the capture list" in VERIFY and "results of the ticket's actions" in VERIFY
      and "results of its actions" in PLAN and "results of" in SPEC),
     ("UI-review mode may perform the destructive action a listed state needs",
-     "destructive action the capture list names" in SMOKE
+     "only when the capture list names them" in SMOKE and "**a destructive action**" in SMOKE
      and "Destructive actions on the test instance are allowed in this mode" in VERIFY),
     # Without a stage-1 severity, "a consider may be declined" was undefined unless escalated,
     # and every unsure nit escalated to the top-tier reviewer.
@@ -147,6 +147,26 @@ CASES = [
      "full spec including" in VERIFY.replace("**", "") and "full spec including" in REVIEWER.replace("**", "")),
     ("a regression test that cannot be written becomes a smoke step, never nothing",
      "Never drop the regression check silently" in VERIFY),
+    # From the second /verify live run.
+    ("a UI finding against a Met criterion reopens the criteria table",
+     "reopens §3" in VERIFY and "criterion is not met" in REVIEWER),
+    ("each re-check updates the capture list and confirms the previous findings",
+     "update the capture list" in VERIFY and "previous round's findings" in VERIFY
+     and "previous round's findings" in SMOKE),
+    ("breaking a ux-basics rule is must-fix, in both judging agents",
+     all("`ux-basics.md`" in t and "does not override" in t for t in (SMOKE, REVIEWER))),
+    ("the whole style guide applies, the referenced parts first",
+     "the whole style guide" in VERIFY and "the whole style guide" in REVIEWER),
+    ("throttling a request is an allowed exception in the agent's own file",
+     "throttling or delaying a request" in SMOKE),
+    ("overflow is checked against the visual viewport, not innerWidth",
+     "visualViewport.width" in SMOKE),
+    ("the capture list has a mandatory core",
+     "Mandatory for every screen the ticket touches" in VERIFY),
+    ("stage 1 can raise a style-guide question, and it escalates",
+     "style-guide question" in SMOKE and "style-guide question" in VERIFY),
+    ("decisions for the user have a slot in the report",
+     "decisions for the user" in VERIFY),
     # Unsupervised assumptions had no home, so they landed in Open Questions — which must be
     # empty before a spec is ready.
     ("unsupervised assumptions have their own section, named by /plan",
