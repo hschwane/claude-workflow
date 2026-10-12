@@ -40,13 +40,14 @@ As a [user], I want [goal], so that [benefit].
 
 
 ## UI
-<!-- Only when ui: yes — delete otherwise. Written by /plan.
+<!-- Only when ui: yes — delete otherwise (and ## UI review with it). Written by /plan.
      Style guide: the parts of docs/design/style-guide.md this ticket must follow, as REFERENCES
-     (docs/design/style-guide.md#forms), not copies. /implement and the UI review see the style
+     (docs/design/style-guide.md#<heading-slug> + a few words naming the rule), not copies —
+     including the general sections that bind every screen. /implement and the UI review see the style
      guide only through these lines, so a relevant part not referenced here is a part nobody applies.
      No style guide yet: say "Test UI — no style guide yet" (or that this ticket IS the first real
      design pass, which follows .claude/guidelines/ui-frontend.md and creates the style guide).
-     Screens & states: each screen this ticket adds or changes, and the states it must show
+     Screens & states (required for every ui: yes ticket): each screen this ticket adds or changes, and the states it must show
      (content, empty, loading, error, …). /verify's UI review screenshots exactly these. -->
 Style guide: 
 Screens & states: 
@@ -75,6 +76,10 @@ None.
 <!-- Written by /verify §6 when it runs: one entry per round — findings (what + why), who raised
      them (smoke-tester / reviewer), what was fixed, what was declined and why. At most 4 fix
      rounds; whatever is still open after that is listed here for the user. Skipped → the reason. -->
+
+## Assumptions
+<!-- Unsupervised /plan only: each default it applied instead of asking, one line each. Delete if none.
+     Kept apart from Open Questions, which must be empty before status → ready. -->
 
 ## Open Questions
 <!-- Must be empty before status → ready. -->

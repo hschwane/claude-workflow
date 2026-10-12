@@ -115,6 +115,18 @@ CASES = [
      "2–3 deliberately different variants" in UIFRONT),
     ("ui-frontend leaves rejections case by case",
      "general rule or a one-off" in UIFRONT),
+    # From the /plan live run: "is this the first real design pass?" had no test, and the
+    # design pass needs a user pick that an unsupervised run cannot get.
+    ("/plan says how to recognise the first design pass, and asks when unsure",
+     "How to tell" in PLAN and "candidate" in PLAN and "[USER]" in PLAN),
+    ("an unsupervised run never picks the design variant itself",
+     "never picks one itself" in PLAN),
+    ("Screens & states is required for every ui: yes ticket, in skill and template",
+     "required whenever `ui: yes`" in PLAN and "required for every ui: yes ticket" in SPEC),
+    # Unsupervised assumptions had no home, so they landed in Open Questions — which must be
+    # empty before a spec is ready.
+    ("unsupervised assumptions have their own section, named by /plan",
+     "## Assumptions" in SPEC and "`## Assumptions`" in PLAN),
 
     ("the prescribed hint sweep is a runnable quoted pattern", bool(SWEEP)),
     # Load-bearing both ways: anchor it without allowing indent and this fails; drop the

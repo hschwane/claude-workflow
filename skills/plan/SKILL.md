@@ -46,10 +46,14 @@ For each ticket, fill the spec template (`docs/specs/` uses `spec.md.template`) 
 
 - **Approach / interfaces** — the key interfaces or signatures to add/change, and a short note on the approach. Enough to implement without re-deciding architecture mid-build; not a full design doc.
 - **Subtasks** — an ordered checklist of implementable steps, each a green-committable unit.
-- **UI** — set frontmatter `ui:`. **`yes` when the ticket adds or changes anything in a graphical UI**, `no` otherwise — a CLI's output or an API response is not one. It is the switch `/verify` reads to decide whether the UI review runs, so set it on every spec, not only the obvious ones. For `ui: yes`, fill the `## UI` section:
-  - **`docs/design/style-guide.md` exists** → read it, and under *Style guide* **reference** the parts this ticket must follow (`docs/design/style-guide.md#forms`) instead of copying them. `/implement` and the UI review see the style guide only through these references, so a relevant part you leave out is a part nobody applies.
+- **UI** — set frontmatter `ui:`. **`yes` when the ticket adds or changes anything in a graphical UI**, `no` otherwise — a CLI's output or an API response is not one. It is the switch `/verify` reads to decide whether the UI review runs, so set it on every spec, not only the obvious ones. For `ui: no`, delete the `## UI` and `## UI review` sections. For `ui: yes`, fill `## UI`:
+  - **`docs/design/style-guide.md` exists** → read it, and under *Style guide* **reference** the parts this ticket must follow instead of copying them: `docs/design/style-guide.md#<heading-slug>`, plus a few words naming the specific rule where the section holds several (`#layouts (form page: one card, max 560 px)`). Never paste whole sections. Include the general sections that bind every screen — design variables, target devices, accessibility floor — in one line: `/implement` and the UI review see the style guide only through these references, so a relevant part you leave out is a part nobody applies.
   - **It does not exist yet** → write *Test UI — no style guide yet*: a plain functional UI, no design work, and no UI review. Unless this ticket **is** the first real design pass — then it follows `.claude/guidelines/ui-frontend.md` (2–3 divergent variants, the user picks, then iterate), and creating the style guide is part of its scope and its acceptance criteria.
-  - *Screens & states* — every screen the ticket adds or changes, and which states it must show (content, empty, loading, error — see `.claude/guidelines/ux-basics.md`). The UI review screenshots exactly this list.
+
+    **How to tell.** It is the design pass when the ticket says so — typically the "real design pass" item `/project-init` put in the backlog — or when the user says so. A ticket that builds user-facing UI for the MVP or 1.0 while no style guide exists is a **candidate**: ask the user (a `[USER]` question) rather than guess. Anything else is test UI. Unsupervised, a candidate stays test UI and the assumption is noted — the design pass is never started by guessing.
+
+    **The pick needs the user.** In the spec, make choosing a variant an explicit subtask that waits for the user. An unsupervised run builds the variants and then stops there with `## Blocked` — it never picks one itself: choosing the look *for* the user is the exact failure the design pass exists to prevent.
+  - *Screens & states* — required whenever `ui: yes`, test UI included (the smoke test uses it even where no UI review runs): every screen the ticket adds or changes, and which states it must show (content, empty, loading, error — see `.claude/guidelines/ux-basics.md`). The UI review screenshots exactly this list.
 - **Test scope** — which levels apply (unit / +integration / +e2e) for this ticket, within the `testing-scope` setting in `CLAUDE.md`. Quality over quantity — the important behaviors.
 - **Documentation impact** — one or two lines. `None.` is a complete and common answer; the documentation policy is unchanged (only what the change actually affects, and tokens spent on docs nobody reads are wasted twice). Decide it **here**, not at implementation time, where it is invisible while scope is still negotiable and is the first thing dropped under pressure. `/verify` checks the result against this line.
 
@@ -70,7 +74,7 @@ If resolving the spec needs the user's input, collect every `[USER]` question.
 
 - **Single-ticket** mode: ask now in chat (plain message).
 - **Multi-ticket** mode: **plan all tickets first, collecting questions across all of them, then ask the whole set together** in one chat message (a numbered list), before returning. Be thorough — surface every decision that would otherwise need the user *later* (scope boundaries, ambiguous acceptance criteria, design/tech forks), because after this batch the caller (e.g. `/ship`) runs autonomously and won't ask again. Then finish every spec. The user answers once and walks away.
-- **Unsupervised** mode: don't ask — apply the most reasonable default, note the assumption in the spec, and continue.
+- **Unsupervised** mode: don't ask — apply the most reasonable default, note the assumption in the spec's `## Assumptions` section, and continue.
 
 ### 5. Review the spec, then mark ready
 
@@ -90,7 +94,7 @@ are filled and `## Open Questions` is empty — the template defines the shape, 
 in `/implement` restates it. Then:
 - Set frontmatter `status: ready`; `git mv docs/specs/backlog/{file} docs/specs/ready/{file}`.
 - If `github_issue` is set and the `github` setting in `CLAUDE.md` is not `no`: move labels to `ready`.
-- Commit: `git add docs/specs/ .claude/memory/decisions.md && git commit -m "docs(specs): plan {id}  [skip ci]"` — `decisions.md` too, because step 2 may have recorded provenance or an answered conflict there; left unstaged it is swept into the next `feat(...)` commit by `/implement`'s `git add -A` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.
+- Commit: `git add docs/specs/ .claude/memory/decisions.md && git commit -m "docs(specs): plan {ids}  [skip ci]"` — one commit for the whole batch; `decisions.md` too, because step 2 may have recorded provenance or an answered conflict there; left unstaged it is swept into the next `feat(...)` commit by `/implement`'s `git add -A` — stage the specs directory explicitly, so unrelated working-tree changes don't land in a `docs(specs):` commit.
 
 ### 6. Report
 ```
