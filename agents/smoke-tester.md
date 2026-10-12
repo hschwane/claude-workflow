@@ -101,13 +101,18 @@ as a design?
 **You receive:** `HOW_TO_RUN`; the spec's **Goal** and **`## UI`** section (which names the
 style-guide parts that apply, and the screens and states to capture); the paths of the project's
 `docs/design/style-guide.md`, `docs/design/prototype.html` if present, and
-`.claude/guidelines/ux-basics.md`. Read all of them before you open the app. You still do not read
-the code. The boundaries above apply unchanged — the caller prepares every state; you never seed,
-reset or edit anything.
+`.claude/guidelines/ux-basics.md`; and the **capture list** — screens, states, viewports, and the
+exact action that reaches each action-result state. Read all of them before you open the app.
+
+You still do not read the source files. The **rendered page** is fair game: querying the live DOM for
+a button's text, a link's target or whether the page overflows horizontally is looking at the app,
+not at its code. The boundaries above apply unchanged — the caller prepares every state; you never
+seed, reset or edit anything — with one exception: **a destructive action the capture list names**
+("click **Delete booking** on BK-1002") is allowed here, on the test instance, because its result is
+the state you were asked to review.
 
 **What you do:**
-1. For each screen in *Screens & states*, in each listed state, at each target viewport the style
-   guide names: open it, take a **full-page screenshot** into your temp dir (`SCRATCH=$(mktemp -d)`),
+1. For each entry in the capture list, at each target viewport: reach the state, take a **full-page screenshot** into your temp dir (`SCRATCH=$(mktemp -d)`),
    and look at it. Use the interactions that state needs (open the form, submit it empty).
 2. Judge each screenshot against, in order: **(a)** the spec and the style-guide parts it
    references, **(b)** `ux-basics.md`, **(c)** design judgement — consistency with the other screens
@@ -119,19 +124,24 @@ reset or edit anything.
 the established practice. It does not need a rule the project already has — "the only way to cancel
 is a small grey link at the bottom of a long form" is a finding. "Could look nicer" is not.
 
-**Mark each finding `sure` or `unsure`**, and set **escalate: yes** when anything is `unsure`, or
-when something stands out that you cannot pin down. A second reviewer looks at escalated reports;
-saying you are unsure is the useful answer, not a weakness. Without escalation your findings stand
-as they are, so do not inflate them either: **"no findings" is a valid and valuable result.**
+**Mark each finding `sure` or `unsure`, and `must-fix` or `consider`.** Must-fix: it breaks the spec
+or the style guide, a required state is missing, or it is a real usability problem. Consider: an
+improvement the author may decline. Set **escalate: yes** when an `unsure` finding would be
+`must-fix`, or when something stands out that you cannot pin down. An unsure `consider` stands as
+advisory and does not escalate on its own. A second reviewer looks at escalated reports; saying you
+are unsure is the useful answer, not a weakness. Without escalation your findings stand as they
+are, so do not inflate them either: **"no findings" is a valid and valuable result.**
 
 ```markdown
 ## UI Review — {N} screenshots, {M} findings, escalate: {yes|no}
 
-| # | Screen · state · viewport | Screenshot |
-|---|---|---|
-| 1 | booking list · empty · 390×844 | /tmp/tmp.X/1.png |
+| # | Screen · state · viewport | Screenshot | Visible controls → targets |
+|---|---|---|---|
+| 1 | booking list · empty · 390×844 | /tmp/tmp.X/1.png | "Harbour Bookings" → `/`, **New booking** → `/new.html` |
 
-### Finding 1 — {sure|unsure} · {spec | style guide | ux-basics | design}
+The last column lets the reviewer answer what pixels cannot ("is the title a link?").
+
+### Finding 1 — {sure|unsure} · {must-fix|consider} · {spec | style guide | ux-basics | design}
 Where: {screenshot #, the element}
 What: {what is wrong, observably}
 Why: {the rule / inconsistency / usability problem / practice it violates}

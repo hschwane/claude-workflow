@@ -123,6 +123,30 @@ CASES = [
      "never picks one itself" in PLAN),
     ("Screens & states is required for every ui: yes ticket, in skill and template",
      "required whenever `ui: yes`" in PLAN and "required for every ui: yes ticket" in SPEC),
+    # From the /verify live run. The worst three seeded defects were invisible to both stages
+    # because the states that showed them (after delete, after save, invalid submit with input)
+    # were never on the capture list — so §6 completes the list before stage 1, and /plan asks
+    # for action results up front.
+    ("§6 completes the capture list with action results before stage 1",
+     "complete the capture list" in VERIFY and "results of the ticket's actions" in VERIFY
+     and "results of its actions" in PLAN and "results of" in SPEC),
+    ("UI-review mode may perform the destructive action a listed state needs",
+     "destructive action the capture list names" in SMOKE
+     and "Destructive actions on the test instance are allowed in this mode" in VERIFY),
+    # Without a stage-1 severity, "a consider may be declined" was undefined unless escalated,
+    # and every unsure nit escalated to the top-tier reviewer.
+    ("stage-1 findings carry a severity, and only unsure must-fix escalates",
+     "`must-fix` or `consider`" in SMOKE
+     and "An unsure *consider* does not escalate" in VERIFY),
+    ("a round is defined, and a re-check covers the whole capture list",
+     "The initial review is not a round" in VERIFY.replace("\n", " ")
+     and "the **whole** capture list" in VERIFY),
+    ("[DECISION NEEDED] from the reviewer has a route in §6",
+     "[DECISION NEEDED]" in VERIFY and "[DECISION NEEDED]" in REVIEWER),
+    ("the UI reviewer gets the acceptance criteria too",
+     "full spec including" in VERIFY.replace("**", "") and "full spec including" in REVIEWER.replace("**", "")),
+    ("a regression test that cannot be written becomes a smoke step, never nothing",
+     "Never drop the regression check silently" in VERIFY),
     # Unsupervised assumptions had no home, so they landed in Open Questions — which must be
     # empty before a spec is ready.
     ("unsupervised assumptions have their own section, named by /plan",

@@ -48,7 +48,9 @@ As a [user], I want [goal], so that [benefit].
      No style guide yet: say "Test UI — no style guide yet" (or that this ticket IS the first real
      design pass, which follows .claude/guidelines/ui-frontend.md and creates the style guide).
      Screens & states (required for every ui: yes ticket): each screen this ticket adds or changes, and the states it must show
-     (content, empty, loading, error, …). /verify's UI review screenshots exactly these. -->
+     (content, empty, loading, error, …) — including the results of
+     its actions (after saving, after deleting, after an invalid submit with other fields filled).
+     /verify's UI review screenshots these; a state left off is a state nobody reviews. -->
 Style guide: 
 Screens & states: 
 

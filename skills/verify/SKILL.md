@@ -177,7 +177,10 @@ the spec, the criteria or the code. It reports per-step evidence plus detail on 
 
 **On a reported failure:** decide — a real bug, a UX problem (a step a novice could not do either),
 or a limitation of your instructions. Fix bugs; note UX issues. **Every bug found here → fix it AND
-add an automated test** so it cannot recur.
+add an automated test** so it cannot recur. Where that is genuinely impossible — the project has no
+test setup for that layer yet, or the behaviour lives only in the browser and no browser test
+exists — add the reproduction to `## Smoke steps` so it is re-run, and record the missing test
+layer in `.claude/memory/tech-debt.md`. Never drop the regression check silently.
 
 **Store the steps in the spec** under `## Smoke steps` so they are re-runnable. That, not a stored
 result, is the record: re-running them answers "does it still work?", which a past claim cannot.
@@ -190,8 +193,9 @@ result ever gets, since every ticket was verified alone, before the others exist
 
 **Runs when both hold:** the spec's frontmatter says `ui: yes`, and `docs/design/style-guide.md`
 exists. Before the style guide exists the project is on a test UI, and there is nothing to review
-it against. A spec with no `ui:` field — planned before the field existed — counts as `no`. It is **independent of `review-depth`** and of §5's skip rule: a small change to a
-screen still gets it. If it cannot run — no browser, a UI that will not start locally — skip it
+it against. A spec with no `ui:` field — planned before the field existed — counts as `no`.
+It is **independent of `review-depth`** and of §5's skip rule: a small change to a screen still
+gets it. If it cannot run — no browser, a UI that will not start locally — skip it
 **with the reason**, in the report and in the spec. Never silently.
 
 **What it checks**, in this order of weight:
@@ -207,34 +211,57 @@ with, which usability problem, which established practice. It does **not** need 
 already exists in this project: "the primary action is below the fold on the target phone size"
 is a valid finding with no style-guide line behind it. "Would look nicer if…" with no reason is not.
 
+**First, complete the capture list.** The review sees only what is captured, and *Screens & states*
+is usually short of what the ticket actually changed. Before stage 1, check it against the
+style-guide sections the spec references and the states `ux-basics.md` requires, and add what is
+missing — above all **the results of the ticket's actions**: after saving, after deleting, after an
+invalid submit *with the other fields filled in* (that is where "never lose input" shows), and the
+loading state. A state the list leaves out is a defect no stage can find: in the first live run of
+this review, the three worst defects — a delete with no confirmation, a save that never returned to
+the list, an invalid submit that wiped the form — were exactly the states nobody listed. Prepare
+what each state needs: data, a stubbed failure, a deliberately slow response for loading (a
+fixture with a delay, or tell the agent to throttle that request in the browser).
+
 **Stage 1 — the `smoke-tester`, in UI-review mode.** A separate invocation from §5's blackbox run,
 which stays exactly as it is. Hand it:
 - `HOW_TO_RUN` from `scripts/dev.sh --info`, as in §5, and stop the instance after;
 - the spec's **Goal and `## UI` section** — not the criteria, not the code;
 - the paths of `docs/design/style-guide.md`, `docs/design/prototype.html` if present, and
   `.claude/guidelines/ux-basics.md`;
-- **what to capture**: each screen in *Screens & states*, in each listed state, at each target
-  viewport the style guide names. You prepare any state that needs data or a failure (a seeded
-  empty account, a stubbed error) — the agent never sets anything up, here as in §5.
+- **what to capture**: the completed list — each screen, in each state, at each target viewport the
+  style guide names — with the exact action that reaches each action-result state ("click
+  **Delete booking** on BK-1002"). You prepare data and failures; the agent never sets anything up,
+  here as in §5. Destructive actions on the test instance are allowed in this mode when a listed
+  state requires them.
 
-It screenshots, judges, and returns findings, each marked **sure** or **unsure**, plus an
-**escalate** flag when it was unsure about anything or something stood out it could not place.
+It screenshots, judges, and returns findings, each marked **sure** or **unsure** and
+**must-fix** or **consider**. It sets **escalate** when an unsure finding would be must-fix, or when
+something stood out it could not place. An unsure *consider* does not escalate on its own — it
+stands as advisory, so a duplicated hint text does not summon the top-tier reviewer.
 
 **Stage 2 — the `reviewer`, in UI mode, only on escalation.** Hand it the screenshot paths, the
-smoke-tester's report, the spec, the style guide and `ux-basics.md`. It confirms, rejects or adds
-findings as `[MUST FIX]` / `[CONSIDER]`. Without an escalation, stage 1's findings stand.
+smoke-tester's report (which lists the visible text and link targets per screenshot, since pixels
+cannot say whether a title is a link), the **full spec including the acceptance criteria**, the
+style guide and `ux-basics.md`. It confirms, rejects or adds findings as `[MUST FIX]` /
+`[CONSIDER]`. Without an escalation, stage 1's findings stand with stage 1's severity. A
+`[DECISION NEEDED]` — the style guide itself is wrong or contradicts itself — goes to the user,
+listed in the report and the spec: it does not block and does not count as open. Meanwhile apply
+the least invasive reading and say which.
 
-**Fix and re-check.** Fix every valid finding; a `[CONSIDER]` may be declined, with the reason
-recorded. Fixes are code changes, so §1's gate rule applies to them like to any other. Then run the
-review again — stage 1, and stage 2 if it escalates. **At most 4 rounds of fix + re-check.** What
+**Fix and re-check.** Fix every must-fix finding; a consider may be declined, with the reason
+recorded. Commit each round's fixes through `/commit` (its fast gate); §1's full gate then covers the
+final tree. Then run the review again — the **whole** capture list, not only what you touched: a
+fix to one screen breaks another often enough to be worth ten screenshots. The initial review is
+not a round; **a round is one fix + one complete re-check.** **At most 4 rounds of fix + re-check.** What
 is still open after the fourth goes to the user, listed in the report and the spec: it does not
 fail the ticket, and a fifth round is not the answer — a loop over taste that has not converged
 in four rounds needs the user, not more iterations. Unsupervised, record it and continue.
 
-A **functional** bug found here is handled as in §5: fix it **and** add an automated test.
+A **functional** bug found here is handled as in §5: fix it **and** add a test for it.
 
-**Store the rounds in the spec** under `## UI review` — findings with their reason, who raised
-them, what was fixed, what was declined and why, what remains.
+**Store the rounds in the spec** under `## UI review` — what was captured, findings with their
+reason, who raised them (smoke-tester, reviewer, or you while fixing), what was fixed, what was
+declined and why, what remains.
 
 ### 7. Report
 ```

@@ -46,4 +46,4 @@ Design and build all of them, not just the happy one:
 ## Responsiveness of the interface itself
 - Interactions respond immediately; do the slow part after showing that the input was received.
 - Hit targets large enough for the target input — about 44×44 px on touch.
-- Nothing important depends on hover alone (see `ui-frontend.md`).
+- Nothing important depends on hover alone — touch has no hover, so that information needs a visible label or another way to reach it.
