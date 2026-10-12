@@ -1,6 +1,6 @@
 # UI/UX overhaul — plan
 
-Status: **implemented** on the feature branch (v3.3.0 candidate), pending a live agent run.
+Status: **released in v3.3.0**, after three live agent runs (one `/plan`, two `/verify` §6).
 
 Deviations from the plan, found while implementing:
 - **No `docs/design/` stub at init/onboard.** The style guide *existing* is the switch for the UI
@@ -11,6 +11,10 @@ Deviations from the plan, found while implementing:
   step mode is blackbox and judgement-free by design — the property that makes §5's pass/fail
   trustworthy — and M1 needs judgement. Two explicit modes keep both.
 - **A spec without a `ui:` field counts as `no`** (specs planned before 3.3).
+- **Escalation narrowed (M1), agreed with the user after the first live run:** stage 2 runs when an
+  *unsure* finding would be must-fix, on a style-guide question, or when something stands out that
+  cannot be placed. An unsure nit stays advisory — the first run summoned the top-tier reviewer
+  over a duplicated hint text.
 
 ## The problem
 
