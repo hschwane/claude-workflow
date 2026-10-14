@@ -24,7 +24,9 @@ collected for the final report.
 - **Weekly allowance share** (default: ask; e.g. `budget: 15%`). Call the `wf_usage` tool (the plugin's
   mod registers it; it may be listed as `mcp__wf__wf_usage`) at the start for the `seven_day` reading and record it as the baseline. Before each round, call it
   again: when the next round would plausibly take the spent share past the budget, stop cleanly.
-  If `wf_usage` is unavailable or returns no reading, say so and ask for a round limit instead.
+  If `wf_usage` is unavailable or returns no reading (no subscription, or before the first
+  response), say so and ask for a round limit instead — or, when nobody can be asked, use
+  **3 rounds** and say that this replaced the budget.
 - **Concurrency** (default 2; e.g. `parallel: 3`): never more agents or threads at once than that.
 
 ## 3. Rounds

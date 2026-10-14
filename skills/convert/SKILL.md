@@ -46,7 +46,7 @@ you are. Wait for the user's go.
 
 ## 5. Convert, on a branch
 - **Remove** the untouched copies: old skills, agents, hooks **and their entries in
-  `.claude/settings.json`**, guideline copies, templates, `claude-loop.sh`, `dev.sh` (after
+  `.claude/settings.json`**, guideline copies, templates, the plugin's GitHub issue templates, `claude-loop.sh`, `dev.sh` (after
   `/run-skill-generator` has recorded the run recipe, for a runnable app), `gate-status.sh`,
   `criteria-check.sh`, `deploy-reference.sh` unless the project relies on it, `workflow-source.json`,
   the old settings skill's files.
