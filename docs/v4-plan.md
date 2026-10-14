@@ -1,6 +1,6 @@
 # claude-workflow v4 — plan
 
-Status: **planning.** Nothing here is implemented. Decisions marked **[open]** need the user.
+Status: **planning.** Nothing here is implemented. All decisions settled (§13); P0 spikes next.
 
 ## 1. Why
 
@@ -76,8 +76,7 @@ consistent picture:
 ## 4. Target shape
 
 Installed through the marketplace (namespaced, updated by `/plugin`), never copied into projects.
-**[open] plugin name** — skills are invoked as `/<plugin>:<skill>`; `claude-workflow` is long,
-something like `wf` reads better.
+Plugin name **`wf`** — skills run as `/wf:<skill>`.
 
 ### Skills
 
@@ -93,15 +92,20 @@ something like `wf` reads better.
 | `release` | user only | Version, changelog, tag, deploy, assert the live version |
 
 ### Agents
-- **`critic`** (best model, read-only + screenshots): judges an artifact against a bar with fresh
+- **`critic`** (`model: inherit`, read-only + screenshots): judges an artifact against a bar with fresh
   context — binary verdict plus confidence, findings with *what* and *why*, restricted to
   correctness, the bar and stated requirements. Replaces `reviewer`, the smoke-tester's UI mode
   and `advisor`. Everything else is dropped (`/run`, `/verify`, Explore cover the rest).
+- **No model or effort prescriptions.** Subagents inherit the session's model unless the call
+  passes one, and Claude can pass `model`/`effort` per invocation; the docs give no rule for how it
+  chooses, and v3's fixed Haiku/Sonnet/best split is exactly the kind of prescription this version
+  drops. Whoever wants a fixed subagent model sets `CLAUDE_CODE_SUBAGENT_MODEL`.
 
 ### Hooks
-- **Stop gate, active only while a `deliver`/`gauntlet` run is open** (a state file the skill
-  writes and clears): blocks the turn from ending until `scripts/ci.sh fast` passes. Outside a run
-  nothing is enforced — principle 1. **[open] always on instead?**
+- **None by default.** A Stop hook would only stop Claude from ending a turn while the gate is red.
+  Current models run the gate when the skill says so, and the `critic` refuses a pass without the
+  gate's output as evidence — that covers the case. CI still guards human pushes. A hook is added
+  only if the live runs show Claude stopping on a red gate.
 
 ### Workflows (plugin `workflows/`)
 - None by default. Parallel runs are the exception (§9) and use bundled `/batch` or Projects
@@ -138,7 +142,8 @@ something like `wf` reads better.
 Both interview the user and **decide only what fits the project** (a script needs no release
 process; a library no deploy):
 - **Spec mode:** `files` (`docs/specs/`), `issues` (GitHub), or `none` (specs live in the
-  conversation/goal only). Stored in the settings block; `spec`, `deliver` and the mod read it.
+  conversation/run only). **Default `none`, always asked.** Stored in the settings block; `spec`,
+  `deliver` and the mod read it.
 - **Tests:** levels and runner; **CI:** yes/no; **docs:** what goes in `docs/dev/` (§2 rule);
   **git:** branching (`main-only`/`git-flow`) and trunk; **release:** type, runner, deploy target,
   health check; **UI:** none / test UI / style guide later.
@@ -161,9 +166,9 @@ releases to PyPI from CI, or keeps specs as issues. Those survive, in the cheape
 | A choice encoded in a command | test runner, lint, build | `scripts/ci.sh` — no prose needed |
 | A short project decision | testing scope, spec mode, branching, release type, UI state | settings block in CLAUDE.md (~10–15 lines) |
 | A deviation from defaults | "real APIs over mocks", "no ORM", "money in integer cents" | one CLAUDE.md line each, or a path-scoped rule when it only concerns some files |
-| A decision needing explanation | why this architecture, why no ORM | `docs/dev/decisions.md` (ADR-light, significant decisions only) |
+| A decision the user wants kept | "never use an ORM here" | a CLAUDE.md line, **only when the user asks**; no standing decisions file — v3's `decisions.md` collected noise. Corrections and preferences are what auto memory / Projects memory record anyway |
 | Operations | environments, secrets, rollback | `docs/dev/deploy.md` |
-| UI decisions | design variables, components, copy, devices | `docs/design/style-guide.md` |
+| UI decisions | design variables, components, copy, devices | `docs/design/style-guide.md` — no skill; the `ui-frontend` guideline says: an app with a UI gets its UI designed with the user, then a style guide. A model keeps one session consistent, but not your taste across sessions and threads — that is what the file is for |
 | The user's own engineering opinions that differ from model defaults | independent oracle for criteria, quality over coverage, UX basics | the `guidelines` skill — on demand |
 | Generic standards a model already follows | AAA, naming, small functions | dropped |
 
@@ -188,33 +193,25 @@ Named apart from `onboard` so nobody confuses it with the old onboard skill. It 
 release since v1.0.0 (~95 tags), not only v3: a project last updated at v1.20 has a different
 footprint (`docs/workflow/`, `.claude/workflow-guidelines/`, other skills) than one on v3.3.
 
-**Footprint table, generated, not hand-written.** A one-off script walks every release tag and
-records each path any version delivered into a project, with the content hash of every version of
-that file. It ships as `convert/footprint.json`. Then, per file in the project:
-- hash matches some plugin version → an **untouched plugin copy**: safe to delete;
-- path is a known plugin path but the hash matches none → **edited by the project**: shown to the
-  user with a diff against the nearest plugin version, never deleted silently;
-- v3's `delivery.json` classes (`plugin` / `project` / `mixed`) and its `retired` list refine this
-  for the newest versions.
-
-Steps:
-1. **Detect** the installed version (`workflow-source.json`, settings block, or the footprint
-   match itself for old projects that never recorded one).
-2. **Report first, change nothing:** every footprint path with its fate — remove / keep / convert —
-   and why. The user confirms.
-3. On a branch:
-   - **Remove** untouched plugin copies (skills, agents, hooks and their `settings.json` entries,
-     guideline copies, templates, loop scripts, old `docs/workflow/`).
-   - **Keep** project-owned work: filled `ci.sh`/`release.sh`/`healthcheck.sh`, `docs/specs/`,
-     `docs/design/`, project-written `docs/dev/` documents.
-   - **Convert decisions into their v4 home (§5a):** the settings block (any version's spelling),
-     `decisions.md`, `gotchas.md`, `tech-debt.md`, the test strategy, `deploy.md`, and the
-     project's own parts of CLAUDE.md. CLAUDE.md is cut to the §2 rule; `dev.sh` becomes a
-     `/run-skill-generator` recipe.
-   - **Install** the plugin at project scope.
-4. **Prove it:** `ci.sh full` green before and after with the same test count; the report lists
+**The skill holds a procedure, not a table.** Claude tailors it to the project:
+1. **Detect the version:** `.claude/workflow-source.json` or the settings block where present;
+   for older projects, compare the project's plugin-shaped files against candidate release tags
+   until one matches.
+2. **Read that release** from the plugin repository (`git show v<x>:<path>`, the tag's skills,
+   templates and, from v3 on, its `delivery.json`) to learn what that version put where.
+3. **Classify each footprint file:** identical to the release's version → untouched plugin copy,
+   safe to remove; different → edited by the project, shown with its diff, never deleted silently.
+4. **Report first, change nothing:** every file with its fate — remove / keep / convert — and why.
+   The user confirms.
+5. On a branch: remove the untouched copies (skills, agents, hooks and their `settings.json`
+   entries, guideline copies, templates, loop scripts, `docs/workflow/`); keep project work
+   (filled `ci.sh`/`release.sh`/`healthcheck.sh`, `docs/specs/`, `docs/design/`, project-written
+   `docs/dev/` documents); carry the project's real decisions into their v4 homes (§5a) and cut
+   CLAUDE.md to the §2 rule; replace `dev.sh` by a `/run-skill-generator` recipe; install `wf` at
+   project scope.
+6. **Prove it:** `ci.sh full` green before and after with the same test count; the report lists
    every removed and converted file.
-5. Tested on one real project per era (a v1.x, a v2.x and a v3.x project) before release.
+7. Tested on a v2 and a v3 project before release.
 
 ## 8. `spec`
 
@@ -235,13 +232,17 @@ Modes, chosen from the input:
 ## 9. `deliver` — per spec, opt-in
 
 Input: spec ids, an issue, or a free prompt (enriched first). Per item:
-1. Build the bar (§8 enrichment if needed); open a run (state file → Stop gate active).
+1. Build the bar (§8 enrichment if needed).
 2. Claude implements freely — no prescribed steps.
-3. Gate: `ci.sh fast` via the Stop hook; `ci.sh full` before the critic.
+3. Gate: `ci.sh full` before the critic, its output kept as evidence.
 4. `critic` with fresh context judges against the **spec and its sources** (design doc, style
    guide, reference); UI work is judged on screenshots from `/run`.
-5. Fix and re-judge, **at most 4 rounds**; what remains goes to the user. Close the run, set status
-   `done`, commit (and merge per the branching setting).
+5. Fix and re-judge, **at most 4 rounds**. Findings still open after the fourth are reported with
+   two options: **turn them into new specs**, or **authorize another round**. Then set status
+   `done` (or leave it `in-progress` while the user decides), commit, merge per the branching
+   setting.
+6. The gate is run by Claude as part of the work; the critic treats a missing or red gate output as
+   a failed verdict.
 
 **Several specs — sequential and grouped by default, parallel only when independent:**
 - **Related specs run one after another in the same context**, so later ones build on what the
@@ -262,27 +263,34 @@ design doc, the reference) **in addition to** what matters for its own area — 
 guide, the relevant guideline. A part is judged by how it serves the whole, not only by its spec,
 so deriving specs no longer weakens the check.
 
-**The loop runs through `spec` and `deliver`:**
+**The loop runs through `spec` and `deliver`, led by a supervisor:**
 1. Enrich the input into a bar (named, fetchable, comparable); show it; the user confirms once.
-2. **Round critic:** compares the current state of the product against the whole bar and names
-   the gaps.
-3. Each gap becomes a spec (`spec`, linked to the bar), delivered by `deliver` — related ones in
-   sequence or as a batch (§9), every critic with the original bar.
-4. Back to 2, until the round critic finds nothing that matters, or the round cap is reached; what
-   remains goes to the user.
+2. The **supervisor** compares the current state with the whole bar and writes a round of specs for
+   the gaps — using the critics' feedback from the previous round as input.
+3. The supervisor decides **which specs go together** (one agent or session, in sequence or as a
+   batch, §9) and **which run in parallel**, then hands them to `deliver`. Every critic holds the
+   original bar in addition to its spec.
+4. Back to 2, until the supervisor finds the goal or vision met.
 
-The round critic is not the quality gate — every spec's critic already judges against the bar. It
-decides **what is still missing**, which is what makes the loop end "when we are satisfied" rather
-than when a list of specs is done.
+The difference from ordinary work is exactly two things: **every critic knows the overarching
+version, not only its spec**, and **the supervisor keeps writing new specs** from what the critics
+report until the goal is reached.
+
+**Bounded by budget, not by rounds.** The user gives a share of the weekly subscription allowance
+(e.g. "up to 15 % of this week") and a concurrency limit (e.g. "at most 3 agents at once"). The
+supervisor checks the budget before each round and stops cleanly when the next round would exceed
+it, reporting what is done and what is open. Source of the number: the status-line payload carries
+`rate_limits.seven_day.used_percentage` (official docs); a tiny status-line script or the mod
+records it at the start and after each round. Concurrency: the supervisor's own limit, backed by
+`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` in a session. **Whether that payload is available in cloud
+sessions and Projects coordinators is a P0 spike.**
 
 **Why rounds of specs rather than one free-running loop in context:** each round leaves visible,
 resumable state — specs with status, shown on the spec board, picked up by a fresh session or by
-Projects threads (one spec per thread, the coordinator as round critic). In spec mode `none` the
-specs exist only in the run's state, so a small goal stays lightweight.
-**Trade-off:** more overhead per iteration than a single loop; worth it for anything that spans
-more than one sitting, and cheap to skip for small goals (`deliver` on a free prompt does that).
+Projects threads. In spec mode `none` the specs exist only in the run's state, so a small goal
+stays lightweight.
 
-**Coordinator:** in a Project the coordinator plays steps 1–2 and 4, threads deliver specs.
+**Coordinator:** in a Project the coordinator is the supervisor (steps 1–4); threads deliver specs.
 **Unverified whether a coordinator can run plugin skills** — spike in §12 P0.
 
 ## 11. Mod: `spec-board`
@@ -302,11 +310,11 @@ A pane listing specs by status (backlog / ready / in progress / done), live:
 
 | | Work | Done when |
 |---|---|---|
-| **P0 spikes** | (1) plugin skill named like a bundled one (`verify`) — which wins; (2) Projects: do threads/coordinator get project plugins, can a coordinator run a plugin skill or workflow; (3) the in-session deliver loop holding over several specs with compaction; (4) a mod pane in the cloud app submitting a plugin command; (5) Stop hook gated by a state file | each answered with evidence; plan adjusted |
+| **P0 spikes** | (1) plugin skill named like a bundled one (`verify`) — which wins; (2) Projects: do threads/coordinator get project plugins, can a coordinator run a plugin skill or workflow; (3) the in-session deliver loop holding over several specs with compaction; (4) a mod pane in the cloud app submitting a plugin command; (5) `rate_limits` from the status-line payload in local, cloud and coordinator sessions | each answered with evidence; plan adjusted |
 | **P1 skeleton** | new layout + `marketplace.json`; `guidelines` skill; `setup`/`onboard`; CLAUDE.md + settings templates | `setup` on an empty TS app and a Python lib; gate green with counts |
-| **P2 deliver** | `spec`, `deliver`, `critic`, Stop gate | live run: 3 specs incl. one UI spec with seeded defects (the v3.3 fixture) |
+| **P2 deliver** | `spec`, `deliver`, `critic` | live run: 3 specs incl. one UI spec with seeded defects (the v3.3 fixture) |
 | **P3 gauntlet** | `gauntlet` on top of `spec` + `deliver`; coordinator variant if P0 allows | live run on a small epic from a design doc |
-| **P4 convert** | footprint table from all tags; `convert` | one real v1.x, v2.x and v3.x project converted, gate count unchanged |
+| **P4 convert** | `convert` | a v2 and a v3 project converted, gate count unchanged |
 | **P5 mod** | `spec-board` | pane lists, selects and starts a run; tests pass |
 | **P6 release** | slim `check.sh`, README, v4.0.0 | all of the above green |
 
@@ -316,14 +324,15 @@ consistency check, a live run per skill.
 ## 13. Decisions
 
 Settled with the user:
+- Plugin name `wf`.
 - Several specs: sequential/grouped by default, batch for specs touching the same code, parallel
   only when independent (§9).
-- `gauntlet`: every critic holds the original bar; implemented as rounds of `spec` + `deliver` (§10).
-- Old projects: a separate `convert` skill covering every plugin version since v1.0 (§7).
-- Project decisions are carried into v4 homes; only generic know-how is dropped (§5a).
-
-Open:
-1. Plugin name / namespace (`claude-workflow` vs something short).
-2. Stop gate only during runs (proposed) or always.
-3. Default spec mode for new projects.
-4. Round cap for `gauntlet` (per-spec cap stays 4).
+- `gauntlet`: a supervisor writes rounds of specs (from the gaps and the critics' feedback),
+  decides grouping and parallelism, hands them to `deliver`; every critic holds the original bar;
+  bounded by a weekly-allowance share and a concurrency limit, not by rounds (§10).
+- `deliver`: after 4 rounds, open findings are reported with "new specs" or "another round" (§9).
+- `convert`: a procedure Claude tailors by reading the detected release; tested on v2 and v3 (§7).
+- No standing decisions file; CLAUDE.md lines only on request (§5a).
+- Style guide stays, as guideline content, no skill (§5a).
+- No Stop hook by default; no model/effort prescriptions for subagents (§4).
+- Spec mode default `none`, always asked in `setup`/`onboard` (§5).
