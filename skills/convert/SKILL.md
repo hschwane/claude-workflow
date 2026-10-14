@@ -31,6 +31,13 @@ its `.claude-plugin/delivery.json`, which classifies every delivered path as `pl
   version and decide with the user; never delete silently.
 - **Project work** → keep: filled `scripts/ci.sh` / `release.sh` / `healthcheck.sh`, specs,
   `docs/design/`, documents the project wrote under `docs/`.
+- **Plugin templates the project filled in** (`src/CLAUDE.md`, `tests/CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/dev/code-style.md`, v2's `docs/dev/style-guide.md`, `docs/dev/README.md`, `docs/VISION.md`,
+  `docs/user/`) → mostly generic standards and workflow prose with a few project values. Keep only
+  the lines a reader of *this* project needs (its real conventions, layout facts that are not
+  obvious) — moved into `CLAUDE.md` when short — and remove the rest. **v2's
+  `docs/dev/style-guide.md` is a *code* style guide**, not a UI style guide: never move it to
+  `docs/design/`.
 - **Decisions to carry over** → see step 5.
 
 ## 4. Report first, change nothing

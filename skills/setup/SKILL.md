@@ -46,8 +46,9 @@ In the target directory (`git init` if needed; branch `main` unless the user cho
 - Install dependencies (the `install` command from `stages.json`), generate the lockfile, commit it.
 - `scripts/ci.sh full` must pass **with at least one test executed** — report the command and the
   test count, not just the exit code. Fix until it does; never weaken a stage to get green.
-- A runnable app: run `/run-skill-generator` once so `/run`, `/verify` and the `critic`'s
-  screenshots can start it.
+- A runnable app with a non-trivial launch (a server, a database, env vars): run
+  `/run-skill-generator` once where it is available, so `/run`, `/verify` and `deliver`'s
+  screenshots can start it; where it is not, put the run command in `CLAUDE.md`.
 - Commit (`chore: project setup`), push if a remote exists.
 
 ## 4. Report

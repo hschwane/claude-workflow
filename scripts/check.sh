@@ -57,10 +57,10 @@ if [ "$words" -le 9000 ]; then ok "$words words of skill + agent prose (budget 9
 echo "no v3 machinery left"
 BEFORE=$FAILED
 for p in "\.claude/memory" "workflow-settings" "/workflow-update" "delivery\.json" "project-scaffolder" "smoke-tester" "gate-status" "criteria-check" "/implement" "/plan " "\.claude/guidelines"; do
-  hits=$(git ls-files skills agents templates hooks 2>/dev/null | grep -v '^skills/convert/' | xargs grep -l -- "$p" 2>/dev/null || true)
+  hits=$(git ls-files skills agents templates hooks 2>/dev/null | grep -v '^skills/convert/\|^skills/onboard/' | xargs grep -l -- "$p" 2>/dev/null || true)
   [ -z "$hits" ] || fail "'$p' still referenced in: $hits"
 done
-[ "$FAILED" -eq "$BEFORE" ] && ok "only /wf:convert mentions the old plugin's files"
+[ "$FAILED" -eq "$BEFORE" ] && ok "only convert (and onboard, to redirect there) mention the old plugin's files"
 
 echo "ci.sh / release.sh / healthcheck.sh integrity"
 python3 scripts/_check_gate.py || FAILED=$((FAILED + 1))

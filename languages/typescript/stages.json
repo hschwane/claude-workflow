@@ -19,10 +19,12 @@
     "It must include untracked files: a brand-new test is untracked and `git diff` never lists it.",
     "It must be permissive about an empty selection (--passWithNoTests, NOT =false): the",
     "selection is empty on every clean tree, and CONTRIBUTING tells humans to run `ci.sh fast`.",
-    "UNIT_TESTS is the opposite \u2014 strict, because an empty full suite means there are no tests."
+    "UNIT_TESTS is the opposite — strict, because an empty full suite means there are no tests.",
+    "Tests are named *.spec.ts (vitest's default include matches both). `claude plugin test`, which",
+    "runs the plugin's mod tests, collects every *.test.ts in the plugin tree and cannot import vitest."
   ],
   "touch": "\nexport const touched = 1\n",
   "source_file": "src/add.ts",
   "test_dir": "tests/unit",
-  "new_test_file": "brandnew.test.ts"
+  "new_test_file": "brandnew.spec.ts"
 }

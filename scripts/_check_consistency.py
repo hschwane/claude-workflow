@@ -59,7 +59,7 @@ CASES = [
     # Spec status and issue labels are written by `spec`, moved by `deliver`, read by the mod.
     ("spec, deliver and the mod agree on the spec statuses",
      all(s in SKILLS["spec"] for s in STATUSES) and "in-progress" in SKILLS["deliver"]
-     and (not MOD or all(s in MOD for s in STATUSES))),
+     and (not MOD or all(f"'{s}'" in MOD.split('const ORDER', 1)[-1].split('\n', 1)[0] for s in STATUSES))),
     ("spec, decisions and the mod agree on the issue labels",
      all(l in SKILLS["spec"] and l in DECISIONS for l in LABELS)
      and (not MOD or all(l in MOD for l in ("wf-spec", "wf:ready", "wf:in-progress")))),

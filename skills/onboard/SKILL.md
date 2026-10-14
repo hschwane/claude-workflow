@@ -38,7 +38,8 @@ answered by the code; pre-fill what you found and ask the user to confirm. One b
   code) and let the user decide.
 - **An existing design system or style guide** → move it to `docs/design/style-guide.md` and fix
   links to it. None → create nothing.
-- **Runnable app** → `/run-skill-generator` once.
+- **Runnable app** with a non-trivial launch → `/run-skill-generator` once where it is available;
+  otherwise the run command goes into `CLAUDE.md`.
 
 ## 4. Prove it
 `scripts/ci.sh full` green **with at least one test executed** — report the command and the counts.
