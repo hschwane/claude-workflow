@@ -84,11 +84,12 @@ something like `wf` reads better.
 | Skill | Invocation | Job |
 |---|---|---|
 | `setup` | user only | New project: interview, decide, scaffold minimal (§5) |
-| `onboard` | user only | Existing project: interview, decide, fit the gate to its real commands; **also migrates v3 projects** (§7) **[open: or a separate `migrate`]** |
+| `onboard` | user only | Existing project that never used the plugin: interview, decide, fit the gate to its real commands |
+| `convert` | user only | A project carrying **any** older plugin version (v1.0–v3.3): remove every old plugin footprint, carry the project's decisions over (§7) |
 | `guidelines` | model + user | One reference skill: trigger table in `SKILL.md`, each guideline a supporting file read on demand (§6) |
 | `spec` | user (model may suggest) | Design docs, specs from ideas or from a design doc, enrichment of terse input into a gauntlet-grade bar (§8) |
 | `deliver` | user only | One or more specs/changes, each through build → gate → fresh critic → fix, capped (§9) |
-| `gauntlet` | user only | A whole goal/epic from a prompt or design doc, decomposed, built and judged against the original (§10) **[open: or one skill with `deliver`]** |
+| `gauntlet` | user only | A whole goal/epic: rounds of specs delivered through `deliver`, every critic holding the original bar, until the result meets it (§10) |
 | `release` | user only | Version, changelog, tag, deploy, assert the live version |
 
 ### Agents
@@ -103,8 +104,8 @@ something like `wf` reads better.
   nothing is enforced — principle 1. **[open] always on instead?**
 
 ### Workflows (plugin `workflows/`)
-- `gauntlet.js` — the epic loop (§10), taking `args` `{ goal, bar, sources, cap }`.
-- `deliver-batch.js` — several specs in parallel isolated copies, each with its own critic.
+- None by default. Parallel runs are the exception (§9) and use bundled `/batch` or Projects
+  threads; a plugin workflow is added only if P0 shows the in-session loop cannot hold.
 
 ### Mod
 - **`spec-board`** pane (§11).
@@ -147,6 +148,28 @@ process; a library no deploy):
   can start it.
 - Verify before finishing: `ci.sh full` green with ≥1 test, the counts reported.
 
+### 5a. Where the project's decisions live
+
+General know-how is dropped from always-loaded context: current models know how to write tests,
+structure code and handle empty states, and Anthropic's own exclusion list says so ("standard
+conventions Claude already knows", "self-evident practices"). **The project's choices are not
+know-how** — no model can guess that this project tests only at unit level, ships a style guide,
+releases to PyPI from CI, or keeps specs as issues. Those survive, in the cheapest home that works:
+
+| Kind | Example | v4 home |
+|---|---|---|
+| A choice encoded in a command | test runner, lint, build | `scripts/ci.sh` — no prose needed |
+| A short project decision | testing scope, spec mode, branching, release type, UI state | settings block in CLAUDE.md (~10–15 lines) |
+| A deviation from defaults | "real APIs over mocks", "no ORM", "money in integer cents" | one CLAUDE.md line each, or a path-scoped rule when it only concerns some files |
+| A decision needing explanation | why this architecture, why no ORM | `docs/dev/decisions.md` (ADR-light, significant decisions only) |
+| Operations | environments, secrets, rollback | `docs/dev/deploy.md` |
+| UI decisions | design variables, components, copy, devices | `docs/design/style-guide.md` |
+| The user's own engineering opinions that differ from model defaults | independent oracle for criteria, quality over coverage, UX basics | the `guidelines` skill — on demand |
+| Generic standards a model already follows | AAA, naming, small functions | dropped |
+
+v3's `code-style.md` is split along exactly this line: the few rules that differ from defaults go
+to the `guidelines` skill (or the project's CLAUDE.md when project-specific), the rest is dropped.
+
 ## 6. `guidelines` — found automatically, one skill
 
 - One model-invocable skill whose description names the moments it applies: *designing a new
@@ -159,29 +182,39 @@ process; a library no deploy):
 - A project's deviation from a guideline is a line in CLAUDE.md (or `docs/dev/decisions.md` when
   it needs explanation) — no separate memory system.
 
-## 7. Migrating v3 projects
+## 7. `convert` — projects on any older plugin version
 
-`onboard` detects a v3 project (`.claude/workflow-source.json`, `.claude/guidelines/INDEX.md`, the
-`workflow-settings` block) and switches to migration. The frozen v3 `delivery.json` ships inside
-the skill as the source of truth for what the plugin owned.
+Named apart from `onboard` so nobody confuses it with the old onboard skill. It must handle every
+release since v1.0.0 (~95 tags), not only v3: a project last updated at v1.20 has a different
+footprint (`docs/workflow/`, `.claude/workflow-guidelines/`, other skills) than one on v3.3.
 
-1. **Report first, change nothing:** every v3 path with its fate — remove / keep / convert — and
-   why. The user confirms.
-2. On a branch:
-   - **Remove** plugin-owned copies (`plugin` class): `.claude/skills/`, `.claude/agents/`,
-     `.claude/hooks/` and their `settings.json` entries, `.claude/guidelines/`,
-     `workflow-source.json`, templates, `claude-loop.sh`.
-   - **Keep** project-owned work: `scripts/ci.sh`, `release.sh`, `healthcheck.sh` (already filled),
-     `docs/specs/` (spec mode `files`), `docs/design/`, `docs/dev/` documents the project wrote.
-   - **Convert:** the `workflow-settings` block → the v4 settings block; `.claude/memory/decisions.md`
-     → `docs/dev/decisions.md` (only real decisions) or CLAUDE.md lines; `gotchas.md` → CLAUDE.md
-     gotchas if short; `tech-debt.md` → issues (if `github: yes`) or `docs/dev/tech-debt.md`;
-     CLAUDE.md → strip the v3 workflow prose, keep project blocks, cut to the §2 rule; `dev.sh` →
-     `/run-skill-generator` recipe, then removed.
-   - **Install** the plugin at project scope (`enabledPlugins` / marketplace in `.claude/settings.json`).
-3. **Prove it:** `ci.sh full` green before and after with the same test count; the report lists
+**Footprint table, generated, not hand-written.** A one-off script walks every release tag and
+records each path any version delivered into a project, with the content hash of every version of
+that file. It ships as `convert/footprint.json`. Then, per file in the project:
+- hash matches some plugin version → an **untouched plugin copy**: safe to delete;
+- path is a known plugin path but the hash matches none → **edited by the project**: shown to the
+  user with a diff against the nearest plugin version, never deleted silently;
+- v3's `delivery.json` classes (`plugin` / `project` / `mixed`) and its `retired` list refine this
+  for the newest versions.
+
+Steps:
+1. **Detect** the installed version (`workflow-source.json`, settings block, or the footprint
+   match itself for old projects that never recorded one).
+2. **Report first, change nothing:** every footprint path with its fate — remove / keep / convert —
+   and why. The user confirms.
+3. On a branch:
+   - **Remove** untouched plugin copies (skills, agents, hooks and their `settings.json` entries,
+     guideline copies, templates, loop scripts, old `docs/workflow/`).
+   - **Keep** project-owned work: filled `ci.sh`/`release.sh`/`healthcheck.sh`, `docs/specs/`,
+     `docs/design/`, project-written `docs/dev/` documents.
+   - **Convert decisions into their v4 home (§5a):** the settings block (any version's spelling),
+     `decisions.md`, `gotchas.md`, `tech-debt.md`, the test strategy, `deploy.md`, and the
+     project's own parts of CLAUDE.md. CLAUDE.md is cut to the §2 rule; `dev.sh` becomes a
+     `/run-skill-generator` recipe.
+   - **Install** the plugin at project scope.
+4. **Prove it:** `ci.sh full` green before and after with the same test count; the report lists
    every removed and converted file.
-4. Tested first on one real v3 project of the user's, before the release.
+5. Tested on one real project per era (a v1.x, a v2.x and a v3.x project) before release.
 
 ## 8. `spec`
 
@@ -210,27 +243,47 @@ Input: spec ids, an issue, or a free prompt (enriched first). Per item:
 5. Fix and re-judge, **at most 4 rounds**; what remains goes to the user. Close the run, set status
    `done`, commit (and merge per the branching setting).
 
-Several specs: sequential in-session, or `deliver-batch.js` in parallel isolated copies.
+**Several specs — sequential and grouped by default, parallel only when independent:**
+- **Related specs run one after another in the same context**, so later ones build on what the
+  earlier ones established and nothing conflicts. Specs that touch the same code are **delivered
+  as a batch**: implemented together, gated once, but **judged per spec**, so each criterion still
+  gets its own verdict.
+- **Independent specs** (different areas, no shared files) may run in parallel — through bundled
+  `/batch` or Projects threads, not a plugin workflow.
+- Long sequences: adherence drops as a session grows (§2), so after a group the run compacts or
+  hands off to a fresh session; spec status is the handoff, nothing else needs carrying.
 
-## 10. `gauntlet` — a whole goal, from a session or a Projects coordinator
+## 10. `gauntlet` — rounds of specs against the original bar
 
-Input: a goal plus the bar — a prompt, a design doc, a reference to beat. Specs are optional
-intermediate artifacts; **the critic always judges against the original**, which is the point:
-deriving specs first would only ever check against the specs.
+Input: a goal plus the bar — a prompt, a design doc, a reference to beat.
 
-1. Enrich into a bar (named, fetchable, comparable); show it; the user confirms once.
-2. Decompose into sub-tasks, each carrying the slice of the original it serves.
-3. Per sub-task: builder → gate → critic (fresh; sees bar + artifact, never the builder's history)
-   → loop, capped.
-4. Final critic on the **whole result vs the whole original bar**; failing parts re-enter step 3.
-5. Report: what was built, each verdict with its evidence, what is still open.
+**Every critic holds the original.** Each per-spec critic gets the top-level bar (the idea, the
+design doc, the reference) **in addition to** what matters for its own area — its spec, the style
+guide, the relevant guideline. A part is judged by how it serves the whole, not only by its spec,
+so deriving specs no longer weakens the check.
 
-Two runtimes, one skill:
-- **Normal session:** the plugin's `gauntlet.js` workflow (agents as builders/critics, resumable,
-  no mid-run questions — the bar is confirmed before it starts).
-- **Projects coordinator:** the coordinator is the lead; threads are builders on their own
-  branches; critics run as separate threads or subagents against the original bar; merges via PRs.
-  **Unverified whether a coordinator can run plugin skills/workflows** — spike in §12 P0.
+**The loop runs through `spec` and `deliver`:**
+1. Enrich the input into a bar (named, fetchable, comparable); show it; the user confirms once.
+2. **Round critic:** compares the current state of the product against the whole bar and names
+   the gaps.
+3. Each gap becomes a spec (`spec`, linked to the bar), delivered by `deliver` — related ones in
+   sequence or as a batch (§9), every critic with the original bar.
+4. Back to 2, until the round critic finds nothing that matters, or the round cap is reached; what
+   remains goes to the user.
+
+The round critic is not the quality gate — every spec's critic already judges against the bar. It
+decides **what is still missing**, which is what makes the loop end "when we are satisfied" rather
+than when a list of specs is done.
+
+**Why rounds of specs rather than one free-running loop in context:** each round leaves visible,
+resumable state — specs with status, shown on the spec board, picked up by a fresh session or by
+Projects threads (one spec per thread, the coordinator as round critic). In spec mode `none` the
+specs exist only in the run's state, so a small goal stays lightweight.
+**Trade-off:** more overhead per iteration than a single loop; worth it for anything that spans
+more than one sitting, and cheap to skip for small goals (`deliver` on a free prompt does that).
+
+**Coordinator:** in a Project the coordinator plays steps 1–2 and 4, threads deliver specs.
+**Unverified whether a coordinator can run plugin skills** — spike in §12 P0.
 
 ## 11. Mod: `spec-board`
 
@@ -249,21 +302,28 @@ A pane listing specs by status (backlog / ready / in progress / done), live:
 
 | | Work | Done when |
 |---|---|---|
-| **P0 spikes** | (1) plugin skill named like a bundled one (`verify`) — which wins; (2) Projects: do threads/coordinator get project plugins, can a coordinator run a plugin skill or workflow; (3) a plugin workflow with `args` and a judge loop; (4) a mod pane in the cloud app submitting a plugin command; (5) Stop hook gated by a state file | each answered with evidence; plan adjusted |
-| **P1 skeleton** | new layout + `marketplace.json`; `guidelines` skill; `setup`/`onboard` (no migration yet); CLAUDE.md + settings templates | `setup` on an empty TS app and a Python lib; gate green with counts |
+| **P0 spikes** | (1) plugin skill named like a bundled one (`verify`) — which wins; (2) Projects: do threads/coordinator get project plugins, can a coordinator run a plugin skill or workflow; (3) the in-session deliver loop holding over several specs with compaction; (4) a mod pane in the cloud app submitting a plugin command; (5) Stop hook gated by a state file | each answered with evidence; plan adjusted |
+| **P1 skeleton** | new layout + `marketplace.json`; `guidelines` skill; `setup`/`onboard`; CLAUDE.md + settings templates | `setup` on an empty TS app and a Python lib; gate green with counts |
 | **P2 deliver** | `spec`, `deliver`, `critic`, Stop gate | live run: 3 specs incl. one UI spec with seeded defects (the v3.3 fixture) |
-| **P3 gauntlet** | `gauntlet` + `gauntlet.js`; coordinator variant if P0 allows | live run on a small epic from a design doc |
-| **P4 migration** | v3 → v4 in `onboard` | one real v3 project migrated, gate count unchanged |
+| **P3 gauntlet** | `gauntlet` on top of `spec` + `deliver`; coordinator variant if P0 allows | live run on a small epic from a design doc |
+| **P4 convert** | footprint table from all tags; `convert` | one real v1.x, v2.x and v3.x project converted, gate count unchanged |
 | **P5 mod** | `spec-board` | pane lists, selects and starts a run; tests pass |
 | **P6 release** | slim `check.sh`, README, v4.0.0 | all of the above green |
 
 Testing stays the three-level model from v3's CLAUDE.md, scaled down: the language matrix, a small
 consistency check, a live run per skill.
 
-## 13. Open decisions
+## 13. Decisions
 
+Settled with the user:
+- Several specs: sequential/grouped by default, batch for specs touching the same code, parallel
+  only when independent (§9).
+- `gauntlet`: every critic holds the original bar; implemented as rounds of `spec` + `deliver` (§10).
+- Old projects: a separate `convert` skill covering every plugin version since v1.0 (§7).
+- Project decisions are carried into v4 homes; only generic know-how is dropped (§5a).
+
+Open:
 1. Plugin name / namespace (`claude-workflow` vs something short).
-2. `deliver` and `gauntlet` as two skills, or one skill choosing by input size.
-3. Migration inside `onboard`, or a separate `migrate` skill.
-4. Stop gate only during runs (proposed) or always.
-5. Default spec mode for new projects.
+2. Stop gate only during runs (proposed) or always.
+3. Default spec mode for new projects.
+4. Round cap for `gauntlet` (per-spec cap stays 4).
