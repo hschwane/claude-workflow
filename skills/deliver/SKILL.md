@@ -45,7 +45,8 @@ releasing are not part of delivering unless the user asked.
 ## 5. Critic loop
 Spawn the plugin's critic agent (`wf:critic`) with: the original bar, the spec, the diff (`git diff <start>..HEAD`), the
 gate output, the screenshot paths with what each shows, and on a re-check the previous findings.
-Never your reasoning or history.
+In a batch, also name the other specs the diff contains, so their changes are not read as scope
+drift. Never your reasoning or history.
 - **PASS** → set the spec `done`, commit, next spec.
 - **FAIL** → fix every must-fix; a *consider* may be declined with a one-line reason. Re-run the
   gate, re-capture, re-judge. A round is one fix plus one complete re-check.

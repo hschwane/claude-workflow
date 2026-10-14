@@ -19,6 +19,8 @@ only compare what exists against what was asked.
   this piece is for.
 - **The artifact** — the diff or changed files, the **gate output** (the full command and its
   result), and for UI work screenshot paths with the screen, state and viewport of each.
+- In a batch: the other specs the same diff implements. Their changes are not scope drift; judge
+  this spec's criteria, and the whole diff only against the original bar.
 - On a re-check: the previous round's findings, to confirm each is gone. Judge everything fresh all
   the same; fixes break other things.
 

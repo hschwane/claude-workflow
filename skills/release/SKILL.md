@@ -25,7 +25,9 @@ Settings come from the `<!-- wf:settings -->` block in `CLAUDE.md` (`branching`,
 - `CHANGELOG.md`: a new `## [x.y.z] - <date>` section at the top, built from the commits since the
   last tag (`LAST=$(git describe --tags --abbrev=0 2>/dev/null); git log ${LAST:+$LAST..}HEAD
   --oneline --no-merges` — the guard matters on the first release). Group Added / Changed / Fixed /
-  Removed, one short line each. Read only the head of the file, never all of it.
+  Removed, one short line each. Read only the head of the file, never all of it. At a major bump,
+  or once the file passes ~50 KB, move the closed entries to `docs/changelog/<major>.x.md`
+  (cut only at a version heading) and leave a pointer line.
 - Check the README's description and run instructions are still true.
 - Commit `chore: release v<version>`.
 
@@ -44,6 +46,8 @@ into the trunk, then the trunk back into `develop`.
 ## 5. Confirm it is live
 Wait until the new version can be visible (a deploy builds, a registry propagates), then
 `scripts/healthcheck.sh <version>` — it only passes when a probe actually compares the version.
+No `healthcheck.sh` → check the version where it is published (registry page or API, the
+deployed endpoint) yourself, say that you did it by hand, and offer to add the script.
 Unhealthy → roll back to protect users, then diagnose and fix forward; a rollback alone is not done.
 
 ## 6. Report

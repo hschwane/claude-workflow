@@ -92,6 +92,15 @@ CASES = [
              for k in ("stages", "install", "test_count", "touch", "source_file", "test_dir",
                        "new_test_file", "notes"))
          for l in LANGS)),
+    # Found by a live onboard run: "PyPI, no deploy" produced no healthcheck, and release's last
+    # step then had nothing to run.
+    ("a published package gets a healthcheck, and release copes without one",
+     "a published package needs it too" in DECISIONS and "No `healthcheck.sh`" in SKILLS["release"]),
+    # Found by the live gauntlet run: a batch's diff judged against one spec read as scope drift.
+    ("deliver and the critic both handle a batch's shared diff",
+     "other specs the diff contains" in SKILLS["deliver"] and "not scope drift" in CRITIC),
+    # Found by the live release run: a dist/ left from an earlier build was uploaded with the new one.
+    ("the release build starts from an empty output directory", "rm -rf dist" in DECISIONS),
     ("setup starts from the executed fixtures", "languages/<lang>/fixture/" in SKILLS["setup"]),
     ("CI templates fill the branch list on both triggers",
      all(Path(p).read_text().count("branches: {{CI_BRANCHES}}") == 2
