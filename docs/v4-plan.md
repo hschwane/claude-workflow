@@ -1,6 +1,12 @@
 # claude-workflow v4 — plan
 
-Status: **planning.** Nothing here is implemented. All decisions settled (§13); P0 spikes next.
+Status: **implemented on the feature branch, release-ready, not released.** P0 was skipped by
+decision. Tested end to end in real headless sessions with the plugin loaded: setup (Python CLI),
+onboard (library with its own CI), convert (a v2.15 and a v3.3 project — same gate and test count
+before and after), deliver (3 UI specs with seeded defects, real `wf:critic`), gauntlet (an epic
+from a design doc; the mod's `wf_usage` tool was called), release (publish failure path). Every
+finding from those runs is fixed and asserted in `scripts/_check_consistency.py`.
+Not exercised: the spec-board pane on screen and `$.command.run` from it; a Projects coordinator.
 
 ## 1. Why
 
