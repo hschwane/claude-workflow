@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Canonical release/deploy entrypoint — the SINGLE source of truth for "how we ship".
-# Run locally by /release (via the `runner` agent) by default; the GitHub release workflow
-# calls the SAME script as a fallback (when local can't publish — missing creds / OIDC).
+# Run locally by /wf:release by default; the GitHub release workflow calls the SAME script as a
+# fallback (when local can't publish — missing creds / OIDC).
 #
 # The version bump + changelog are prepared by the main session BEFORE this runs (judgment).
 # This script is the deterministic mechanical part: gate → build → publish → migrate → deploy.
@@ -9,7 +9,7 @@
 #
 #   ./scripts/release.sh <version>
 #
-# project-init / project-onboard fill in the real steps for this project's release type.
+# /wf:setup and /wf:onboard fill in the real steps for this project's release type.
 set -euo pipefail
 cd "$(dirname "$0")/.." || exit 1
 # Fails open: with `dirname` off PATH, `cd "/.."` succeeds and this would release from /.
@@ -19,23 +19,15 @@ cd "$(dirname "$0")/.." || exit 1
 # *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
 # needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
 # meaning "would pass in CI", which is the one guarantee this script exists to give.
-# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# .claude/gate-overrides.env is project-owned; say in a comment there why each override exists.
 # shellcheck disable=SC1091
 [ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
 VERSION="${1:?usage: release.sh <version>}"
 
 echo "▶ release.sh $VERSION"
 
-# 1. Gate — never release on a red suite, and never re-run one that is still valid.
-# gate-status.sh is the single implementation of "is the recorded result still good for this
-# tree?". Locally /verify release has just run the gate, so this is a no-op; in the CI fallback
-# there is no recorded result, it exits non-zero, and the gate runs — which is the only gate
-# that path gets.
-if "$(dirname "$0")/gate-status.sh" full; then
-  echo "  ⏭ gate already green for this commit — not re-running"
-else
-  "$(dirname "$0")/ci.sh" full
-fi
+# 1. Gate — never release on a red suite.
+"$(dirname "$0")/ci.sh" full
 
 # --- how to fill this in ---------------------------------------------------------------
 # Each step below is a `step <command>` line — a COMMAND LINE, not a comment. Replace the
@@ -87,7 +79,7 @@ step {{MIGRATIONS}}
 #
 # A project that publishes nothing and deploys nowhere (release-type: internal, no deploy)
 # legitimately has no steps left at all — the healthcheck moved to scripts/healthcheck.sh,
-# which /release runs after the deploy settles. That project sets RELEASE_ALLOW_EMPTY=1 and
+# which /wf:release runs after the deploy settles. That project sets RELEASE_ALLOW_EMPTY=1 and
 # records why in tech-debt.md. Do not invent a no-op step to satisfy the guard: the guard
 # exists to make "this released nothing" visible, and a `step :` hides exactly that.
 # e.g. step railway up | step : (Railway auto-deploys on merge)
@@ -95,14 +87,14 @@ step {{DEPLOY}}
 
 # 5. NO healthcheck here — deliberately. Under a platform that deploys on push, the deploy is
 # still building when this script ends, so a check run here probes the OLD version and reports
-# a healthy release that has not happened yet. /release owns it instead: wait for the deploy to
+# a healthy release that has not happened yet. /wf:release owns it instead: wait for the deploy to
 # settle, then `scripts/healthcheck.sh "$VERSION"`, then roll back only to protect users while
 # the real fix is made. Do not add a healthcheck step back into this script.
 
 if [ "$STEPS" -eq 0 ] && [ "${RELEASE_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ release.sh $VERSION: no steps are configured — this released nothing." >&2
   echo "  Fill the steps in scripts/release.sh. If this project genuinely publishes and deploys" >&2
-  echo "  nothing, record that in .claude/memory/tech-debt.md and set RELEASE_ALLOW_EMPTY=1." >&2
+  echo "  nothing, set RELEASE_ALLOW_EMPTY=1 in .claude/gate-overrides.env with a comment why." >&2
   exit 1
 fi
 

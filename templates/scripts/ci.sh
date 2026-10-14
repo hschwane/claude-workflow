@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Canonical check entrypoint — the SINGLE source of truth for "what the checks are".
-# Claude's local gate (via the `runner` agent) AND the GitHub CI workflow both call this,
-# so "passes locally" == "would pass in CI" (no drift, closes the self-grading gap).
+# Claude's local gate AND the GitHub CI workflow both call this, so "passes locally" ==
+# "would pass in CI".
 #
 # Modes:
-#   ./scripts/ci.sh fast   → format-check + lint + typecheck/compile + unit tests   (per-subtask gate)
-#   ./scripts/ci.sh full   → everything in fast + the build + integration/e2e       (merge / release gate)
+#   ./scripts/ci.sh fast   → format-check + lint + typecheck/compile + selected unit tests
+#   ./scripts/ci.sh full   → everything in fast + all unit tests + build + integration/e2e
 #   ./scripts/ci.sh        → same as full
 #
-# project-init / project-onboard fill in the real commands for this project's language.
+# /wf:setup and /wf:onboard fill in the real commands for this project's language.
 set -uo pipefail
 # Run from the repo root whatever the caller's cwd is — CONTRIBUTING tells humans to run
 # `scripts/ci.sh fast`, and a session with two source roots is often cd'd elsewhere.
@@ -22,7 +22,7 @@ cd "$(dirname "$0")/.." || exit 1
 # *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
 # needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
 # meaning "would pass in CI", which is the one guarantee this script exists to give.
-# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# .claude/gate-overrides.env is project-owned; say in a comment there why each override exists.
 # shellcheck disable=SC1091
 [ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
 MODE="${1:-full}"
@@ -52,23 +52,6 @@ TESTS=0
 FAILED=0
 IN_FULL=0
 
-# --- verdict ----------------------------------------------------------------------------
-# Written where the calling session can read it directly, instead of trusting a subagent's
-# prose summary of this output. Runtime state: gitignored.
-write_result() {
-  local status="$1"
-  mkdir -p .claude/memory 2>/dev/null || true
-  # `dirty` covers uncommitted work: HEAD does not move when a file is edited, so a
-  # sha-only record lets a caller skip the gate on a tree that changed since it ran.
-  local dirty=false
-  [ -n "$(git status --porcelain 2>/dev/null)" ] && dirty=true
-  printf '{"mode":"%s","status":"%s","checks":%d,"full_checks":%d,"tests":%d,"failed":%d,"sha":"%s","dirty":%s}\n' \
-    "$MODE" "$status" "$CHECKS" "$FULL_CHECKS" "$TESTS" "$FAILED" \
-    "$(git rev-parse --verify -q HEAD || echo unknown)" "$dirty" \
-    > .claude/memory/last-gate.json 2>/dev/null || true
-}
-
-
 prepare() {
   echo "  ⚙ $*"
   "$@"
@@ -77,7 +60,6 @@ prepare() {
   echo "  ✗ PREPARE FAILED (exit $code): $*" >&2
   echo "✗ ci.sh ($MODE): a preparation step failed; the checks would run against missing or stale sources." >&2
   FAILED=1
-  write_result failed
   exit "$code"
 }
 
@@ -94,7 +76,6 @@ check() {
   FAILED=1
   echo "  ✗ FAILED (exit $code): $*" >&2
   echo "✗ ci.sh ($MODE): failed at check $CHECKS of $CHECKS run." >&2
-  write_result failed
   # `exit`, not `return` — a `|| true` appended to the stage would swallow a return code
   # and let the gate report green on a failed check. Exiting here means the suffix is
   # never evaluated, so the suppression trick cannot work at all.
@@ -193,8 +174,7 @@ fi
 if [ "$CHECKS" -eq 0 ] && [ "${CI_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ ci.sh ($MODE): no checks are configured — this gate proves nothing." >&2
   echo "  Fill the stages in scripts/ci.sh. If this project genuinely has no toolchain yet," >&2
-  echo "  record that in .claude/memory/tech-debt.md and set CI_ALLOW_EMPTY=1 to acknowledge it." >&2
-  write_result empty
+  echo "  set CI_ALLOW_EMPTY=1 in .claude/gate-overrides.env, with a comment saying why." >&2
   exit 1
 fi
 
@@ -202,8 +182,7 @@ if [ "$TESTS" -eq 0 ] && [ "${TESTS_ALLOW_NONE:-0}" != "1" ]; then
   echo "✗ ci.sh ($MODE): no test stage ran — format, lint and types passed on untested code." >&2
   echo "  A gate with no tests is a spell-checker. Fill the test stages in scripts/ci.sh." >&2
   echo "  If this project genuinely has no test suite yet, record that in" >&2
-  echo "  .claude/memory/tech-debt.md and set TESTS_ALLOW_NONE=1 to acknowledge it." >&2
-  write_result untested
+  echo "  .claude/gate-overrides.env: TESTS_ALLOW_NONE=1, with a comment saying why." >&2
   exit 1
 fi
 
@@ -211,10 +190,7 @@ if [ "$MODE" = "full" ] && [ "$FULL_CHECKS" -eq 0 ] && [ "${FULL_ALLOW_NONE:-0}"
   echo "✗ ci.sh (full): no full-only stages are configured — 'full' ran exactly what 'fast' runs." >&2
   echo "  A merge or release gated on this proves nothing more than a per-subtask check did." >&2
   echo "  Add the build and integration stages, or set FULL_ALLOW_NONE=1 if this project" >&2
-  echo "  genuinely has neither and record that in .claude/memory/tech-debt.md." >&2
-  write_result full-degraded
+  echo "  genuinely has neither (FULL_ALLOW_NONE=1 in .claude/gate-overrides.env, with a comment why)." >&2
   exit 1
 fi
-
-write_result passed
 echo "✓ ci.sh ($MODE) passed — $CHECKS check(s), $TESTS test stage(s)$([ "$MODE" = full ] && echo ", $FULL_CHECKS full-only")"

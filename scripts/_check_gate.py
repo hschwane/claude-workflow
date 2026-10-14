@@ -13,9 +13,6 @@ from pathlib import Path
 CI = Path("templates/scripts/ci.sh").read_text()
 REL = Path("templates/scripts/release.sh").read_text()
 HEALTH = Path("templates/scripts/healthcheck.sh").read_text()
-DEPREF = Path("templates/scripts/deploy-reference.sh").read_text()
-GATEST = Path("templates/scripts/gate-status.sh").read_text()
-CRIT = Path("templates/scripts/criteria-check.sh").read_text()
 
 
 CHECK_STAGES = ("FORMAT_CHECK", "LINT", "TYPECHECK")
@@ -94,54 +91,6 @@ def health(prod="probe true", *args, env=None):
     return run(s, *args, name="healthcheck.sh", env=env)
 
 
-def depref(ref="app-ref", prod="app-prod", steps="step true", env=None):
-    s = (DEPREF.replace("{{REFERENCE_TARGET}}", ref).replace("{{PRODUCTION_TARGET}}", prod)
-               .replace("{{DEPLOY_REFERENCE}}", steps))
-    return run(s, name="deploy-reference.sh", env=env)
-
-
-def gate_status(record=None, *, commits=("code",), dirty=False, want="full"):
-    """Run gate-status.sh in a throwaway repo. `record` is formatted with the sha of commit 1."""
-    with tempfile.TemporaryDirectory() as d:
-        (Path(d) / "scripts").mkdir()
-        (Path(d) / "scripts" / "gate-status.sh").write_text(GATEST)
-        g = lambda *a: subprocess.run(["git", *a], cwd=d, capture_output=True)
-        g("init", "-q", "."); g("config", "user.email", "t@t"); g("config", "user.name", "t")
-        # last-gate.json is gitignored in a real project; untracked here would read as dirty.
-        (Path(d) / ".gitignore").write_text(".claude/memory/\n")
-        (Path(d) / "f.txt").write_text("a"); g("add", "-A"); g("commit", "-qm", "one")
-        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=d, capture_output=True,
-                             text=True).stdout.strip()
-        if record is not None:
-            (Path(d) / ".claude" / "memory").mkdir(parents=True)
-            (Path(d) / ".claude" / "memory" / "last-gate.json").write_text(record % sha)
-        for c in commits[1:]:
-            path = "docs/specs/x.md" if c == "spec" else "f.txt"
-            (Path(d) / path).parent.mkdir(parents=True, exist_ok=True)
-            (Path(d) / path).write_text(c)
-            g("add", "-A"); g("commit", "-qm", c)
-        if dirty:
-            (Path(d) / "f.txt").write_text("changed")
-        return subprocess.run(["bash", "scripts/gate-status.sh", want], cwd=d,
-                              capture_output=True).returncode
-
-
-def crit(spec):
-    with tempfile.TemporaryDirectory() as d:
-        (Path(d) / "scripts").mkdir()
-        (Path(d) / "scripts" / "criteria-check.sh").write_text(CRIT)
-        (Path(d) / "s.md").write_text(spec)
-        return subprocess.run(["bash", "scripts/criteria-check.sh", "s.md"], cwd=d,
-                              capture_output=True).returncode
-
-
-_C2 = "## Acceptance Criteria\n- run x -> Z\n- bad w -> V\n\n"
-_TBL = ("## Criteria verification\n| Criterion | Expected | Observed | Source |\n|---|---|---|---|\n"
-        '| "run x -> Z" s.md:2 | Z | Z | manual run |\n'
-        '| "bad w -> V" s.md:3 | V | V | test asserts V |\n')
-
-VALID = '{"mode":"full","status":"passed","sha":"%s","dirty":false}'
-
 CASES = [
     ("a filled gate passes",                      run(ci(), "full") == 0),
     ("a failing check fails the gate",            run(ci(stages='sh -c "exit 3"'), "fast") != 0),
@@ -183,43 +132,6 @@ CASES = [
      health('''version_probe sh -c 'echo 1.4.0 | grep -q "$0"' "$VERSION"''', "9.9.9") != 0),
     ("an unknown environment fails",              health("probe true", "--env", "nope") != 0),
 
-    # --- deploy-reference: the guard that makes it safe to run unattended ---
-    ("a reference deploy to a distinct target runs", depref() == 0),
-    ("deploying reference AT production refuses",    depref(ref="app-prod", prod="app-prod") != 0),
-    # An unset production name would make the comparison above pass by knowing nothing.
-    ("an unset production target refuses",           depref(prod="") != 0),
-    ("a reference deploy with no steps refuses",     depref(steps="") != 0),
-    ("'|| true' cannot green a reference step",      depref(steps="step false || true") != 0),
-
-    # --- gate-status: the five-condition rule, as the executable everything else calls ---
-    ("a clean matching record is valid",          gate_status(VALID) == 0),
-    ("no record → run the gate",                  gate_status(None) != 0),
-    ("a failed record → run the gate",
-     gate_status('{"mode":"full","status":"failed","sha":"%s","dirty":false}') != 0),
-    ("a fast record does not authorise skipping full",
-     gate_status('{"mode":"fast","status":"passed","sha":"%s","dirty":false}') != 0),
-    ("a full record does authorise skipping fast",
-     gate_status(VALID, want="fast") == 0),
-    # Recorded-dirty and dirty-now are NOT the same condition: the first catches a gate that
-    # ran over edits later reverted, the second a green run followed by an edit — and editing
-    # does not move HEAD, so every recorded field still matches.
-    ("a record from a dirty tree → run the gate",
-     gate_status('{"mode":"full","status":"passed","sha":"%s","dirty":true}') != 0),
-    ("an edit after a green run → run the gate",  gate_status(VALID, dirty=True) != 0),
-    ("a later code commit → run the gate",        gate_status(VALID, commits=("code", "code2")) != 0),
-    ("a later spec-only commit stays valid",      gate_status(VALID, commits=("code", "spec")) == 0),
-    ("a recorded sha that is not a commit fails",
-     gate_status('{"mode":"full","status":"passed","sha":"deadbeef%.0s","dirty":false}') != 0),
-
-    # --- criteria-check: /verify §3 is the one step with no skip rule, and nothing enforced it ---
-    ("a complete criteria table passes",          crit(_C2 + _TBL) == 0),
-    # The section is usually last in the file. A sed range with no closing heading runs to EOF,
-    # so trimming its final line drops the last row — that off-by-one rejected correct specs.
-    ("...whether it is the last section or not",  crit(_C2 + _TBL + "\n## Open Questions\n\n") == 0),
-    ("a missing section fails",                   crit(_C2) != 0),
-    ("a table short a row fails",                 crit(_C2 + "\n".join(_TBL.splitlines()[:-1]) + "\n") != 0),
-    ("a header-only table fails",                 crit(_C2 + "## Criteria verification\n| a |\n|---|\n") != 0),
-    ("a spec with no criteria fails",             crit("## Acceptance Criteria\n\n" + _TBL) != 0),
 ]
 
 bad = [name for name, passed in CASES if not passed]

@@ -1,0 +1,14 @@
+{
+  "name": "hschwane",
+  "owner": {
+    "name": "Hendrik Schwanekamp",
+    "email": "hendrik.schwanekamp@gmx.net"
+  },
+  "plugins": [
+    {
+      "name": "wf",
+      "source": "./",
+      "description": "A slim development workflow for Claude Code: project setup, specs, gauntlet-style delivery against the original bar, releases, and a spec board."
+    }
+  ]
+}

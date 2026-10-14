@@ -1,103 +1,50 @@
 ---
 name: release
-description: Bump version + changelog (main session), then run the release/deploy locally via scripts/release.sh. GitHub Actions release only as a fallback.
-argument-hint: "patch|minor|major"
+description: Cut a release — version bump and changelog before the code reaches the trunk, land it, run scripts/release.sh, tag, and confirm the live version with scripts/healthcheck.sh. Use when the user asks to release, publish or deploy a version.
+argument-hint: "patch | minor | major | <version>"
+disable-model-invocation: true
 ---
 
 # Release
 
-The main session prepares the judgment parts (version bump, changelog), then the `runner` agent executes the deterministic `scripts/release.sh` (gate → build → publish → migrate → deploy) locally, and verifies the live version afterwards with `scripts/healthcheck.sh`. GitHub Actions release runs only as a fallback (`release-runner: ci`, or when local can't publish).
+Settings come from the `<!-- wf:settings -->` block in `CLAUDE.md` (`branching`, `trunk`,
+`release`, `deploy`). `release: none` → say there is nothing to release and stop.
 
-## Usage
-```
-/release patch|minor|major
-```
+## 1. Pre-flight
+- Clean tree; pull if a remote exists (`[ -n "$(git remote)" ] && git pull`).
+- **Where from:** `git-flow` → from `develop`, which then merges into the trunk. `main-only` → from
+  the branch being released, **before** it lands on the trunk — landing there *is* the release, so
+  the version must be in the code first.
+- Unmerged work branches (`git branch --no-merged <trunk>`) are not in this release: name them.
+- `scripts/ci.sh full` green, with tests executed.
 
-## Instructions
+## 2. Version and changelog
+- New version from the argument (semver bump of the manifest's version, or the literal version).
+  Write it to the manifest (`npm version <bump> --no-git-tag-version`, `pyproject.toml`,
+  `Cargo.toml`, …). No manifest version → ask for it.
+- `CHANGELOG.md`: a new `## [x.y.z] - <date>` section at the top, built from the commits since the
+  last tag (`LAST=$(git describe --tags --abbrev=0 2>/dev/null); git log ${LAST:+$LAST..}HEAD
+  --oneline --no-merges` — the guard matters on the first release). Group Added / Changed / Fixed /
+  Removed, one short line each. Read only the head of the file, never all of it.
+- Check the README's description and run instructions are still true.
+- Commit `chore: release v<version>`.
 
-### 1. Pre-flight
-- Read `branching` and **`trunk-branch`** in `CLAUDE.md`. The trunk is `main` for a project `/project-init` created and often `master` for one that was onboarded — read the setting rather than assuming either.
-- **Where you run from depends on the model.** Under `git-flow`: from `develop`, and the release merges `develop` → trunk. Under `main-only`: **from the feature branch**, because landing on the trunk *is* the release — `/pr` refuses that merge and sends you here precisely so the version bump happens before the code ships. Several tickets may share that branch and release together; the unit of release is the branch, not the ticket.
-- Working tree clean (`git status`); `[ -n "$(git remote)" ] && git pull || echo "no remote — nothing to pull"` so the release includes everything a remote already has. The guard matters: `github: no` is supported, and an unguarded `git pull` makes the first executable line of `/release` exit 1.
-- **Check for unmerged ticket branches: `git branch --no-merged {trunk-branch}`.** A finished ticket that is not merged is simply not in this release, and nothing else notices — the pull above only fetches what a remote has. Land it with `/pr` first, or say explicitly that it is being held back — do not merge it here, and do not re-derive the gate rules to decide whether you may.
-- **Run `/verify release`.** It owns the gate, the review and the regression smoke pass. `release.sh` gates too, but conditionally via `gate-status.sh`, so nothing runs twice — and in the CI fallback, where no `/verify` ran, its gate is the only one.
+## 3. Land it
+`main-only`: fast-forward the trunk to the release commit (`git merge --ff-only`), or a PR merged
+the same way — the trunk's tree must be the tree that passed the gate. `git-flow`: merge `develop`
+into the trunk, then the trunk back into `develop`.
 
-### 2–6. Prepare version + changelog (main session — the judgment part)
-- **Bump type**: the argument, or ask (patch/minor/major).
-- **New version**: read the `version-source` setting in `CLAUDE.md` and take the current version from that file (`package.json` / `pyproject.toml` / `Cargo.toml` / `CMakeLists.txt` / `VERSION`), then apply the semver bump. If it is `none`, this repo has nothing to bump — ask for the version and use the answer for the changelog and the tag.
-- **Write it** back to that file (`npm version {bump} --no-git-tag-version`, or edit the manifest); with `version-source: none` there is nothing to write. Build-time version files (`src/version.*`) are generated by the build and usually gitignored — don't hand-edit those.
-- **Changelog**: group the commits since the last tag **by conventional-commit type** into a new `## [x.y.z] - {date}` section at the top of `CHANGELOG.md`. Get the commits with:
-  ```bash
-  LAST=$(git describe --tags --abbrev=0 2>/dev/null)
-  git log ${LAST:+$LAST..}HEAD --oneline --no-merges
-  ```
-  The `2>/dev/null` and the `${LAST:+…}` matter: on a project with **no tags yet** — every project's first release, the most likely moment for a new user to run this — a bare `git describe` fails with "No names found, cannot describe anything" and the outer command collapses to `git log ..HEAD`, which errors too. With no tag, take the whole history.
-  - **Read only the head.** `Read` the first ~30 lines and anchor the `Edit` there. Never read the whole file: it grows with every release (a real project hit 35 KB after 15), so a full read makes each release cost more than the last.
-  - **Keep entries short.** One line per change in a handful of words, and where the in-app changelog carries a description, one or two sentences — a longer explanation only for a breaking or genuinely large change. Group as Added / Changed / Fixed / Removed, each entry naming its ticket.
-- **Split the changelog when it grows.** At a **major** bump, or when `CHANGELOG.md` passes ~50 KB: move the closed entries to `docs/changelog/<major>.x.md` (or `<from>-<to>.md` if a single major already exceeds 50 KB), cut **only at a version heading** so no release is ever split across two files, and leave `CHANGELOG.md` holding the current major plus a line pointing at `docs/changelog/`. Each archive opens with a header naming its range and linking back. The root file stays where the outside world expects it; the archives do not belong there.
-- **Build the section from the log, not from `## [Unreleased]`.** If that section is empty while commits exist since the tag, the changelog has been behind the truth since then and trusting it ships the gap.
-- **Check the README.** Its description, install/run instructions and usage example are the first thing a new reader sees, and this is the checkpoint that keeps them true. Delete any scaffolded authoring comments still in it — those were for the author, not the reader.
-- Commit the bump + changelog: `chore: release v{version}  [skip ci]` (omit `[skip ci]` if `ci-on-claude: yes`). Under git-flow, on `develop`; under `main-only`, **on the feature branch, before the merge in step 7** — production must never run unlabelled code, and every later check (`healthcheck.sh $VERSION`, rollback, "what is live?") depends on the deployed artifact carrying the right version from its first second.
+## 4. Run and tag
+- `scripts/release.sh <version>` (gate, build, publish, migrations, deploy — whatever the project
+  filled in). Or, where the project releases from CI, dispatch it:
+  `gh workflow run release.yml -f version=<version>` and watch it to completion.
+- `git tag v<version>` and push trunk, branches and tag if a remote exists. A rejected push (protected
+  branch, proxy) → fall back to `gh api`; no remote → say so and go on.
 
-### 7. Land it on the trunk
+## 5. Confirm it is live
+Wait until the new version can be visible (a deploy builds, a registry propagates), then
+`scripts/healthcheck.sh <version>` — it only passes when a probe actually compares the version.
+Unhealthy → roll back to protect users, then diagnose and fix forward; a rollback alone is not done.
 
-**Under `main-only`:** `git merge --ff-only {branch}` onto the trunk, then push. Fast-forward is
-required, not preferred — it makes the trunk's tree bit-identical to the one `/verify` passed. If
-it cannot fast-forward, rebase and re-run `/verify release`; a merge commit into a trunk that
-deploys on push would ship a tree nothing has ever tested. Where the project uses PRs, open and
-merge one instead, with the same requirement.
-
-**Under `git-flow`:** step 9 does this merge, after the release runs on `develop`.
-
-### 8. Run the release (local by default)
-
-Read the `release-runner` setting in `CLAUDE.md`.
-
-**A project that publishes and deploys nothing** — an internal tool, a private service run from a checkout — has no release steps and no health probes, and both scripts refuse by design rather than reporting a pass they did not earn. That project needs `RELEASE_ALLOW_EMPTY=1` (and `HEALTH_ALLOW_EMPTY=1` for step 10), which `/project-init` and `/project-onboard` record in `.claude/memory/tech-debt.md` and `docs/dev/deploy.md` when they set it up. **Read those before concluding the release is broken** — the first `/release` on such a project exits 1 otherwise, and the reason is a deliberate guard, not a fault.
-
-**`release-runner: local` (default):** hand off to the `runner` agent → `scripts/release.sh {version}` (it runs the gate again, builds, publishes where creds are present, and triggers/awaits deploy). The runner reports each step.
-- **On failure** (publish errored, unhealthy deploy) → the runner returns control; diagnose and fix, or `## Blocked` in unsupervised mode. Don't leave a half-published release silently.
-
-**`release-runner: ci`:** trigger the release workflow by **dispatch** — `gh workflow run release.yml -f version={version}`. The workflow is dispatch-only (never tag-triggered), so the tag you push in step 9 does not re-fire it (no double-publish). Monitor **without sleep-polling**: check `gh run list --workflow=release.yml --limit=1` once; if still running in a cloud session, schedule a self-check-in and end the turn, re-checking on wake until it concludes.
-
-
-### 9. Tag + push
-```
-git tag v{version}
-[ -n "$(git remote)" ] && git push && git push --tags || echo "no remote — tag is local only"
-```
-`github: no` is a supported setting, and a local-only repo has no remote: an unguarded `git push` exits 128 with "No configured push destination". Say so once and carry on — the tag still exists locally.
-The tag is the version record; it triggers nothing (the release workflow is dispatch-only). Git-flow: merge `develop` → the trunk, tag the merge commit, push, then sync the trunk back into `develop` (stop + `## Blocked` on merge conflicts).
-
-**Push the release branch — that's the point of `/release`.** Pushing the trunk branch and `develop` and tagging are steps of this skill, authorized by its invocation (see **Merging** in `CLAUDE.md`); a session instruction naming a feature branch doesn't override them. If the push is rejected GitHub-side (protected branch, proxy), fall back to `gh` rather than stopping. That fallback is for a *rejected* push; a repo with **no remote at all** is not a failure to escalate — note it and continue. If `scripts/release.sh` deploys to production, that too is what `/release` was asked to do — run it and verify health (step 10); don't pause for a separate confirmation.
-
-### 10. Post-release verification
-
-**Wait, then verify, then fix.** This is not only for deployed apps — the subject is whatever now carries the version: a service's health endpoint, a registry (`npm view`), or the built artifact's own `--version`. Skip it only where the project publishes and deploys nothing at all, which is also the only case where `healthcheck.sh` has no probes.
-
-1. **Wait for it to become visible**, with a timeout. A platform that deploys on push returns immediately while it builds for minutes, and a registry takes time to propagate — a check fired straight after the release probes the *old* version and reports a release that has not happened.
-2. **`scripts/healthcheck.sh {version}`**. It refuses to confirm a version unless a probe actually compares against it: reaching the thing proves it answers, not that the new build is what answered.
-3. **Unhealthy → fix it.** Roll back to protect users while you diagnose, then fix forward. A rollback is not the resolution, and a release left rolled back with no diagnosis is an unfinished job. The rollback procedure is in `docs/dev/deploy.md`.
-
-No artifact is recorded here, deliberately: liveness is a current fact, not a historical one. A record saying "the release steps executed" can be true while the service is down. Re-running the healthcheck answers the real question, which is why it is a script and not a note.
-
-### 11. Report
-```
-Released v{version} ✓   (runner: {local|ci})
-Changelog updated · tag v{version} pushed
-Publish: {ok|n/a}   Deploy: {healthy|n/a}
-```
-
----
-
-### Hotfix on an already-released version
-
-*(Out of the numbered sequence: a hotfix skips and reorders several steps.)*
-
-A hotfix runs this skill from a **hotfix branch**, not from the branch step 1 requires — that is deliberate, and it is the one exception to the pre-flight check. It also tags once, on the hotfix branch, and step 9's git-flow merge-and-tag does **not** run again (tagging the merge commit too would try to create the same tag name twice).
-
-1. Branch from the release tag: `git checkout -b hotfix/v1.2.1 v1.2.0`
-2. Apply the fix and commit.
-3. Run steps 2–6 here (bump, changelog, commit) **on the hotfix branch**, skipping step 1's branch check.
-4. Run `scripts/release.sh` (step 8), then tag `v1.2.1` on the hotfix branch and push the tag.
-5. Merge back — into the trunk under `branching: main-only`; into **both** the trunk and `develop` under `git-flow`, so the fix is not lost on the next release. Merge commits only; do not re-tag.
+## 6. Report
+Version, changelog section, release steps run, tag, the health result.

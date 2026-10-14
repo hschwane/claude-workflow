@@ -1,19 +1,14 @@
 {
-  "name": "claude-workflow",
-  "displayName": "Claude Workflow",
-  "version": "3.3.0",
-  "description": "Professional AI-assisted software development workflow: draft \u2192 plan \u2192 implement \u2192 verify \u2192 merge \u2192 release",
+  "name": "wf",
+  "displayName": "wf — workflow",
+  "version": "4.0.0",
+  "description": "A slim development workflow for Claude Code: project setup, specs, gauntlet-style delivery against the original bar, releases, and a spec board.",
   "author": {
     "name": "Hendrik Schwanekamp",
     "email": "hendrik.schwanekamp@gmx.net"
   },
   "repository": "https://github.com/hschwane/claude-workflow",
   "license": "MIT",
-  "keywords": [
-    "workflow",
-    "tdd",
-    "spec-driven",
-    "ci",
-    "code-review"
-  ]
+  "keywords": ["workflow", "spec", "gauntlet", "ci", "release"],
+  "types": "./types/index.d.ts"
 }

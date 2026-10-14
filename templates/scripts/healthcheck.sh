@@ -31,7 +31,7 @@ cd "$(dirname "$0")/.." || exit 1
 # *_ALLOW_* escape hatch below is read from the environment, and a project that needs one
 # needs it everywhere — locally, in CI and in a fresh clone — or "passes locally" stops
 # meaning "would pass in CI", which is the one guarantee this script exists to give.
-# .claude/gate-overrides.env is project-owned: /workflow-update never touches it.
+# .claude/gate-overrides.env is project-owned; say in a comment there why each override exists.
 # shellcheck disable=SC1091
 [ -f .claude/gate-overrides.env ] && . .claude/gate-overrides.env
 
@@ -116,7 +116,7 @@ esac
 if [ "$PROBES" -eq 0 ] && [ "${HEALTH_ALLOW_EMPTY:-0}" != "1" ]; then
   echo "✗ healthcheck.sh ($ENVIRONMENT): no probes are configured — this verified nothing." >&2
   echo "  Fill the probes in scripts/healthcheck.sh. If this environment genuinely cannot be" >&2
-  echo "  probed, record that in .claude/memory/tech-debt.md and set HEALTH_ALLOW_EMPTY=1." >&2
+  echo "  probed, set HEALTH_ALLOW_EMPTY=1 in .claude/gate-overrides.env with a comment why." >&2
   exit 1
 fi
 
