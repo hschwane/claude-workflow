@@ -51,7 +51,7 @@ done
 # Small enough to maintain: the procedure prose a session loads. Guideline references are
 # reference material read on demand and are not counted.
 echo "prose budget"
-words=$(cat skills/*/SKILL.md skills/setup/decisions.md agents/*.md | wc -w | tr -d ' ')
+words=$(cat skills/*/SKILL.md skills/setup/decisions.md shared/*.md agents/*.md | wc -w | tr -d ' ')
 if [ "$words" -le 9000 ]; then ok "$words words of skill + agent prose (budget 9000)"; else fail "$words words of skill + agent prose — over the 9000 budget"; fi
 
 echo "no v3 machinery left"

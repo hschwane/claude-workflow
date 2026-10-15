@@ -1,8 +1,7 @@
 ---
 name: onboard
-description: Bring an existing project that has never used the wf plugin under the workflow — understand the codebase, interview the user, fit a real gate to the project's own commands, and record the decisions. For projects that carry an older version of this plugin, use /wf:convert instead.
+description: Bring an existing project that has never used the wf plugin under the workflow — understand the codebase, interview the user, fit a real gate to the project's own commands, and record the decisions. Use when the user asks to onboard or adopt the workflow. For projects that carry an older version of this plugin, use /wf:convert instead.
 argument-hint: "[path]"
-disable-model-invocation: true
 ---
 
 # Onboard
@@ -11,8 +10,11 @@ An existing codebase has opinions; fit the workflow to them, never the other way
 project contains `.claude/workflow-source.json`, `.claude/guidelines/`, `docs/workflow/` or a
 `workflow-settings` block, it carries an older version of this plugin: stop and use `/wf:convert`.
 
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): understanding (section 1) and fitting plus proving
+(sections 3–4) go to workers — in a Project, threads —; the summary and the interview stay with you.
+
 ## 1. Understand
-Explore with a subagent so the reading stays out of this context: stack, how it is built, run and
+Explore with a worker so the reading stays out of this context: stack, how it is built, run and
 tested (the real command names in `package.json`/`pyproject.toml`/`Cargo.toml`/`Makefile`), CI,
 how it is released and deployed, whether it has a UI and a design document, existing docs and
 `CLAUDE.md`. Report it back in a short summary and show it to the user.

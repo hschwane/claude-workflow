@@ -10,6 +10,9 @@ A spec is a small design document with one job: `/wf:deliver` builds it, and a c
 context judges the result against it. This skill makes specs from whatever the user hands over —
 nothing more, nothing less. Input: `$ARGUMENTS`.
 
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): questions and the cut stay with you. Reading a large
+codebase, and storing the specs where you cannot write to the repository, go to a worker.
+
 ## 1. Read the context
 - The settings block in `CLAUDE.md` (`<!-- wf:settings -->`): `spec-mode` decides storage. No
   block → `none`.

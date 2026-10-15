@@ -1,8 +1,7 @@
 ---
 name: gauntlet
-description: Pursue a whole goal from whatever the user gives. Talk with the user until the goal and everything the loop needs are clear, then repeatedly write specs, deliver them (and release if wanted) until the goal is met or the budget is spent — the user never writes specs, and every builder and critic gets the overarching goal.
+description: Pursue a whole goal from whatever the user gives. Talk with the user until the goal and everything the loop needs are clear, then repeatedly write specs, deliver them (and release if wanted) until the goal is met or the budget is spent — the user never writes specs, and every builder and critic gets the overarching goal. Use when the user asks for a gauntlet, or to pursue a goal end to end rather than one change.
 argument-hint: "<anything: a sentence, an idea, a document> [budget: 15%] [parallel: 3]"
-disable-model-invocation: true
 ---
 
 # Gauntlet
@@ -10,8 +9,9 @@ disable-model-invocation: true
 You are the **supervisor**. You do not judge your own work and you do not let a derived spec
 replace the original: every builder and critic holds the goal statement. Inputs: `$ARGUMENTS`.
 
-In a Claude Code **Project**, the coordinator plays this role and threads deliver the specs; in a
-normal session you deliver them yourself or through subagents.
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): the conversation, the goal statement, planning and
+deciding stay with you — in a Project the coordinator, in a session this session. Assessing and
+delivering go to workers: threads in a Project, subagents in a session.
 
 ## 1. Talk until the loop can run
 Start from whatever the user gave — a sentence, an idea, a document. Then talk with them, in
@@ -40,16 +40,16 @@ final report. There are no specs yet — the rounds write them; the user never h
 - **Concurrency** (default 2; e.g. `parallel: 3`): never more agents or threads at once than that.
 
 ## 3. Rounds
-1. **Assess** the current state against the whole bar: run the gate, start the app and look at it
-   where there is a UI, read what exists. Include the critics' findings and open items from the
+1. **Assess** the current state against the whole bar (yourself or a worker): run the gate, start
+   the app and look at it where there is a UI, read what exists. Include the critics' findings and open items from the
    previous round.
 2. **Write the round's specs** yourself for the gaps that matter, following the `spec` skill —
    small, each deliverable in one `deliver` run, its `source` pointing at the goal statement.
 3. **Plan the round:** which specs belong together (same code → one batch in one agent or session,
    in order), which are independent and may run in parallel within the concurrency limit.
-4. **Deliver** each group by following `${CLAUDE_PLUGIN_ROOT}/skills/deliver/SKILL.md` — yourself,
-   or a subagent per independent group (isolated worktree) that gets that file, its specs and the
-   goal statement. **Every builder and every critic receives the goal statement in full**, plus
+4. **Deliver** each group by `${CLAUDE_PLUGIN_ROOT}/skills/deliver/SKILL.md` — one worker per group
+   (a thread running `wf:deliver`, or a subagent with that file), or yourself for a small one; the
+   brief holds its specs and the goal statement. **Every builder and every critic receives the goal statement in full**, plus
    its own area (spec, style guide), so each change makes sense as part of the whole, not only
    against its spec.
 5. **Collect** verdicts, fixed and open findings, bar questions. A spec still open after its 4
@@ -58,8 +58,8 @@ final report. There are no specs yet — the rounds write them; the user never h
    in a row closed no gap (then stop: the bar or the approach needs the user).
 
 ## 4. Finish
-Merge, and release with `${CLAUDE_PLUGIN_ROOT}/skills/release/SKILL.md`, only if the user asked for
-it in section 1. Report:
+Merge (in a Project: the threads' pull requests, in dependency order), and release with
+`${CLAUDE_PLUGIN_ROOT}/skills/release/SKILL.md`, only if the user asked for it in section 1. Report:
 - the bar, and whether it is met — with the evidence (gate output, screenshots, verdicts);
 - per round: specs written, delivered, verdicts;
 - budget used (weekly share before/after) and rounds run;

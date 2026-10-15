@@ -2,10 +2,13 @@
 name: release
 description: Cut a release — version bump and changelog before the code reaches the trunk, land it, run scripts/release.sh, tag, and confirm the live version with scripts/healthcheck.sh. Use when the user asks to release, publish or deploy a version.
 argument-hint: "patch | minor | major | <version>"
-disable-model-invocation: true
 ---
 
 # Release
+
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): run it yourself when you can push; otherwise — in a
+Project — one thread runs sections 1–5 with the version in its brief and reports back. Releasing is
+the user's call: start only when they asked for it.
 
 Settings come from the `<!-- wf:settings -->` block in `CLAUDE.md` (`branching`, `trunk`,
 `release`, `deploy`). `release: none` → say there is nothing to release and stop.

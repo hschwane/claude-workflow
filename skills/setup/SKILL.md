@@ -2,7 +2,6 @@
 name: setup
 description: Set up a new project with the wf workflow — interview the user, decide tests, CI, docs, git and release only where they fit the project, scaffold a minimal working project with a real gate, and verify it. Use when the user starts a new project or asks to set one up.
 argument-hint: "[project name or idea]"
-disable-model-invocation: true
 ---
 
 # Setup
@@ -11,6 +10,9 @@ A new project, small and working, with the decisions that matter written down on
 live at `${CLAUDE_PLUGIN_ROOT}`; nothing from the plugin is copied into the project except what is
 named here. Read `${CLAUDE_PLUGIN_ROOT}/skills/setup/decisions.md` for the interview and what each
 answer produces — `onboard` uses the same file.
+
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): the interview and the yes stay with you; sections 2–3
+can go to one worker with the agreed decisions in its brief — in a Project, a thread.
 
 ## 1. Interview
 Ask in one batch (plain chat, numbered), then follow up only where an answer opens a real question:

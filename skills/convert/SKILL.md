@@ -1,8 +1,7 @@
 ---
 name: convert
-description: Convert a project that carries any older version of this plugin (claude-workflow v1.0 – v3.x) to wf v4 — detect the version, read what that release installed, remove the untouched plugin copies, carry the project's real decisions over, and prove the gate still passes. Use when a project still has the old .claude/skills, guidelines, memory files or workflow-settings block.
+description: Convert a project that carries any older version of this plugin (claude-workflow v1.0 – v3.x) to wf v4 — detect the version, read what that release installed, remove the untouched plugin copies, carry the project's real decisions over, and prove the gate still passes. Use when the user asks to convert, or a project still has the old .claude/skills, guidelines, memory files or workflow-settings block.
 argument-hint: "[path]"
-disable-model-invocation: true
 ---
 
 # Convert
@@ -11,6 +10,9 @@ You tailor this procedure to the project; there is no fixed table of old files. 
 history is the reference: the repository `hschwane/claude-workflow`, one tag per release
 (`v1.0.0` … `v3.3.0`). Clone it once into a scratch directory (`git clone --filter=blob:none`) or
 read it with `gh api`.
+
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): sections 1–3 and 5–6 can go to one worker — in a
+Project, a thread — that returns the file list or the result; the report and the go stay with you.
 
 ## 1. Detect the version
 - `.claude/workflow-source.json` (v3) names the version; a settings block or a `CHANGELOG`-style
@@ -63,7 +65,8 @@ you are. Wait for the user's go.
 - **Scripts:** `ci.sh` / `release.sh` / `healthcheck.sh` stay as filled; remove calls to deleted
   helpers (`gate-status.sh`) and `.claude/memory/` paths so they still run.
 - **Install** `wf` at project scope: the marketplace and plugin in `.claude/settings.json`
-  (`extraKnownMarketplaces` with `hschwane/claude-workflow`, `enabledPlugins` with `wf@hschwane`).
+  (`extraKnownMarketplaces` with `hschwane/claude-workflow`, `enabledPlugins` with `wf@hschwane`). A Claude Code Project does not read these: tell the user to add
+  wf in Project settings › Plugins.
 
 ## 6. Prove it
 Run `scripts/ci.sh full` **before** converting and **after**: both green, the same number of tests

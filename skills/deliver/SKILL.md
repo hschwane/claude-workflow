@@ -2,12 +2,16 @@
 name: deliver
 description: Implement one or more specs (or a request) until a fresh-context critic passes them against the spec and the original bar, with the gate green — at most 4 fix rounds per spec, then report what is open. Use when the user asks to deliver, ship or implement specific specs, or when /wf:gauntlet hands over a round of specs.
 argument-hint: "<spec ids | issue numbers | request> [bar: <design doc or reference>]"
-disable-model-invocation: true
 ---
 
 # Deliver
 
 Build freely; the discipline is in how the result is checked. Inputs: `$ARGUMENTS`.
+
+**Lead and workers** (`${CLAUDE_PLUGIN_ROOT}/shared/workers.md`): you resolve and order the work (sections 1–2) and
+report (section 6); each group's build, gate and critic loop (sections 3–5) runs in one worker — in
+a Project a thread per group, in a session yourself or a subagent. The critic is always a fresh
+subagent of whoever built.
 
 ## 1. Resolve the work
 - **Spec IDs / issue numbers** → read them (spec mode from the `<!-- wf:settings -->` block in
@@ -19,12 +23,12 @@ Build freely; the discipline is in how the result is checked. Inputs: `$ARGUMENT
   of it when it exists.
 
 ## 2. Order the work
-- **Related specs run one after another in this session**, so later ones build on what earlier ones
+- **Related specs run one after another in the same worker**, so later ones build on what earlier ones
   settled. Specs touching the same code form a **batch**: built together, gated once, **judged one
   verdict per spec**.
-- **Independent specs** (no shared files) may run in parallel — subagents in isolated worktrees,
-  each running sections 3–5 for its spec — only when the user or the caller asked for parallelism.
-- After a long group, compact or hand over to a fresh session: the spec statuses are the handoff.
+- **Independent specs** (no shared files) may run in parallel, each in its own worker, within the
+  concurrency limit (default 2, or what the user or the caller said).
+- After a long group, compact or hand over to a fresh worker: the spec statuses are the handoff.
 
 ## 3. Build
 Set the spec `in-progress` (file frontmatter or issue label). Implement the way you judge best —
@@ -53,7 +57,7 @@ drift. Never your reasoning or history.
 - **Bar questions** go to the user; meanwhile take the least invasive reading and say which.
 - **After 4 rounds with must-fixes still open:** stop that spec, leave it `in-progress`, and report
   the open findings with two options: **turn them into new specs**, or **authorise another round**.
-  Unattended (called by `gauntlet`), return them to the caller instead of asking.
+  Unattended (a worker, or called by `gauntlet`), return them to the caller instead of asking.
 
 ## 6. Report
 Per spec: verdict, rounds used, the gate line (command, tests run), findings fixed / declined (with

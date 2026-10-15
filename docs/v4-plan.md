@@ -86,16 +86,22 @@ Plugin name **`wf`** — skills run as `/wf:<skill>`.
 
 ### Skills
 
+**v4.2: every skill is model-invocable** so a Projects coordinator can run it (whether a coordinator
+accepts typed slash commands is undocumented). Each skill names its lead/worker split
+(`shared/workers.md`): the place the user talks to keeps the conversation and decisions; repository
+work goes to threads in a Project, subagents in a session, briefed to run unattended — a thread's
+questions never reach the coordinator. Not verifiable here: Projects are not available in the CLI.
+
 | Skill | Invocation | Job |
 |---|---|---|
-| `setup` | user only | New project: interview, decide, scaffold minimal (§5) |
-| `onboard` | user only | Existing project that never used the plugin: interview, decide, fit the gate to its real commands |
-| `convert` | user only | A project carrying **any** older plugin version (v1.0–v3.3): remove every old plugin footprint, carry the project's decisions over (§7) |
+| `setup` | model + user | New project: interview, decide, scaffold minimal (§5) |
+| `onboard` | model + user | Existing project that never used the plugin: interview, decide, fit the gate to its real commands |
+| `convert` | model + user | A project carrying **any** older plugin version (v1.0–v3.3): remove every old plugin footprint, carry the project's decisions over (§7) |
 | `guidelines` | model + user | One reference skill: trigger table in `SKILL.md`, each guideline a supporting file read on demand (§6) |
-| `spec` | user (model may suggest) | Design docs, specs from ideas or from a design doc, enrichment of terse input into a gauntlet-grade bar (§8) |
-| `deliver` | user only | One or more specs/changes, each through build → gate → fresh critic → fix, capped (§9) |
-| `gauntlet` | user only | A whole goal/epic: rounds of specs delivered through `deliver`, every critic holding the original bar, until the result meets it (§10) |
-| `release` | user only | Version, changelog, tag, deploy, assert the live version |
+| `spec` | model + user | Design docs, specs from ideas or from a design doc, enrichment of terse input into a gauntlet-grade bar (§8) |
+| `deliver` | model + user | One or more specs/changes, each through build → gate → fresh critic → fix, capped (§9) |
+| `gauntlet` | model + user | A whole goal/epic: rounds of specs delivered through `deliver`, every critic holding the original bar, until the result meets it (§10) |
+| `release` | model + user | Version, changelog, tag, deploy, assert the live version |
 
 ### Agents
 - **`critic`** (`model: inherit`, read-only + screenshots): judges an artifact against a bar with fresh
@@ -296,8 +302,8 @@ resumable state — specs with status, shown on the spec board, picked up by a f
 Projects threads. In spec mode `none` the specs exist only in the run's state, so a small goal
 stays lightweight.
 
-**Coordinator:** in a Project the coordinator is the supervisor (steps 1–4); threads deliver specs.
-**Unverified whether a coordinator can run plugin skills** — spike in §12 P0.
+**Coordinator:** in a Project the coordinator is the supervisor (steps 1–4); threads deliver specs
+(v4.2, `shared/workers.md`).
 
 ## 11. Mod: `spec-board`
 

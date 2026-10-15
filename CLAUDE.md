@@ -10,6 +10,7 @@ design and every decision behind it.
 skills/<name>/SKILL.md setup, onboard, convert, spec, deliver, gauntlet, release, guidelines
 skills/setup/decisions.md      the project interview, shared by setup and onboard
 skills/guidelines/references/  the guideline library, read on demand
+shared/workers.md      lead vs workers: threads in a Projects coordinator, subagents in a session
 agents/critic.md       the only agent: fresh-context judge against the original bar
 hooks/                 the mod: spec board pane (/board) and the wf_usage tool
 types/                 the mod's $.state contract

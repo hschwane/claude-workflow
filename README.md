@@ -21,6 +21,12 @@ the way otherwise. By default Claude works however it judges best; the workflow 
 | `guidelines` skill | The maintainer's standing recommendations (UI/UX and style guides, logging, background jobs, Railway, PWA, AI features, bots, maps, charts, changelog). Loaded automatically when a feature is designed |
 | `/board` | A spec board pane: specs by status, select several, deliver them. Where no surface draws panes (a cloud session followed in the app), `/board` answers with the board as text |
 
+## In a Claude Code Project
+Add wf in Project settings › Plugins (a Project does not read `.claude/settings.json` plugins).
+Call every skill at the coordinator: it keeps the conversation and the decisions and hands the
+work to threads — one per independent group, each running unattended with the full bar and its
+own critic. In a normal session the same skills use subagents instead.
+
 ## What it deliberately does not do
 Anything Claude Code already ships: planning (`plan mode`, or just ask), app verification (`/run`,
 `/verify`, `/run-skill-generator`), code review (`/code-review`), long-running goals (`/goal`),

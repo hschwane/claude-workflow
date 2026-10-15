@@ -15,6 +15,7 @@ DECISIONS = Path("skills/setup/decisions.md").read_text()
 CLAUDE_T = Path("templates/CLAUDE.md.template").read_text()
 CRITIC = Path("agents/critic.md").read_text()
 CI = Path("templates/scripts/ci.sh").read_text()
+WORKERS = Path("shared/workers.md").read_text()
 MOD = Path("hooks/wf.tsx").read_text() if Path("hooks/wf.tsx").exists() else ""
 GUIDE_DIR = Path("skills/guidelines")
 
@@ -113,6 +114,15 @@ CASES = [
      "Talk until the loop can run" in SKILLS["gauntlet"] and "the user never has to" in SKILLS["gauntlet"]),
     ("gauntlet hands the goal statement to every builder and critic",
      "Every builder and every critic receives the goal statement" in SKILLS["gauntlet"]),
+    # A Projects coordinator starts skills through the model and routes the work to threads; a
+    # normal session uses subagents. Every skill must be model-invocable and follow workers.md.
+    ("every skill can be invoked by the model",
+     all("disable-model-invocation" not in t.split("---", 2)[1] for t in SKILLS.values())),
+    ("every procedure skill names the lead/worker split",
+     all("${CLAUDE_PLUGIN_ROOT}/shared/workers.md" in t for n, t in SKILLS.items() if n != "guidelines")),
+    ("workers.md covers threads, subagents, unattended briefs and landing",
+     all(s in WORKERS for s in ("Projects coordinator", "threads", "subagents", "Talking stays with the lead",
+                                "unattended", "Project settings › Plugins", "pull requests"))),
     ("gauntlet can release, through the release skill", "skills/release/SKILL.md" in SKILLS["gauntlet"]),
     ("setup starts from the executed fixtures", "languages/<lang>/fixture/" in SKILLS["setup"]),
     ("CI templates fill the branch list on both triggers",
