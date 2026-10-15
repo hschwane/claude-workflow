@@ -64,8 +64,14 @@ CASES = [
      all(l in SKILLS["spec"] and l in DECISIONS for l in LABELS)
      and (not MOD or all(l in MOD for l in ("wf-spec", "wf:ready", "wf:in-progress")))),
     ("the mod submits commands that exist",
-     not MOD or ("command: `wf:${verb}`" in MOD
-                 and all(f"'{c}'" in MOD and c in SKILLS for c in ("deliver", "gauntlet")))),
+     not MOD or ("command: 'wf:deliver'" in MOD and "deliver" in SKILLS)),
+    # Found in the desktop app's cloud sessions: the pane was never drawn, /board said "opened".
+    ("/board reports an unplaced pane honestly and falls back to text",
+     not MOD or ("opened.isPlaced" in MOD and "Spec board not shown" in MOD and "boardText" in MOD)),
+    # gauntlet starts from a goal or a design doc and writes its own specs.
+    ("gauntlet takes no specs as input; spec has no design-doc or enrich mode",
+     "spec ids" not in SKILLS["gauntlet"] and "enrich mode" not in SKILLS["gauntlet"]
+     and "enrich mode" not in SKILLS["deliver"] and "design <topic>" not in SKILLS["spec"]),
     # The loop: gauntlet runs deliver's procedure by path, deliver spawns the critic, and the
     # critic is the one that gets the original bar.
     ("gauntlet follows deliver's file", "skills/deliver/SKILL.md" in SKILLS["gauntlet"]),
@@ -101,6 +107,13 @@ CASES = [
      "other specs the diff contains" in SKILLS["deliver"] and "not scope drift" in CRITIC),
     # Found by the live release run: a dist/ left from an earlier build was uploaded with the new one.
     ("the release build starts from an empty output directory", "rm -rf dist" in DECISIONS),
+    # gauntlet: the user never writes specs; it talks until the loop can run, and the goal reaches
+    # every builder as well as every critic.
+    ("gauntlet talks until the loop can run, then writes its own specs",
+     "Talk until the loop can run" in SKILLS["gauntlet"] and "the user never has to" in SKILLS["gauntlet"]),
+    ("gauntlet hands the goal statement to every builder and critic",
+     "Every builder and every critic receives the goal statement" in SKILLS["gauntlet"]),
+    ("gauntlet can release, through the release skill", "skills/release/SKILL.md" in SKILLS["gauntlet"]),
     ("setup starts from the executed fixtures", "languages/<lang>/fixture/" in SKILLS["setup"]),
     ("CI templates fill the branch list on both triggers",
      all(Path(p).read_text().count("branches: {{CI_BRANCHES}}") == 2

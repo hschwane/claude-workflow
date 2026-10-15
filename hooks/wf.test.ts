@@ -23,7 +23,12 @@ const settings = (mode: string) => `# Proj\n\n<!-- wf:settings -->\n- spec-mode:
 // Relative paths reach the engine resolved against the working directory; the table is keyed by the project-relative form.
 const rel = (path: string) => path.replace(/^.*?(?=CLAUDE\.md$|docs\/specs)/, '')
 
-function world(on: On, files: Record<string, string>, dirs: Record<string, { name: string; kind: 'file' | 'dir' }[]>) {
+function world(
+  on: On,
+  files: Record<string, string>,
+  dirs: Record<string, { name: string; kind: 'file' | 'dir' }[]>,
+  opened: { isPlaced: true } | { isPlaced: false; reason: string } = { isPlaced: true },
+) {
   const submitted: string[] = []
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('fs.read', (_$, e) => {
@@ -37,7 +42,7 @@ function world(on: On, files: Record<string, string>, dirs: Record<string, { nam
   })
   on('tool.register', (_$, e) => ({ value: { tool: `mcp__wf__${e.name}` } }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.open', () => ({ value: opened }))
   on('command.run', (_$, e) => {
     submitted.push(`/${e.command} ${e.args}`)
     return {}
@@ -149,12 +154,29 @@ describe('spec board', () => {
       expect(submitted).toEqual(['/wf:deliver S-001 S-002'])
       expect(await ui.find({ key: 'deliver' })).toBeUndefined()
       expect(await ui.find({ key: 'spec-S-001' })).toMatchObject({ text: '[ ] S-001 First' })
-      await ui.press({ key: 'spec-S-003' })
-      await ui.press({ key: 'gauntlet' })
-      expect(submitted[1]).toBe('/wf:gauntlet S-003')
+      expect(await ui.find({ key: 'gauntlet' })).toBeUndefined()
       await ui.unmount()
     })
   }
+
+  test('/board says the pane is not shown, with the reason, and lists the specs as text instead', async ($, on) => {
+    const reason = 'no-surface: no surface is attached ($.session.surfaces() is empty)'
+    world(on, { 'CLAUDE.md': settings('files'), ...SPECS }, TREE, { isPlaced: false, reason })
+    await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true } as never)
+    const ran = (await $.command.run({ command: 'board', args: '' } as never)) as { text?: string }
+    expect(ran.text).toContain(`Spec board not shown: ${reason}`)
+    expect(ran.text).not.toContain('Spec board opened.')
+    expect(ran.text).toContain('in-progress (1)')
+    expect(ran.text).toContain('S-002  Second')
+    expect(ran.text).toContain('/wf:deliver')
+  })
+
+  test('/board says opened only when the pane is placed', async ($, on) => {
+    world(on, { 'CLAUDE.md': settings('none') }, {})
+    await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true } as never)
+    const ran = (await $.command.run({ command: 'board', args: '' } as never)) as { text?: string }
+    expect(ran.text).toBe('Spec board opened.')
+  })
 
   test('a Write under docs/specs refreshes the board; other writes and the call itself are untouched', async ($, on) => {
     const files: Record<string, string> = { 'CLAUDE.md': settings('files'), ...SPECS }

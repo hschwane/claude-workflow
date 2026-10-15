@@ -146,6 +146,22 @@ async function refresh($: EngineInterface) {
   await update($, selected, list => list.filter(id => ids.has(id)))
 }
 
+/** The board as plain text, for where no surface draws the pane. */
+export function boardText(data: WfBoard): string {
+  if (data.message !== undefined) return data.message
+  if (data.specs.length === 0 && data.unreadable.length === 0) return 'No specs yet.'
+  const lines: string[] = []
+  for (const status of ORDER) {
+    const specs = data.specs.filter(s => s.status === status)
+    if (specs.length === 0) continue
+    lines.push(`${status} (${specs.length})`)
+    for (const spec of specs) lines.push(`  ${spec.id}  ${spec.title}`)
+  }
+  for (const u of data.unreadable) lines.push(`unreadable: ${u.file}: ${u.reason}`)
+  lines.push('', 'Deliver with /wf:deliver <id> [<id> …]')
+  return lines.join('\n')
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.tool.register({
@@ -155,7 +171,7 @@ export const register: Register = on => {
       inputSchema: { type: 'object', properties: {} },
       isDeferred: false,
     })
-    await $.command.register({ name: 'board', description: 'Open the spec board: deliver or gauntlet specs' })
+    await $.command.register({ name: 'board', description: 'Open the spec board: pick specs and deliver them' })
     return next(e)
   })
 
@@ -170,9 +186,12 @@ export const register: Register = on => {
   }).catch(() => ({ deny: 'wf_usage: could not read the usage windows' }))
 
   on('command.run', { command: 'board' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Specs' })
+    const opened = await $.ui.open({ id: PANE, title: 'Specs' })
     await refresh($)
-    return { text: 'Spec board opened.' }
+    if (opened.isPlaced) return { text: 'Spec board opened.' }
+    // No surface draws the pane (a cloud session followed in the app attaches none): say so,
+    // and give the board as text so the command is still useful there.
+    return { text: `Spec board not shown: ${opened.reason}\n\n${boardText(await read($, board))}` }
   })
 
   on('tool.call', async ($, e, next) => {
@@ -189,12 +208,12 @@ export const register: Register = on => {
     const chosen = await read($, selected)
     const isDoneShown = await read($, showDone)
 
-    const submit = async (verb: 'deliver' | 'gauntlet') => {
+    const submit = async () => {
       const ids = await read($, selected)
       if (ids.length === 0) return
-      const line = `/wf:${verb} ${ids.join(' ')}`
+      const line = `/wf:deliver ${ids.join(' ')}`
       // $.prompt.submit refuses text that starts with "/", so the skill is run as a command.
-      $.command.run({ command: `wf:${verb}`, args: ids.join(' ') }).catch(err => $.ui.toast(`${line} failed: ${errorText(err)}`))
+      $.command.run({ command: 'wf:deliver', args: ids.join(' ') }).catch(err => $.ui.toast(`${line} failed: ${errorText(err)}`))
       await update($, selected, () => [])
       $.ui.toast(`Sent ${line}`)
     }
@@ -203,18 +222,11 @@ export const register: Register = on => {
     const actions = (
       <Box flexDirection="row" gap={1}>
         {chosen.length > 0 ? (
-          <Button key="deliver" variant="primary" onPress={() => void submit('deliver')}>
+          <Button key="deliver" variant="primary" onPress={() => void submit()}>
             {`Deliver selected (${chosen.length})`}
           </Button>
         ) : (
           <Text dimColor>Deliver selected</Text>
-        )}
-        {chosen.length > 0 ? (
-          <Button key="gauntlet" onPress={() => void submit('gauntlet')}>
-            {`Gauntlet selected (${chosen.length})`}
-          </Button>
-        ) : (
-          <Text dimColor>Gauntlet selected</Text>
         )}
         <Button key="refresh" onPress={() => void refresh($)}>
           Refresh

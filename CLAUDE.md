@@ -11,7 +11,7 @@ skills/<name>/SKILL.md setup, onboard, convert, spec, deliver, gauntlet, release
 skills/setup/decisions.md      the project interview, shared by setup and onboard
 skills/guidelines/references/  the guideline library, read on demand
 agents/critic.md       the only agent: fresh-context judge against the original bar
-hooks/                 the mod: spec board pane (/wf:board) and the wf_usage tool
+hooks/                 the mod: spec board pane (/board) and the wf_usage tool
 types/                 the mod's $.state contract
 languages/<lang>/      stages.json (the per-language gate commands as DATA) + a minimal fixture
 templates/             ci.sh, release.sh, healthcheck.sh, CI/release workflows, gitignores,

@@ -1,6 +1,6 @@
 ---
 name: guidelines
-description: The maintainer's standing recommendations. Load when designing or planning a new feature, component or project; choosing an approach, library or architecture; building UI/UX, forms or screens; adding logging, background jobs, deployment (Railway), PWA/web-app behaviour, AI/LLM features, bots, maps, charts or an in-app changelog; writing tests or acceptance criteria.
+description: The maintainer's standing recommendations. Load when designing or planning a new feature, component or project; choosing an approach, library or architecture; building UI/UX, forms or screens; adding logging, background jobs, deployment (Railway), PWA/web-app behaviour, AI/LLM features, bots, maps, charts or an in-app changelog.
 ---
 
 # Guidelines
@@ -22,7 +22,6 @@ The maintainer's standing recommendations for how things get built. Adapt them t
 | AI integration, Claude Agent SDK, AI features, LLM, transcripts, token budget | `references/ai-integration.md` |
 | Railway deploy, railway.json, deployment/hosting | `references/railway.md` |
 | Telegram bot, commands, inline keyboards, webhooks/polling | `references/telegram-bots.md` |
-| Writing tests or acceptance criteria, comments, dead code, language-specific rules | `references/engineering.md` |
 
 Read only the rows that match. If none match, you are done.
 

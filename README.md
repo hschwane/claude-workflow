@@ -14,12 +14,12 @@ the way otherwise. By default Claude works however it judges best; the workflow 
 | `/wf:setup` | New project: interview, decide tests / CI / git / release only where they fit, scaffold a minimal project with a real gate, verify it |
 | `/wf:onboard` | Existing project: fit the gate to its own commands, record the decisions |
 | `/wf:convert` | A project carrying an older version of this plugin (v1–v3): remove the old copies, keep the decisions, prove the gate still passes |
-| `/wf:spec` | Design docs, specs derived from an idea or a design doc, and terse requests enriched into a precise, checkable bar |
+| `/wf:spec` | Turns a sentence, an idea or a prepared document into specs `/wf:deliver` can build — trivial changes get a one-line spec, bigger ones are cut into small steps |
 | `/wf:deliver` | Build one or more specs; a fresh-context `critic` judges each against the spec **and the original bar**; at most 4 fix rounds, then the open findings come back to you |
-| `/wf:gauntlet` | A whole goal or epic in rounds: a supervisor writes specs for the gaps, delivers them, every critic holds the original bar — until the goal is met or the budget (a share of the weekly allowance, a concurrency limit) is spent |
+| `/wf:gauntlet` | A whole goal from whatever you give it: it talks with you until the goal and the bar are clear, then writes specs, delivers them (and releases, if you want) over and over — every builder and critic holds the goal — until it is met or the budget (a share of the weekly allowance, a concurrency limit) is spent. You never write specs |
 | `/wf:release` | Version and changelog before the trunk, release script, tag, confirm the live version |
-| `guidelines` skill | The maintainer's standing recommendations (UI/UX and style guides, logging, background jobs, Railway, PWA, AI features, bots, maps, charts, changelog, engineering). Loaded automatically when a feature is designed |
-| `/wf:board` | A spec board pane: specs by status, select several, start `deliver` or `gauntlet` on them |
+| `guidelines` skill | The maintainer's standing recommendations (UI/UX and style guides, logging, background jobs, Railway, PWA, AI features, bots, maps, charts, changelog). Loaded automatically when a feature is designed |
+| `/board` | A spec board pane: specs by status, select several, deliver them. Where no surface draws panes (a cloud session followed in the app), `/board` answers with the board as text |
 
 ## What it deliberately does not do
 Anything Claude Code already ships: planning (`plan mode`, or just ask), app verification (`/run`,

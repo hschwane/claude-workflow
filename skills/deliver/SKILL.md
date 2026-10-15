@@ -12,8 +12,8 @@ Build freely; the discipline is in how the result is checked. Inputs: `$ARGUMENT
 ## 1. Resolve the work
 - **Spec IDs / issue numbers** → read them (spec mode from the `<!-- wf:settings -->` block in
   `CLAUDE.md`; `files`: `docs/specs/`, `issues`: `gh issue view`).
-- **A request** → enrich it into a bar with the `spec` skill (enrich mode) and show it before you
-  build. Ask only if guessing would change what gets built.
+- **A request** → write it as a spec with the `spec` skill first (a trivial change gets the trivial
+  form) and show it before you build. Ask only if guessing would change what gets built.
 - **The original bar** — the spec's `source` (design doc, reference, the user's words), or what the
   caller passed as `bar:`. Every critic gets it. For UI work, `docs/design/style-guide.md` is part
   of it when it exists.
